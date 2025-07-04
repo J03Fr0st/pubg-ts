@@ -13,8 +13,40 @@ import { logger } from './logger';
 
 /**
  * Unified PUBG Asset Management System
- * Provides comprehensive access to all PUBG assets with full TypeScript type safety
- * Uses synced local data for zero-latency performance with network fallback
+ * 
+ * Provides comprehensive access to all PUBG assets with full TypeScript type safety.
+ * Uses synced local data for zero-latency performance.
+ * 
+ * ## Recommended Usage
+ * 
+ * All methods are synchronous and use locally cached data for optimal performance:
+ * - `getItemName()`, `getItemInfo()`, `searchItems()` - Item management
+ * - `getVehicleName()`, `getVehicleInfo()` - Vehicle information  
+ * - `getMapName()`, `getAllMaps()` - Map data
+ * - `getSeasonsByPlatform()`, `getCurrentSeason()` - Season information
+ * - `getSurvivalTitle()` - Survival title lookups
+ * 
+ * ## Migration from Async Methods
+ * 
+ * Legacy async methods are deprecated in favor of synchronous alternatives:
+ * - `getSeasonInfo()` → `getSeasonsByPlatform().find(s => s.id === seasonId)`
+ * - `getSeasons()` → `getSeasonsByPlatform('PC')`
+ * 
+ * @example
+ * ```typescript
+ * const assetManager = new AssetManager();
+ * 
+ * // Get item information (synchronous)
+ * const itemName = assetManager.getItemName('Item_Weapon_AK47_C');
+ * const itemInfo = assetManager.getItemInfo('Item_Weapon_AK47_C');
+ * 
+ * // Search items by category
+ * const weapons = assetManager.getItemsByCategory('weapon');
+ * 
+ * // Get season information
+ * const pcSeasons = assetManager.getSeasonsByPlatform('PC');
+ * const currentSeason = assetManager.getCurrentSeason('PC');
+ * ```
  */
 
 export interface AssetConfig {
@@ -328,14 +360,53 @@ export class AssetManager {
   }
 
   // Legacy async methods for backward compatibility
+  /**
+   * @deprecated Use getSeasonsByPlatform() for better performance with local data.
+   * This method will be removed in v2.0.0.
+   * 
+   * @example
+   * // Instead of:
+   * const season = await assetManager.getSeasonInfo(seasonId);
+   * 
+   * // Use:
+   * const allSeasons = assetManager.getSeasonsByPlatform('PC');
+   * const season = allSeasons.find(s => s.id === seasonId);
+   */
   async getSeasonInfo(seasonId: string): Promise<SeasonInfo | null> {
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(
+        '[DEPRECATION WARNING] AssetManager.getSeasonInfo() is deprecated. ' +
+        'Use getSeasonsByPlatform() for better performance with local data. ' +
+        'This method will be removed in v2.0.0.'
+      );
+    }
+    
     const allSeasons = this.getSeasonsByPlatform('PC').concat(
       this.getSeasonsByPlatform('XBOX' as Platform)
     );
     return allSeasons.find((s) => s.id === seasonId) || null;
   }
 
+  /**
+   * @deprecated Use getSeasonsByPlatform('PC') for better performance with local data.
+   * This method will be removed in v2.0.0.
+   * 
+   * @example
+   * // Instead of:
+   * const seasons = await assetManager.getSeasons();
+   * 
+   * // Use:
+   * const seasons = assetManager.getSeasonsByPlatform('PC');
+   */
   async getSeasons(): Promise<SeasonInfo[]> {
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(
+        '[DEPRECATION WARNING] AssetManager.getSeasons() is deprecated. ' +
+        'Use getSeasonsByPlatform() for better performance with local data. ' +
+        'This method will be removed in v2.0.0.'
+      );
+    }
+    
     return this.getSeasonsByPlatform('PC');
   }
 
