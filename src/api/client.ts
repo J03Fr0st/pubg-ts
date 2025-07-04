@@ -31,4 +31,12 @@ export class PubgClient {
   getRateLimitStatus() {
     return this.httpClient.getRateLimitStatus();
   }
+
+  getCacheStats() {
+    return this.httpClient.getCacheStats();
+  }
+
+  clearCache() {
+    this.httpClient.clearCache();
+  }
 }

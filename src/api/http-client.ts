@@ -7,16 +7,20 @@ import {
   PubgValidationError,
 } from '../errors';
 import type { PubgClientConfig } from '../types/api';
+import { createCacheKey, globalCache, type MemoryCache } from '../utils/cache';
+import { logger, withTiming } from '../utils/logger';
 import { RateLimiter } from '../utils/rate-limiter';
 
 export class HttpClient {
   private axios: AxiosInstance;
   private rateLimiter: RateLimiter;
   private config: PubgClientConfig;
+  private cache: MemoryCache;
 
   constructor(config: PubgClientConfig) {
     this.config = config;
     this.rateLimiter = new RateLimiter(10, 60000);
+    this.cache = globalCache;
 
     this.axios = axios.create({
       baseURL: config.baseUrl || 'https://api.pubg.com',
@@ -29,6 +33,7 @@ export class HttpClient {
     });
 
     this.setupInterceptors();
+    logger.client('HTTP client initialized', { shard: config.shard, timeout: config.timeout });
   }
 
   private setupInterceptors(): void {
@@ -87,9 +92,28 @@ export class HttpClient {
     }
   }
 
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.axios.get<T>(url, config);
-    return response.data;
+  async get<T>(url: string, config?: AxiosRequestConfig & { useCache?: boolean }): Promise<T> {
+    const useCache = config?.useCache !== false; // Default to true
+    const cacheKey = createCacheKey('http', 'GET', url, JSON.stringify(config?.params || {}));
+
+    // Check cache first for GET requests
+    if (useCache) {
+      const cached = this.cache.get<T>(cacheKey);
+      if (cached !== undefined) {
+        return cached;
+      }
+    }
+
+    return withTiming(logger.http, `GET ${url}`, async () => {
+      const response = await this.axios.get<T>(url, config);
+
+      // Cache successful GET responses
+      if (useCache && response.status === 200) {
+        this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
+      }
+
+      return response.data;
+    });
   }
 
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
@@ -112,5 +136,13 @@ export class HttpClient {
       remaining: this.rateLimiter.getRemainingRequests(),
       resetTime: this.rateLimiter.getResetTime(),
     };
+  }
+
+  getCacheStats() {
+    return this.cache.getStats();
+  }
+
+  clearCache() {
+    this.cache.clear();
   }
 }

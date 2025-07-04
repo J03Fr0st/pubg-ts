@@ -5,7 +5,17 @@
       "Bash(mkdir:*)",
       "Bash(npm*)",
       "Bash(git*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
+      "Bash(npx husky:*)",
+      "Bash(chmod:*)",
+      "Bash(npm audit fix:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run prepare:*)",
+      "Bash(npx lint-staged:*)",
+      "Bash(./node_modules/.bin/lint-staged:*)",
+      "Bash(npm run lint-staged:*)",
+      "Bash(./test-precommit.sh:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

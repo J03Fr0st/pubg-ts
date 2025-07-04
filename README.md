@@ -1,6 +1,6 @@
 # PUBG TypeScript API Wrapper
 
-A comprehensive TypeScript wrapper for the PUBG API with full type safety, rate limiting, and error handling.
+A comprehensive TypeScript wrapper for the PUBG API with full type safety, rate limiting, error handling, and caching.
 
 ## Features
 
@@ -8,8 +8,11 @@ A comprehensive TypeScript wrapper for the PUBG API with full type safety, rate 
 - 🚦 **Built-in rate limiting** (10 requests per minute by default)
 - 🛡️ **Comprehensive error handling** with custom error types
 - 🔄 **Automatic retries** for failed requests
+- 💾 **Smart caching** with TTL and size limits
 - 📡 **All PUBG API endpoints** supported
 - 🎯 **Easy-to-use service-based architecture**
+- 🐛 **Debug logging** with multiple namespaces
+- ⚡ **Performance monitoring** with timing utilities
 
 ## Installation
 
@@ -101,6 +104,51 @@ const leaderboard = await client.leaderboards.getLeaderboard({
 const telemetry = await client.telemetry.getTelemetryData(telemetryUrl);
 ```
 
+## Advanced Features
+
+### Caching
+
+The wrapper includes automatic caching for API responses:
+
+```typescript
+// Check cache statistics
+const cacheStats = client.getCacheStats();
+console.log(`Cache: ${cacheStats.size}/${cacheStats.maxSize} entries`);
+
+// Clear cache manually
+client.clearCache();
+```
+
+### Debug Logging
+
+Enable debug logging by setting the `DEBUG` environment variable:
+
+```bash
+# Enable all debug logs
+DEBUG=pubg-ts:* node your-app.js
+
+# Enable specific component logs
+DEBUG=pubg-ts:http,pubg-ts:cache node your-app.js
+```
+
+Available debug namespaces:
+- `pubg-ts:http` - HTTP requests and responses
+- `pubg-ts:cache` - Cache hits, misses, and operations
+- `pubg-ts:rate-limit` - Rate limiting events
+- `pubg-ts:client` - Client initialization and configuration
+- `pubg-ts:error` - Error handling and retries
+
+### Rate Limiting
+
+Monitor and manage rate limits:
+
+```typescript
+// Check rate limit status
+const status = client.getRateLimitStatus();
+console.log(`Remaining requests: ${status.remaining}`);
+console.log(`Reset time: ${new Date(status.resetTime)}`);
+```
+
 ## Error Handling
 
 ```typescript
@@ -121,17 +169,6 @@ try {
 }
 ```
 
-## Rate Limiting
-
-The wrapper automatically handles rate limiting with a default of 10 requests per minute:
-
-```typescript
-// Check rate limit status
-const status = client.getRateLimitStatus();
-console.log(`Remaining requests: ${status.remaining}`);
-console.log(`Reset time: ${new Date(status.resetTime)}`);
-```
-
 ## Configuration
 
 ```typescript
@@ -144,6 +181,13 @@ const client = new PubgClient({
   retryDelay: 1000 // optional, default 1s
 });
 ```
+
+## Examples
+
+Check out the [examples](./examples/) directory for comprehensive usage examples:
+
+- [`basic-usage.ts`](./examples/basic-usage.ts) - Simple API usage
+- [`advanced-usage.ts`](./examples/advanced-usage.ts) - Advanced features and error handling
 
 ## Development
 
@@ -165,6 +209,31 @@ npm run lint:fix
 npm run check:fix
 ```
 
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Pre-commit Hooks
+
+This project uses Husky with lint-staged for pre-commit validation:
+- Automatic code formatting with Biome
+- Linting and type checking
+- Running tests for changed files
+
+The hooks run automatically on `git commit`. To bypass (not recommended):
+```bash
+git commit --no-verify
+```
+
 ### Editor Setup
 
 The project includes:
@@ -184,6 +253,14 @@ Recommended VS Code extensions:
 - **Line length**: 100 characters
 - **Trailing commas**: ES5 style
 - **Import organization**: Automatic sorting and grouping
+
+## Contributing
+
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our development process and how to submit pull requests.
+
+## Security
+
+Please see [SECURITY.md](./.github/SECURITY.md) for information about reporting security vulnerabilities.
 
 ## License
 
