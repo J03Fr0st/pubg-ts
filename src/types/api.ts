@@ -1,4 +1,4 @@
-import { Shard, GameMode } from './common';
+import type { GameMode, Shard } from './common';
 
 export interface PubgClientConfig {
   apiKey: string;

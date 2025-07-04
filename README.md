@@ -145,6 +145,46 @@ const client = new PubgClient({
 });
 ```
 
+## Development
+
+### Code Formatting
+
+This project uses [Biome](https://biomejs.dev/) for fast, reliable linting and formatting:
+
+```bash
+# Format all files
+npm run format
+
+# Lint code
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Check and fix both formatting and linting
+npm run check:fix
+```
+
+### Editor Setup
+
+The project includes:
+- **EditorConfig** (.editorconfig) for consistent formatting across editors
+- **VS Code settings** (.vscode/) with recommended extensions and settings
+- **Biome integration** for automatic formatting on save
+
+Recommended VS Code extensions:
+- EditorConfig for VS Code
+- Biome
+
+### Code Style
+
+- **Indentation**: 2 spaces
+- **Quotes**: Single quotes for strings
+- **Line endings**: LF (Unix)
+- **Line length**: 100 characters
+- **Trailing commas**: ES5 style
+- **Import organization**: Automatic sorting and grouping
+
 ## License
 
 MIT

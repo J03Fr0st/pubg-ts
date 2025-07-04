@@ -1,15 +1,15 @@
+import type { PubgClientConfig } from '../types/api';
 import { HttpClient } from './http-client';
-import { PubgClientConfig } from '../types/api';
-import { PlayersService } from './services/players';
-import { MatchesService } from './services/matches';
-import { SeasonsService } from './services/seasons';
 import { LeaderboardsService } from './services/leaderboards';
+import { MatchesService } from './services/matches';
+import { PlayersService } from './services/players';
 import { SamplesService } from './services/samples';
+import { SeasonsService } from './services/seasons';
 import { TelemetryService } from './services/telemetry';
 
 export class PubgClient {
   private httpClient: HttpClient;
-  
+
   public readonly players: PlayersService;
   public readonly matches: MatchesService;
   public readonly seasons: SeasonsService;
@@ -19,7 +19,7 @@ export class PubgClient {
 
   constructor(config: PubgClientConfig) {
     this.httpClient = new HttpClient(config);
-    
+
     this.players = new PlayersService(this.httpClient, config.shard);
     this.matches = new MatchesService(this.httpClient, config.shard);
     this.seasons = new SeasonsService(this.httpClient, config.shard);

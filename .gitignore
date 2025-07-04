@@ -16,8 +16,8 @@ build/
 .env.test.local
 .env.production.local
 
-# IDE
-.vscode/
+# IDE (uncomment .vscode/ if you don't want to share workspace settings)
+# .vscode/
 .idea/
 *.swp
 *.swo

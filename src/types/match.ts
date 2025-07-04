@@ -1,4 +1,11 @@
-import { ResourceComplete, ApiResponse, SingleApiResponse, Shard, GameMode, MapName } from './common';
+import type {
+  ApiResponse,
+  GameMode,
+  MapName,
+  ResourceComplete,
+  Shard,
+  SingleApiResponse,
+} from './common';
 
 export interface MatchAttributes {
   createdAt: string;
@@ -119,7 +126,8 @@ export interface ParticipantRelationships {
   };
 }
 
-export interface Participant extends ResourceComplete<ParticipantAttributes, ParticipantRelationships> {
+export interface Participant
+  extends ResourceComplete<ParticipantAttributes, ParticipantRelationships> {
   type: 'participant';
 }
 

@@ -12,8 +12,13 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "legacy:lint": "eslint src/**/*.ts",
+    "legacy:lint:fix": "eslint src/**/*.ts --fix",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -26,6 +31,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "^2.0.6",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.0",
     "@typescript-eslint/eslint-plugin": "^5.57.0",

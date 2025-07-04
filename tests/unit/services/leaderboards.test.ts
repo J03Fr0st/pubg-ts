@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { LeaderboardsService } from '../../../src/api/services/leaderboards';
-import { HttpClient } from '../../../src/api/http-client';
-import { LeaderboardResponse } from '../../../src/types';
+import type { LeaderboardResponse } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('LeaderboardsService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     leaderboardsService = new LeaderboardsService(mockHttpClient, 'pc-na');
@@ -27,25 +27,27 @@ describe('LeaderboardsService', () => {
   describe('getLeaderboard', () => {
     it('should get leaderboard', async () => {
       const mockResponse: LeaderboardResponse = {
-        data: [{
-          type: 'leaderboard',
-          id: 'leaderboard-1',
-          attributes: {
-            shardId: 'pc-na',
-            gameMode: 'squad',
-            rankedStats: []
+        data: [
+          {
+            type: 'leaderboard',
+            id: 'leaderboard-1',
+            attributes: {
+              shardId: 'pc-na',
+              gameMode: 'squad',
+              rankedStats: [],
+            },
+            relationships: {
+              players: { data: [] },
+            },
           },
-          relationships: {
-            players: { data: [] }
-          }
-        }]
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
       const result = await leaderboardsService.getLeaderboard({
         seasonId: 'season-1',
-        gameMode: 'squad'
+        gameMode: 'squad',
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith('/shards/pc-na/leaderboards/season-1/squad');
@@ -60,7 +62,7 @@ describe('LeaderboardsService', () => {
         seasonId: 'season-1',
         gameMode: 'squad',
         pageSize: 10,
-        offset: 20
+        offset: 20,
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(

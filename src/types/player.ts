@@ -1,4 +1,4 @@
-import { ResourceComplete, ApiResponse, Shard, GameMode } from './common';
+import type { ApiResponse, GameMode, ResourceComplete, Shard } from './common';
 
 export interface PlayerAttributes {
   createdAt: string;

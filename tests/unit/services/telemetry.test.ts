@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { TelemetryService } from '../../../src/api/services/telemetry';
-import { HttpClient } from '../../../src/api/http-client';
-import { TelemetryData } from '../../../src/types';
+import type { TelemetryData } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('TelemetryService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     telemetryService = new TelemetryService(mockHttpClient);
@@ -33,14 +33,15 @@ describe('TelemetryService', () => {
           common: {
             matchId: 'match-1',
             mapName: 'Erangel_Main',
-            isGame: 1
-          }
-        }
+            isGame: 1,
+          },
+        },
       ];
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
-      const telemetryUrl = 'https://telemetry-cdn.pubg.com/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json';
+      const telemetryUrl =
+        'https://telemetry-cdn.pubg.com/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json';
       const result = await telemetryService.getTelemetryData(telemetryUrl);
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(

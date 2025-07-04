@@ -1,4 +1,4 @@
-import { ResourceComplete, ApiResponse, GameMode } from './common';
+import type { ApiResponse, GameMode, ResourceComplete } from './common';
 
 export interface LeaderboardAttributes {
   shardId: string;
@@ -33,7 +33,8 @@ export interface LeaderboardRelationships {
   };
 }
 
-export interface Leaderboard extends ResourceComplete<LeaderboardAttributes, LeaderboardRelationships> {
+export interface Leaderboard
+  extends ResourceComplete<LeaderboardAttributes, LeaderboardRelationships> {
   type: 'leaderboard';
 }
 

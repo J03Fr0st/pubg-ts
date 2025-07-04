@@ -1,13 +1,13 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { PubgClientConfig } from '../types/api';
-import { RateLimiter } from '../utils/rate-limiter';
-import { 
-  PubgApiError, 
-  PubgRateLimitError, 
-  PubgAuthenticationError, 
-  PubgNotFoundError, 
-  PubgValidationError 
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import {
+  PubgApiError,
+  PubgAuthenticationError,
+  PubgNotFoundError,
+  PubgRateLimitError,
+  PubgValidationError,
 } from '../errors';
+import type { PubgClientConfig } from '../types/api';
+import { RateLimiter } from '../utils/rate-limiter';
 
 export class HttpClient {
   private axios: AxiosInstance;
@@ -17,15 +17,15 @@ export class HttpClient {
   constructor(config: PubgClientConfig) {
     this.config = config;
     this.rateLimiter = new RateLimiter(10, 60000);
-    
+
     this.axios = axios.create({
       baseURL: config.baseUrl || 'https://api.pubg.com',
       timeout: config.timeout || 10000,
       headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
-        'Accept': 'application/vnd.api+json',
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${config.apiKey}`,
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
+      },
     });
 
     this.setupInterceptors();
@@ -53,9 +53,10 @@ export class HttpClient {
             throw new PubgNotFoundError(message);
           case 400:
             throw new PubgValidationError(message);
-          case 429:
+          case 429: {
             const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60');
             throw new PubgRateLimitError(message, retryAfter);
+          }
           case 500:
           case 502:
           case 503:
@@ -76,8 +77,8 @@ export class HttpClient {
       throw error;
     }
 
-    const delay = (this.config.retryDelay || 1000) * Math.pow(2, attempt - 1);
-    await new Promise(resolve => setTimeout(resolve, delay));
+    const delay = (this.config.retryDelay || 1000) * 2 ** (attempt - 1);
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     try {
       return await this.axios.request(error.config);
@@ -109,7 +110,7 @@ export class HttpClient {
   getRateLimitStatus() {
     return {
       remaining: this.rateLimiter.getRemainingRequests(),
-      resetTime: this.rateLimiter.getResetTime()
+      resetTime: this.rateLimiter.getResetTime(),
     };
   }
 }

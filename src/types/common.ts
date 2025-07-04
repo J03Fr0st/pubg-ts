@@ -35,19 +35,67 @@ export interface ResourceComplete<T, R> extends ResourceWithAttributes<T> {
 
 export type Platform = 'steam' | 'kakao' | 'xbox' | 'psn' | 'stadia' | 'console';
 
-export type Shard = 
-  | 'pc-as' | 'pc-eu' | 'pc-jp' | 'pc-kakao' | 'pc-krjp' | 'pc-na' | 'pc-oc' | 'pc-ru' | 'pc-sa' | 'pc-sea' | 'pc-tournament'
-  | 'xbox-as' | 'xbox-eu' | 'xbox-na' | 'xbox-oc' | 'xbox-sa'
-  | 'psn-as' | 'psn-eu' | 'psn-na' | 'psn-oc'
-  | 'stadia-as' | 'stadia-eu' | 'stadia-na' | 'stadia-oc'
+export type Shard =
+  | 'pc-as'
+  | 'pc-eu'
+  | 'pc-jp'
+  | 'pc-kakao'
+  | 'pc-krjp'
+  | 'pc-na'
+  | 'pc-oc'
+  | 'pc-ru'
+  | 'pc-sa'
+  | 'pc-sea'
+  | 'pc-tournament'
+  | 'xbox-as'
+  | 'xbox-eu'
+  | 'xbox-na'
+  | 'xbox-oc'
+  | 'xbox-sa'
+  | 'psn-as'
+  | 'psn-eu'
+  | 'psn-na'
+  | 'psn-oc'
+  | 'stadia-as'
+  | 'stadia-eu'
+  | 'stadia-na'
+  | 'stadia-oc'
   | 'console';
 
-export type GameMode = 
-  | 'solo' | 'duo' | 'squad' | 'solo-fpp' | 'duo-fpp' | 'squad-fpp'
-  | 'ranked-solo' | 'ranked-duo' | 'ranked-squad' | 'ranked-solo-fpp' | 'ranked-duo-fpp' | 'ranked-squad-fpp'
-  | 'normal-solo' | 'normal-duo' | 'normal-squad' | 'normal-solo-fpp' | 'normal-duo-fpp' | 'normal-squad-fpp'
-  | 'competitive' | 'esports';
+export type GameMode =
+  | 'solo'
+  | 'duo'
+  | 'squad'
+  | 'solo-fpp'
+  | 'duo-fpp'
+  | 'squad-fpp'
+  | 'ranked-solo'
+  | 'ranked-duo'
+  | 'ranked-squad'
+  | 'ranked-solo-fpp'
+  | 'ranked-duo-fpp'
+  | 'ranked-squad-fpp'
+  | 'normal-solo'
+  | 'normal-duo'
+  | 'normal-squad'
+  | 'normal-solo-fpp'
+  | 'normal-duo-fpp'
+  | 'normal-squad-fpp'
+  | 'competitive'
+  | 'esports';
 
-export type MapName = 
-  | 'Erangel_Main' | 'Desert_Main' | 'Savage_Main' | 'DihorOtok_Main' | 'Range_Main' | 'Baltic_Main' | 'Summerland_Main'
-  | 'Chimera_Main' | 'Heaven_Main' | 'Kiki_Main' | 'Tiger_Main' | 'Neon_Main' | 'Rondo_Main' | 'Taego_Main';
+export type MapName =
+  | 'Erangel_Main'
+  | 'Desert_Main'
+  | 'Savage_Main'
+  | 'DihorOtok_Main'
+  | 'Range_Main'
+  | 'Baltic_Main'
+  | 'Summerland_Main'
+  | 'Chimera_Main'
+  | 'Heaven_Main'
+  | 'Kiki_Main'
+  | 'Tiger_Main'
+  | 'Neon_Main'
+  | 'Rondo_Main'
+  | 'Taego_Main';

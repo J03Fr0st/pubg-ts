@@ -1,4 +1,4 @@
-import { ResourceComplete, ApiResponse } from './common';
+import type { ApiResponse, ResourceComplete } from './common';
 
 export interface SeasonAttributes {
   isCurrentSeason: boolean;

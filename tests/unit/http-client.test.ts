@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { HttpClient } from '../../src/api/http-client';
-import { PubgClientConfig } from '../../src/types/api';
 import {
   PubgApiError,
-  PubgRateLimitError,
   PubgAuthenticationError,
   PubgNotFoundError,
-  PubgValidationError
+  PubgRateLimitError,
+  PubgValidationError,
 } from '../../src/errors';
+import type { PubgClientConfig } from '../../src/types/api';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -22,13 +22,13 @@ describe('HttpClient', () => {
       defaults: { headers: { common: {} } },
       interceptors: {
         request: { use: jest.fn() },
-        response: { use: jest.fn() }
+        response: { use: jest.fn() },
       },
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      request: jest.fn()
+      request: jest.fn(),
     };
 
     mockedAxios.create.mockReturnValue(mockAxiosInstance);
@@ -38,7 +38,7 @@ describe('HttpClient', () => {
       shard: 'pc-na',
       timeout: 5000,
       retryAttempts: 2,
-      retryDelay: 500
+      retryDelay: 500,
     };
 
     httpClient = new HttpClient(config);
@@ -54,10 +54,10 @@ describe('HttpClient', () => {
         baseURL: 'https://api.pubg.com',
         timeout: 5000,
         headers: {
-          'Authorization': 'Bearer test-api-key',
-          'Accept': 'application/vnd.api+json',
-          'Content-Type': 'application/json'
-        }
+          Authorization: 'Bearer test-api-key',
+          Accept: 'application/vnd.api+json',
+          'Content-Type': 'application/json',
+        },
       });
     });
 
@@ -69,10 +69,10 @@ describe('HttpClient', () => {
         baseURL: 'https://custom.api.com',
         timeout: 5000,
         headers: {
-          'Authorization': 'Bearer test-api-key',
-          'Accept': 'application/vnd.api+json',
-          'Content-Type': 'application/json'
-        }
+          Authorization: 'Bearer test-api-key',
+          Accept: 'application/vnd.api+json',
+          'Content-Type': 'application/json',
+        },
       });
     });
   });
@@ -124,7 +124,7 @@ describe('HttpClient', () => {
   describe('getRateLimitStatus', () => {
     it('should return rate limit status', () => {
       const status = httpClient.getRateLimitStatus();
-      
+
       expect(status).toHaveProperty('remaining');
       expect(status).toHaveProperty('resetTime');
       expect(typeof status.remaining).toBe('number');

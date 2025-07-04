@@ -1,5 +1,5 @@
 import { PubgClient } from '../../src/api/client';
-import { PubgClientConfig } from '../../src/types/api';
+import type { PubgClientConfig } from '../../src/types/api';
 
 jest.mock('../../src/api/http-client');
 
@@ -10,7 +10,7 @@ describe('PubgClient', () => {
   beforeEach(() => {
     config = {
       apiKey: 'test-api-key',
-      shard: 'pc-na'
+      shard: 'pc-na',
     };
 
     client = new PubgClient(config);
@@ -35,12 +35,12 @@ describe('PubgClient', () => {
     it('should return rate limit status', () => {
       // Mock the HttpClient's getRateLimitStatus method
       const mockStatus = { remaining: 10, resetTime: Date.now() + 60000 };
-      
+
       // Access the private httpClient through any casting
       (client as any).httpClient.getRateLimitStatus = jest.fn().mockReturnValue(mockStatus);
-      
+
       const status = client.getRateLimitStatus();
-      
+
       expect(status).toHaveProperty('remaining');
       expect(status).toHaveProperty('resetTime');
       expect(status.remaining).toBe(10);

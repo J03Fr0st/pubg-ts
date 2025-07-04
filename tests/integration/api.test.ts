@@ -1,5 +1,5 @@
 import { PubgClient } from '../../src/api/client';
-import { PubgClientConfig } from '../../src/types/api';
+import type { PubgClientConfig } from '../../src/types/api';
 
 describe('API Integration Tests', () => {
   let client: PubgClient;
@@ -8,7 +8,7 @@ describe('API Integration Tests', () => {
   beforeEach(() => {
     config = {
       apiKey: process.env.PUBG_API_KEY || 'test-api-key',
-      shard: 'pc-na'
+      shard: 'pc-na',
     };
 
     client = new PubgClient(config);
@@ -50,7 +50,7 @@ describe('API Integration Tests', () => {
   describe('Rate Limiting', () => {
     it('should track rate limit status', () => {
       const status = client.getRateLimitStatus();
-      
+
       expect(status).toHaveProperty('remaining');
       expect(status).toHaveProperty('resetTime');
       expect(typeof status.remaining).toBe('number');

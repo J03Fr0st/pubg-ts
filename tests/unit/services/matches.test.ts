@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { MatchesService } from '../../../src/api/services/matches';
-import { HttpClient } from '../../../src/api/http-client';
-import { MatchResponse, MatchesResponse } from '../../../src/types';
+import type { MatchesResponse, MatchResponse } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('MatchesService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     matchesService = new MatchesService(mockHttpClient, 'pc-na');
@@ -42,15 +42,15 @@ describe('MatchesService', () => {
             stats: null,
             tags: null,
             titleId: 'pubg',
-            matchType: 'official'
+            matchType: 'official',
           },
           relationships: {
             assets: { data: [] },
             rosters: { data: [] },
-            rounds: { data: [] }
-          }
+            rounds: { data: [] },
+          },
         },
-        included: []
+        included: [],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
@@ -79,7 +79,7 @@ describe('MatchesService', () => {
 
       await matchesService.getMatches({
         pageSize: 10,
-        offset: 20
+        offset: 20,
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
@@ -92,12 +92,10 @@ describe('MatchesService', () => {
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
       await matchesService.getMatches({
-        sort: '-createdAt'
+        sort: '-createdAt',
       });
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
-        '/shards/pc-na/matches?sort=-createdAt'
-      );
+      expect(mockHttpClient.get).toHaveBeenCalledWith('/shards/pc-na/matches?sort=-createdAt');
     });
 
     it('should get matches with filters', async () => {
@@ -108,11 +106,11 @@ describe('MatchesService', () => {
         filter: {
           createdAt: {
             start: '2023-01-01T00:00:00Z',
-            end: '2023-01-31T23:59:59Z'
+            end: '2023-01-31T23:59:59Z',
           },
           playerIds: ['player-1', 'player-2'],
-          gameMode: ['squad', 'duo']
-        }
+          gameMode: ['squad', 'duo'],
+        },
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(

@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { PlayersService } from '../../../src/api/services/players';
-import { HttpClient } from '../../../src/api/http-client';
-import { PlayersResponse, PlayerSeasonStatsResponse } from '../../../src/types';
+import type { PlayerSeasonStatsResponse, PlayersResponse } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('PlayersService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     playersService = new PlayersService(mockHttpClient, 'pc-na');
@@ -27,29 +27,31 @@ describe('PlayersService', () => {
   describe('getPlayers', () => {
     it('should get players by names', async () => {
       const mockResponse: PlayersResponse = {
-        data: [{
-          type: 'player',
-          id: 'player-1',
-          attributes: {
-            createdAt: '2023-01-01T00:00:00Z',
-            name: 'TestPlayer',
-            patchVersion: '1.0',
-            shardId: 'pc-na',
-            stats: null,
-            titleId: 'pubg',
-            updatedAt: '2023-01-01T00:00:00Z'
+        data: [
+          {
+            type: 'player',
+            id: 'player-1',
+            attributes: {
+              createdAt: '2023-01-01T00:00:00Z',
+              name: 'TestPlayer',
+              patchVersion: '1.0',
+              shardId: 'pc-na',
+              stats: null,
+              titleId: 'pubg',
+              updatedAt: '2023-01-01T00:00:00Z',
+            },
+            relationships: {
+              assets: { data: [] },
+              matches: { data: [] },
+            },
           },
-          relationships: {
-            assets: { data: [] },
-            matches: { data: [] }
-          }
-        }]
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
       const result = await playersService.getPlayers({
-        playerNames: ['TestPlayer']
+        playerNames: ['TestPlayer'],
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
@@ -60,29 +62,31 @@ describe('PlayersService', () => {
 
     it('should get players by IDs', async () => {
       const mockResponse: PlayersResponse = {
-        data: [{
-          type: 'player',
-          id: 'player-1',
-          attributes: {
-            createdAt: '2023-01-01T00:00:00Z',
-            name: 'TestPlayer',
-            patchVersion: '1.0',
-            shardId: 'pc-na',
-            stats: null,
-            titleId: 'pubg',
-            updatedAt: '2023-01-01T00:00:00Z'
+        data: [
+          {
+            type: 'player',
+            id: 'player-1',
+            attributes: {
+              createdAt: '2023-01-01T00:00:00Z',
+              name: 'TestPlayer',
+              patchVersion: '1.0',
+              shardId: 'pc-na',
+              stats: null,
+              titleId: 'pubg',
+              updatedAt: '2023-01-01T00:00:00Z',
+            },
+            relationships: {
+              assets: { data: [] },
+              matches: { data: [] },
+            },
           },
-          relationships: {
-            assets: { data: [] },
-            matches: { data: [] }
-          }
-        }]
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
       const result = await playersService.getPlayers({
-        playerIds: ['player-1']
+        playerIds: ['player-1'],
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
@@ -131,25 +135,27 @@ describe('PlayersService', () => {
   describe('getPlayerSeasonStats', () => {
     it('should get player season stats', async () => {
       const mockResponse: PlayerSeasonStatsResponse = {
-        data: [{
-          type: 'playerSeason',
-          id: 'player-season-1',
-          attributes: {
-            bestRankPoint: 1500,
-            gameModeStats: {}
+        data: [
+          {
+            type: 'playerSeason',
+            id: 'player-season-1',
+            attributes: {
+              bestRankPoint: 1500,
+              gameModeStats: {},
+            },
+            relationships: {
+              player: { data: { type: 'player', id: 'player-1' } },
+              season: { data: { type: 'season', id: 'season-1' } },
+            },
           },
-          relationships: {
-            player: { data: { type: 'player', id: 'player-1' } },
-            season: { data: { type: 'season', id: 'season-1' } }
-          }
-        }]
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
 
       const result = await playersService.getPlayerSeasonStats({
         playerId: 'player-1',
-        seasonId: 'season-1'
+        seasonId: 'season-1',
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
@@ -165,7 +171,7 @@ describe('PlayersService', () => {
       await playersService.getPlayerSeasonStats({
         playerId: 'player-1',
         seasonId: 'season-1',
-        gameMode: 'squad'
+        gameMode: 'squad',
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(

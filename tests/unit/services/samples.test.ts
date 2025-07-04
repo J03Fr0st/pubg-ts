@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { SamplesService } from '../../../src/api/services/samples';
-import { HttpClient } from '../../../src/api/http-client';
-import { MatchesResponse } from '../../../src/types';
+import type { MatchesResponse } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('SamplesService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     samplesService = new SamplesService(mockHttpClient, 'pc-na');
@@ -42,8 +42,8 @@ describe('SamplesService', () => {
       await samplesService.getSamples({
         createdAt: {
           start: '2023-01-01T00:00:00Z',
-          end: '2023-01-31T23:59:59Z'
-        }
+          end: '2023-01-31T23:59:59Z',
+        },
       });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(

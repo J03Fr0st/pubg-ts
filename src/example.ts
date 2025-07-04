@@ -3,7 +3,7 @@ import { PubgClient } from './index';
 async function example() {
   const client = new PubgClient({
     apiKey: 'your-api-key-here',
-    shard: 'pc-na'
+    shard: 'pc-na',
   });
 
   try {
@@ -18,10 +18,9 @@ async function example() {
     // Get player season stats
     const statsResponse = await client.players.getPlayerSeasonStats({
       playerId: playerResponse.data[0].id,
-      seasonId: seasonResponse.data[0].id
+      seasonId: seasonResponse.data[0].id,
     });
     console.log('Player Stats:', statsResponse.data[0].attributes.gameModeStats);
-
   } catch (error) {
     console.error('Error:', error);
   }

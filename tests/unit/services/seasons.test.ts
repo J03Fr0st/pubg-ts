@@ -1,6 +1,6 @@
+import type { HttpClient } from '../../../src/api/http-client';
 import { SeasonsService } from '../../../src/api/services/seasons';
-import { HttpClient } from '../../../src/api/http-client';
-import { SeasonsResponse } from '../../../src/types';
+import type { SeasonsResponse } from '../../../src/types';
 
 jest.mock('../../../src/api/http-client');
 
@@ -14,7 +14,7 @@ describe('SeasonsService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-      getRateLimitStatus: jest.fn()
+      getRateLimitStatus: jest.fn(),
     } as any;
 
     seasonsService = new SeasonsService(mockHttpClient, 'pc-na');
@@ -33,20 +33,20 @@ describe('SeasonsService', () => {
             id: 'season-1',
             attributes: {
               isCurrentSeason: false,
-              isOffseason: false
+              isOffseason: false,
             },
-            relationships: {}
+            relationships: {},
           },
           {
             type: 'season',
             id: 'season-2',
             attributes: {
               isCurrentSeason: true,
-              isOffseason: false
+              isOffseason: false,
             },
-            relationships: {}
-          }
-        ]
+            relationships: {},
+          },
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
@@ -67,20 +67,20 @@ describe('SeasonsService', () => {
             id: 'season-1',
             attributes: {
               isCurrentSeason: false,
-              isOffseason: false
+              isOffseason: false,
             },
-            relationships: {}
+            relationships: {},
           },
           {
             type: 'season',
             id: 'season-2',
             attributes: {
               isCurrentSeason: true,
-              isOffseason: false
+              isOffseason: false,
             },
-            relationships: {}
-          }
-        ]
+            relationships: {},
+          },
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
@@ -100,11 +100,11 @@ describe('SeasonsService', () => {
             id: 'season-1',
             attributes: {
               isCurrentSeason: false,
-              isOffseason: false
+              isOffseason: false,
             },
-            relationships: {}
-          }
-        ]
+            relationships: {},
+          },
+        ],
       };
 
       mockHttpClient.get.mockResolvedValue(mockResponse);
