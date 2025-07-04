@@ -5,7 +5,7 @@ export interface SeasonAttributes {
   isOffseason: boolean;
 }
 
-export interface Season extends ResourceComplete<SeasonAttributes, {}> {
+export interface Season extends ResourceComplete<SeasonAttributes, Record<string, never>> {
   type: 'season';
 }
 

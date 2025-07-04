@@ -35,7 +35,7 @@ export class RateLimiter {
   getResetTime(): number {
     if (this.requests.length === 0) return 0;
 
-    const now = Date.now();
+    const _now = Date.now();
     const oldestRequest = Math.min(...this.requests);
     return oldestRequest + this.windowMs;
   }

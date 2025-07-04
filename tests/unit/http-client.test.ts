@@ -1,12 +1,5 @@
 import axios from 'axios';
 import { HttpClient } from '../../src/api/http-client';
-import {
-  PubgApiError,
-  PubgAuthenticationError,
-  PubgNotFoundError,
-  PubgRateLimitError,
-  PubgValidationError,
-} from '../../src/errors';
 import type { PubgClientConfig } from '../../src/types/api';
 
 jest.mock('axios');

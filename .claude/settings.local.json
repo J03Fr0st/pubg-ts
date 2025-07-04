@@ -16,7 +16,9 @@
       "Bash(npm run lint-staged:*)",
       "Bash(./test-precommit.sh:*)",
       "Bash(rm:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run test:integration:*)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }

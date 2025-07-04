@@ -138,7 +138,7 @@ export interface AssetAttributes {
   name: string;
 }
 
-export interface Asset extends ResourceComplete<AssetAttributes, {}> {
+export interface Asset extends ResourceComplete<AssetAttributes, Record<string, never>> {
   type: 'asset';
 }
 
