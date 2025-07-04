@@ -2,41 +2,21 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:documentation.pubg.com)",
-      "Bash(mkdir:*)",
-      "Bash(npm*)",
-      "Bash(git*)",
-      "Bash(npm run format:*)",
-      "Bash(npx husky:*)",
-      "Bash(chmod:*)",
-      "Bash(npm audit fix:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(npm run prepare:*)",
-      "Bash(npx lint-staged:*)",
-      "Bash(./node_modules/.bin/lint-staged:*)",
-      "Bash(npm run lint-staged:*)",
-      "Bash(./test-precommit.sh:*)",
-      "Bash(rm:*)",
-      "Bash(git commit:*)",
-      "Bash(npm run test:integration:*)",
-      "Bash(npm run lint)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(npm test:*)",
-      "Bash(npm run sync-assets:*)",
+
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
       "Bash(ls:*)",
-      "Bash(/bin/rm:*)",
-      "Bash(npm run lint:*)",
-      "Bash(npx biome check:*)",
-      "Bash(find:*)",
-      "Bash(npm run test:coverage:*)",
-      "Bash(npm run build:*)",
-      "Bash(git add:*)",
-      "Bash(npm run test:*)",
-      "Bash(npx ts-node:*)",
-      "Bash(unlink:*)",
-      "Bash(npm run check:*)"
+      "Bash(find:*)"
     ],
-    "deny": []
-  }
+    "deny": [
+    ]
+  },
+
+  "defaultMode": "default"
 }

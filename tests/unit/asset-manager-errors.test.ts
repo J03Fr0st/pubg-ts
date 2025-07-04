@@ -6,41 +6,50 @@ import {
 } from '../../src/errors';
 import { AssetManager } from '../../src/utils/assets';
 
+class TestAssetManager extends AssetManager {
+  public get testCache() {
+    return this.cache;
+  }
+  public testParseDate(dateStr: string) {
+    return this.parseDate(dateStr);
+  }
+}
+
 describe('AssetManager Error Handling', () => {
-  let assetManager: AssetManager;
+  let assetManager: TestAssetManager;
 
   beforeEach(() => {
-    assetManager = new AssetManager();
+    assetManager = new TestAssetManager();
   });
 
   describe('Configuration Validation', () => {
     it('should throw PubgConfigurationError for invalid baseUrl', () => {
       expect(() => {
-        new AssetManager({ baseUrl: 123 as any });
+        new TestAssetManager({ baseUrl: 123 as any });
       }).toThrow(PubgConfigurationError);
     });
 
     it('should throw PubgConfigurationError for invalid version', () => {
       expect(() => {
-        new AssetManager({ version: true as any });
+        new TestAssetManager({ version: true as any });
       }).toThrow(PubgConfigurationError);
     });
 
     it('should throw PubgConfigurationError for invalid cacheAssets', () => {
       expect(() => {
-        new AssetManager({ cacheAssets: 'true' as any });
+        new TestAssetManager({ cacheAssets: 'true' as any });
       }).toThrow(PubgConfigurationError);
     });
 
     it('should throw PubgConfigurationError for invalid useLocalData', () => {
       expect(() => {
-        new AssetManager({ useLocalData: 'false' as any });
+        new TestAssetManager({ useLocalData: 'false' as any });
       }).toThrow(PubgConfigurationError);
     });
 
     it('should provide detailed error context for configuration errors', () => {
       try {
-        new AssetManager({ baseUrl: 123 as any });
+        new TestAssetManager({ baseUrl: 123 as any });
       } catch (error) {
         expect(error).toBeInstanceOf(PubgConfigurationError);
         expect((error as PubgConfigurationError).configField).toBe('baseUrl');
@@ -51,7 +60,7 @@ describe('AssetManager Error Handling', () => {
 
     it('should accept valid configuration', () => {
       expect(() => {
-        new AssetManager({
+        new TestAssetManager({
           baseUrl: 'https://custom.api.com',
           version: '1.0.0',
           cacheAssets: false,
@@ -103,7 +112,7 @@ describe('AssetManager Error Handling', () => {
           const result = assetManager.getItemInfo('Item_Weapon_AK47_C');
           expect(result).toBeDefined();
           expect(result?.id).toBe('Item_Weapon_AK47_C');
-        } catch (error) {
+        } catch (_error) {
           // Skip if asset data is not available
         }
       });
@@ -270,8 +279,8 @@ describe('AssetManager Error Handling', () => {
     describe('clearCache', () => {
       it('should handle cache clearing errors', () => {
         // Mock the cache.clear method to throw an error
-        const originalClear = assetManager['cache'].clear;
-        assetManager['cache'].clear = jest.fn().mockImplementation(() => {
+        const originalClear = assetManager.testCache.clear;
+        assetManager.testCache.clear = jest.fn().mockImplementation(() => {
           throw new Error('Cache clear failed');
         });
 
@@ -280,13 +289,13 @@ describe('AssetManager Error Handling', () => {
         }).toThrow(PubgCacheError);
 
         // Restore original method
-        assetManager['cache'].clear = originalClear;
+        assetManager.testCache.clear = originalClear;
       });
 
       it('should provide detailed error context for cache errors', () => {
         // Mock the cache.clear method to throw an error
-        const originalClear = assetManager['cache'].clear;
-        assetManager['cache'].clear = jest.fn().mockImplementation(() => {
+        const originalClear = assetManager.testCache.clear;
+        assetManager.testCache.clear = jest.fn().mockImplementation(() => {
           throw new Error('Mock cache error');
         });
 
@@ -302,7 +311,7 @@ describe('AssetManager Error Handling', () => {
         }
 
         // Restore original method
-        assetManager['cache'].clear = originalClear;
+        assetManager.testCache.clear = originalClear;
       });
 
       it('should clear cache successfully under normal conditions', () => {
@@ -317,37 +326,37 @@ describe('AssetManager Error Handling', () => {
     describe('parseDate', () => {
       it('should throw PubgValidationError for invalid date strings', () => {
         expect(() => {
-          assetManager['parseDate'](null as any);
+          assetManager.testParseDate(null as any);
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate'](undefined as any);
+          assetManager.testParseDate(undefined as any);
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate'](123 as any);
+          assetManager.testParseDate(123 as any);
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate']('invalid-date');
+          assetManager.testParseDate('invalid-date');
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate']('12-31'); // Missing year
+          assetManager.testParseDate('12-31'); // Missing year
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate']('12-31-2023-extra'); // Too many parts
+          assetManager.testParseDate('12-31-2023-extra'); // Too many parts
         }).toThrow(PubgValidationError);
 
         expect(() => {
-          assetManager['parseDate']('invalid-31-2023'); // Non-numeric month
+          assetManager.testParseDate('invalid-31-2023'); // Non-numeric month
         }).toThrow(PubgValidationError);
       });
 
       it('should provide detailed error context for date validation errors', () => {
         try {
-          assetManager['parseDate']('invalid-date');
+          assetManager.testParseDate('invalid-date');
         } catch (error) {
           expect(error).toBeInstanceOf(PubgValidationError);
           expect((error as PubgValidationError).context.operation).toBe('parse_date');
@@ -358,7 +367,7 @@ describe('AssetManager Error Handling', () => {
         }
 
         try {
-          assetManager['parseDate']('abc-def-ghi');
+          assetManager.testParseDate('abc-def-ghi');
         } catch (error) {
           expect(error).toBeInstanceOf(PubgValidationError);
           expect((error as PubgValidationError).context.metadata).toMatchObject({
@@ -371,7 +380,7 @@ describe('AssetManager Error Handling', () => {
 
       it('should parse valid dates correctly', () => {
         expect(() => {
-          const result = assetManager['parseDate']('12-31-2023');
+          const result = assetManager.testParseDate('12-31-2023');
           expect(result).toBeInstanceOf(Date);
           expect(result.getFullYear()).toBe(2023);
           expect(result.getMonth()).toBe(11); // December (0-indexed)

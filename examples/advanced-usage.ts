@@ -57,7 +57,7 @@ async function advancedExample() {
         id: matchDetails.data.id,
         gameMode: matchDetails.data.attributes.gameMode,
         mapName: matchDetails.data.attributes.mapName,
-        duration: Math.round(matchDetails.data.attributes.duration / 60) + ' minutes',
+        duration: `${Math.round(matchDetails.data.attributes.duration / 60)} minutes`,
         players: matchDetails.included.filter((item) => item.type === 'participant').length,
       });
 

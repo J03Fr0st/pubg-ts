@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 /**
  * PUBG Asset Sync Script
@@ -136,7 +136,7 @@ const ASSET_FILES: AssetFile[] = [
 async function ensureDirectoryExists(dirPath: string): Promise<void> {
   try {
     await fs.mkdir(dirPath, { recursive: true });
-  } catch (error) {
+  } catch (_error) {
     // Directory might already exist
   }
 }
@@ -172,7 +172,7 @@ function generateItemTypes(itemDictionary: DictionaryData): string {
   // Group items by category for better type organization
   const categories: { [key: string]: string[] } = {};
 
-  for (const [itemId, itemName] of Object.entries(itemDictionary)) {
+  for (const [itemId, _itemName] of Object.entries(itemDictionary)) {
     const category = categorizeItemId(itemId);
     if (!categories[category]) {
       categories[category] = [];
@@ -396,7 +396,7 @@ async function main(): Promise<void> {
     for (const file of ASSET_FILES) {
       try {
         assetData[file.name] = await downloadAssetFile(file);
-      } catch (error) {
+      } catch (_error) {
         console.warn(`Warning: Could not download ${file.name}, continuing...`);
       }
     }

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { assetManager, type ItemId, MapId, PubgClient, type VehicleId } from '../src/index';
+import { assetManager, type ItemId, PubgClient, type VehicleId } from '../src/index';
 
 async function unifiedAssetsExample() {
   const client = new PubgClient({

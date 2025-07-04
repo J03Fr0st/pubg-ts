@@ -132,7 +132,7 @@ export interface SurvivalTitle {
 
 export class AssetManager {
   private config: AssetConfig;
-  private cache: Map<string, any> = new Map();
+  protected cache: Map<string, any> = new Map();
   private itemCache: Map<string, EnhancedItemInfo> = new Map();
   private vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
   private seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
@@ -627,7 +627,7 @@ export class AssetManager {
     return start <= now && now <= end;
   }
 
-  private parseDate(dateStr: string): Date {
+  protected parseDate(dateStr: string): Date {
     if (!dateStr || typeof dateStr !== 'string') {
       throw new PubgValidationError('Invalid date string provided', {
         operation: 'parse_date',
@@ -645,7 +645,7 @@ export class AssetManager {
     }
 
     const [month, day, year] = parts.map(Number);
-    if (isNaN(month) || isNaN(day) || isNaN(year)) {
+    if (Number.isNaN(month) || Number.isNaN(day) || Number.isNaN(year)) {
       throw new PubgValidationError(
         `Invalid date components in '${dateStr}'. All parts must be numeric`,
         { operation: 'parse_date', metadata: { month, day, year } }

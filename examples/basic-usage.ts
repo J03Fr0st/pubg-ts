@@ -49,7 +49,7 @@ async function basicExample() {
     const rateLimitStatus = client.getRateLimitStatus();
     console.log('⏱️  Rate limit:', {
       remaining: rateLimitStatus.remaining,
-      resetIn: Math.ceil((rateLimitStatus.resetTime - Date.now()) / 1000) + 's',
+      resetIn: `${Math.ceil((rateLimitStatus.resetTime - Date.now()) / 1000)}s`,
     });
 
     // Check cache statistics

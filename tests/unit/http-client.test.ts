@@ -337,7 +337,7 @@ describe('HttpClient', () => {
       jest.clearAllMocks();
 
       const noRetryConfig = { ...config, retryAttempts: 0 };
-      const noRetryClient = new HttpClient(noRetryConfig);
+      const _noRetryClient = new HttpClient(noRetryConfig);
 
       // Get the error handler for the no-retry client (should be the first call after clearing)
       const noRetryErrorHandler = mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
