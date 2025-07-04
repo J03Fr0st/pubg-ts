@@ -56,6 +56,16 @@ Each service corresponds to a major PUBG API endpoint:
 - `RateLimiter` - Token bucket rate limiting implementation
 - `Cache` - Memory-based caching with TTL and size limits
 - `Logger` - Debug logging with namespaces (`pubg-ts:*`)
+- `AssetManager` - Unified asset management system with zero-latency access to all PUBG assets
+
+**Asset Management System (`src/utils/assets.ts`)**
+The unified AssetManager provides comprehensive access to all PUBG assets:
+- **Zero-latency performance**: Uses locally synced data by default (no network requests)
+- **Full TypeScript type safety**: All asset IDs are typed with union types for IntelliSense
+- **Enhanced search capabilities**: Fuzzy search, category filtering, and metadata enhancement
+- **Complete asset coverage**: Items, vehicles, maps, seasons, survival titles, and dictionaries
+- **Backward compatibility**: Maintains async methods for legacy code
+- **Auto-synced data**: Assets are synced from official PUBG repository via `scripts/sync-assets.ts`
 
 **Type Definitions (`src/types/`)**
 - Comprehensive TypeScript types for all API responses
@@ -72,6 +82,7 @@ Each service corresponds to a major PUBG API endpoint:
 - **Caching Layer**: Transparent caching with configurable TTL
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
+- **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
 
 ### Testing Strategy
 - **Unit Tests**: Individual service and utility testing
@@ -84,6 +95,27 @@ Each service corresponds to a major PUBG API endpoint:
 - Jest for testing with TypeScript support
 - Husky + lint-staged for pre-commit hooks
 - Target: ES2020, Node.js 18+
+
+### Asset Synchronization
+The project includes a comprehensive asset synchronization system:
+
+**Sync Script (`scripts/sync-assets.ts`)**
+- Downloads 15+ asset types from the official PUBG repository
+- Generates TypeScript types automatically for type safety
+- Creates local JSON files for zero-latency access
+- Run with: `npm run sync-assets` (when script is added to package.json)
+
+**Generated Assets (`src/assets/`)**
+- `seasons.json` - All season data by platform
+- `survival-titles.json` - Survival title and rating information
+- `dictionaries/` - Asset name mappings and categorizations
+
+**Generated Types (`src/types/assets/`)**
+- `items.ts` - All item IDs as union types with dictionaries
+- `vehicles.ts` - All vehicle IDs as union types with dictionaries
+- `maps.ts` - All map IDs as union types with dictionaries
+- `seasons.ts` - Season data interfaces and platform types
+- `enums.ts` - Game mode, damage type, and other enumerations
 
 ### Debug Logging
 Enable debug logging with `DEBUG=pubg-ts:*` environment variable.

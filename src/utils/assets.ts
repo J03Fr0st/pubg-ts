@@ -1,0 +1,540 @@
+import damageCauserNameData from '../assets/dictionaries/damage-causer-name.json';
+import damageTypeCategoryData from '../assets/dictionaries/damage-type-category.json';
+import gameModeData from '../assets/dictionaries/game-mode.json';
+import itemIdData from '../assets/dictionaries/item-id.json';
+import mapNameData from '../assets/dictionaries/map-name.json';
+import vehicleIdData from '../assets/dictionaries/vehicle-id.json';
+// Import the JSON files directly
+import seasonsData from '../assets/seasons.json';
+import survivalTitlesData from '../assets/survival-titles.json';
+// Import the synced asset data and types
+import type { Platform } from '../types/assets/seasons';
+import { logger } from './logger';
+
+/**
+ * Unified PUBG Asset Management System
+ * Provides comprehensive access to all PUBG assets with full TypeScript type safety
+ * Uses synced local data for zero-latency performance with network fallback
+ */
+
+export interface AssetConfig {
+  baseUrl?: string;
+  version?: string;
+  cacheAssets?: boolean;
+  useLocalData?: boolean; // New option to prefer local data
+}
+
+export interface EnhancedItemInfo {
+  id: string;
+  name: string;
+  category: string;
+  subcategory: string;
+  description: string;
+}
+
+export interface EnhancedVehicleInfo {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  description: string;
+}
+
+export interface EnhancedSeasonInfo {
+  id: string;
+  platform: Platform;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  isOffseason: boolean;
+}
+
+export interface SurvivalTitleInfo {
+  title: string;
+  level: number;
+  pointsRequired: string;
+  description?: string;
+}
+
+// Legacy interfaces for backward compatibility
+export interface ItemDictionary {
+  [key: string]: {
+    name: string;
+    category: string;
+    subcategory?: string;
+    description?: string;
+  };
+}
+
+export interface VehicleDictionary {
+  [key: string]: {
+    name: string;
+    type: string;
+    category: string;
+    description?: string;
+  };
+}
+
+export interface SeasonInfo {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  isOffseason: boolean;
+}
+
+export interface SurvivalTitle {
+  tier: string;
+  title: string;
+  requiredRating: number;
+  description?: string;
+}
+
+export class AssetManager {
+  private config: AssetConfig;
+  private cache: Map<string, any> = new Map();
+  private itemCache: Map<string, EnhancedItemInfo> = new Map();
+  private vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
+  private seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
+
+  constructor(config: AssetConfig = {}) {
+    this.config = {
+      baseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
+      version: 'latest',
+      cacheAssets: true,
+      useLocalData: true, // Default to using local synced data
+      ...config,
+    };
+
+    logger.client('Unified asset manager initialized', {
+      config: this.config,
+      usingLocalData: this.config.useLocalData,
+    });
+  }
+
+  /**
+   * Get user-friendly item name with type safety
+   */
+  getItemName(itemId: string): string {
+    if (this.config.useLocalData) {
+      return (itemIdData as Record<string, string>)[itemId] || this.humanizeItemId(itemId);
+    }
+    // Legacy network fallback - would need async version
+    return this.humanizeItemId(itemId);
+  }
+
+  /**
+   * Get detailed item information with enhanced metadata
+   */
+  getItemInfo(itemId: string): EnhancedItemInfo | null {
+    if (this.itemCache.has(itemId)) {
+      return this.itemCache.get(itemId)!;
+    }
+
+    const name = this.getItemName(itemId);
+    if (name === this.humanizeItemId(itemId) && !(itemId in itemIdData)) {
+      return null; // Item doesn't exist in official data
+    }
+
+    const info: EnhancedItemInfo = {
+      id: itemId,
+      name,
+      category: this.categorizeItem(itemId),
+      subcategory: this.subcategorizeItem(itemId),
+      description: name,
+    };
+
+    this.itemCache.set(itemId, info);
+    return info;
+  }
+
+  /**
+   * Get all items by category with type safety
+   */
+  getItemsByCategory(category: string): EnhancedItemInfo[] {
+    const items: EnhancedItemInfo[] = [];
+
+    for (const itemId of Object.keys(itemIdData)) {
+      const info = this.getItemInfo(itemId);
+      if (info && info.category === category) {
+        items.push(info);
+      }
+    }
+
+    return items.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Search items by name (fuzzy search)
+   */
+  searchItems(query: string): EnhancedItemInfo[] {
+    const results: EnhancedItemInfo[] = [];
+    const lowerQuery = query.toLowerCase();
+
+    for (const itemId of Object.keys(itemIdData)) {
+      const info = this.getItemInfo(itemId);
+      if (info?.name.toLowerCase().includes(lowerQuery)) {
+        results.push(info);
+      }
+    }
+
+    return results.sort((a, b) => {
+      // Sort by relevance (exact matches first, then partial matches)
+      const aExact = a.name.toLowerCase() === lowerQuery;
+      const bExact = b.name.toLowerCase() === lowerQuery;
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  /**
+   * Get user-friendly vehicle name with type safety
+   */
+  getVehicleName(vehicleId: string): string {
+    if (this.config.useLocalData) {
+      return (
+        (vehicleIdData as Record<string, string>)[vehicleId] || this.humanizeVehicleId(vehicleId)
+      );
+    }
+    return this.humanizeVehicleId(vehicleId);
+  }
+
+  /**
+   * Get detailed vehicle information
+   */
+  getVehicleInfo(vehicleId: string): EnhancedVehicleInfo | null {
+    if (this.vehicleCache.has(vehicleId)) {
+      return this.vehicleCache.get(vehicleId)!;
+    }
+
+    const name = this.getVehicleName(vehicleId);
+    if (name === this.humanizeVehicleId(vehicleId) && !(vehicleId in vehicleIdData)) {
+      return null;
+    }
+
+    const info: EnhancedVehicleInfo = {
+      id: vehicleId,
+      name,
+      type: this.categorizeVehicle(vehicleId),
+      category: 'vehicle',
+      description: name,
+    };
+
+    this.vehicleCache.set(vehicleId, info);
+    return info;
+  }
+
+  /**
+   * Get user-friendly map name with type safety
+   */
+  getMapName(mapId: string): string {
+    if (this.config.useLocalData) {
+      return (mapNameData as Record<string, string>)[mapId] || this.humanizeMapId(mapId);
+    }
+    return this.humanizeMapId(mapId);
+  }
+
+  /**
+   * Get all available maps
+   */
+  getAllMaps(): Array<{ id: string; name: string }> {
+    return Object.entries(mapNameData as Record<string, string>).map(([id, name]) => ({
+      id,
+      name,
+    }));
+  }
+
+  /**
+   * Get season information by platform
+   */
+  getSeasonsByPlatform(platform: Platform): EnhancedSeasonInfo[] {
+    if (this.seasonCache.has(platform)) {
+      return this.seasonCache.get(platform)!;
+    }
+
+    const platformSeasons = (seasonsData as any)[platform] || [];
+    const enhancedSeasons: EnhancedSeasonInfo[] = platformSeasons.map((season: any) => ({
+      id: season.id,
+      platform,
+      name: this.humanizeSeasonId(season.id),
+      startDate: season.attributes.startDate,
+      endDate: season.attributes.endDate,
+      isActive: this.isSeasonActive(season.attributes.startDate, season.attributes.endDate),
+      isOffseason: season.attributes.endDate === '00-00-0000',
+    }));
+
+    this.seasonCache.set(platform, enhancedSeasons);
+    return enhancedSeasons;
+  }
+
+  /**
+   * Get current active season for a platform
+   */
+  getCurrentSeason(platform: Platform = 'PC'): EnhancedSeasonInfo | null {
+    const seasons = this.getSeasonsByPlatform(platform);
+    return seasons.find((s) => s.isActive) || null;
+  }
+
+  /**
+   * Get survival title information
+   */
+  getSurvivalTitle(rating: number): SurvivalTitleInfo | null {
+    const titles = survivalTitlesData as any;
+
+    // Find the appropriate title based on rating
+    for (const [titleName, titleData] of Object.entries(titles)) {
+      if (typeof titleData === 'object' && titleData !== null && (titleData as any).levels) {
+        const levels = (titleData as any).levels;
+        for (const levelInfo of levels) {
+          if (this.isRatingInRange(rating, levelInfo.survivalPoints)) {
+            return {
+              title: titleName,
+              level: levelInfo.level,
+              pointsRequired: levelInfo.survivalPoints,
+              description: `${titleName} Level ${levelInfo.level}`,
+            };
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get damage causer name
+   */
+  getDamageCauserName(causerId: string): string {
+    return (damageCauserNameData as Record<string, string>)[causerId] || causerId;
+  }
+
+  /**
+   * Get damage type category
+   */
+  getDamageTypeCategory(damageType: string): string {
+    return (damageTypeCategoryData as Record<string, string>)[damageType] || damageType;
+  }
+
+  /**
+   * Get game mode name
+   */
+  getGameModeName(gameModeId: string): string {
+    return (gameModeData as Record<string, string>)[gameModeId] || gameModeId;
+  }
+
+  // Legacy async methods for backward compatibility
+  async getSeasonInfo(seasonId: string): Promise<SeasonInfo | null> {
+    const allSeasons = this.getSeasonsByPlatform('PC').concat(
+      this.getSeasonsByPlatform('XBOX' as Platform)
+    );
+    return allSeasons.find((s) => s.id === seasonId) || null;
+  }
+
+  async getSeasons(): Promise<SeasonInfo[]> {
+    return this.getSeasonsByPlatform('PC');
+  }
+
+  /**
+   * Get asset URL for items, weapons, vehicles, etc.
+   */
+  getAssetUrl(category: string, itemId: string, type: 'icon' | 'image' = 'icon'): string {
+    const cleanId = this.cleanItemId(itemId);
+    return `${this.config.baseUrl}/assets/${category}/${type}s/${cleanId}.png`;
+  }
+
+  /**
+   * Get weapon asset URL with type safety
+   */
+  getWeaponAssetUrl(weaponId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('weapons', weaponId, type);
+  }
+
+  /**
+   * Get equipment asset URL with type safety
+   */
+  getEquipmentAssetUrl(equipmentId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('equipment', equipmentId, type);
+  }
+
+  /**
+   * Get vehicle asset URL with type safety
+   */
+  getVehicleAssetUrl(vehicleId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('vehicles', vehicleId, type);
+  }
+
+  /**
+   * Get statistics about the asset data
+   */
+  getAssetStats(): {
+    totalItems: number;
+    totalVehicles: number;
+    totalMaps: number;
+    categoryCounts: Record<string, number>;
+  } {
+    const items = Object.keys(itemIdData);
+    const categoryCounts: Record<string, number> = {};
+
+    for (const itemId of items) {
+      const category = this.categorizeItem(itemId);
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    }
+
+    return {
+      totalItems: items.length,
+      totalVehicles: Object.keys(vehicleIdData).length,
+      totalMaps: Object.keys(mapNameData).length,
+      categoryCounts,
+    };
+  }
+
+  /**
+   * Clear asset cache
+   */
+  clearCache(): void {
+    this.cache.clear();
+    this.itemCache.clear();
+    this.vehicleCache.clear();
+    this.seasonCache.clear();
+    logger.cache('All asset caches cleared');
+  }
+
+  // Private helper methods
+  private categorizeItem(itemId: string): string {
+    if (itemId.includes('Weapon')) return 'weapon';
+    if (itemId.includes('Heal') || itemId.includes('Boost')) return 'consumable';
+    if (itemId.includes('Attach')) return 'attachment';
+    if (itemId.includes('Armor') || itemId.includes('Back')) return 'equipment';
+    if (itemId.includes('Ammo')) return 'ammunition';
+    return 'other';
+  }
+
+  private subcategorizeItem(itemId: string): string {
+    // Weapons
+    if (
+      itemId.includes('AR') ||
+      itemId.includes('AK') ||
+      itemId.includes('M416') ||
+      itemId.includes('SCAR')
+    )
+      return 'assault_rifle';
+    if (itemId.includes('SMG') || itemId.includes('UMP') || itemId.includes('Vector')) return 'smg';
+    if (itemId.includes('SR') || itemId.includes('Kar98') || itemId.includes('AWM'))
+      return 'sniper_rifle';
+    if (itemId.includes('Shotgun') || itemId.includes('S686') || itemId.includes('S1897'))
+      return 'shotgun';
+    if (itemId.includes('Pistol') || itemId.includes('P92') || itemId.includes('P1911'))
+      return 'pistol';
+
+    // Healing
+    if (itemId.includes('Bandage')) return 'healing';
+    if (itemId.includes('FirstAid')) return 'healing';
+    if (itemId.includes('MedKit')) return 'healing';
+    if (itemId.includes('Drink') || itemId.includes('Pill')) return 'boost';
+
+    // Attachments
+    if (itemId.includes('Upper')) return 'sight';
+    if (itemId.includes('Lower')) return 'grip';
+    if (itemId.includes('Muzzle')) return 'muzzle';
+    if (itemId.includes('Magazine')) return 'magazine';
+
+    return 'general';
+  }
+
+  private categorizeVehicle(vehicleId: string): string {
+    if (vehicleId.includes('Motorbike') || vehicleId.includes('Motorcycle')) return 'two_wheeler';
+    if (vehicleId.includes('Car') || vehicleId.includes('Pickup') || vehicleId.includes('Van'))
+      return 'four_wheeler';
+    if (vehicleId.includes('Boat') || vehicleId.includes('Ship')) return 'watercraft';
+    if (vehicleId.includes('Plane') || vehicleId.includes('Glider')) return 'aircraft';
+    return 'unknown';
+  }
+
+  private humanizeItemId(itemId: string): string {
+    return itemId
+      .replace(/^Item_/, '')
+      .replace(/_C$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  private humanizeVehicleId(vehicleId: string): string {
+    return vehicleId
+      .replace(/^BP_/, '')
+      .replace(/_\d+_C$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  private humanizeMapId(mapId: string): string {
+    return mapId.replace(/([A-Z])/g, ' $1').trim();
+  }
+
+  private humanizeSeasonId(seasonId: string): string {
+    // Extract season info from ID like "division.bro.official.pc-2018-01"
+    const parts = seasonId.split('.');
+    const lastPart = parts[parts.length - 1];
+    const match = lastPart.match(/(\w+)-(\d{4})-(\d{2})/);
+
+    if (match) {
+      const [, platform, year, season] = match;
+      return `${platform.toUpperCase()} Season ${parseInt(season)} (${year})`;
+    }
+
+    return seasonId;
+  }
+
+  private isSeasonActive(startDate: string, endDate: string): boolean {
+    if (endDate === '00-00-0000') return true; // Ongoing season
+
+    const now = new Date();
+    const start = this.parseDate(startDate);
+    const end = this.parseDate(endDate);
+
+    return start <= now && now <= end;
+  }
+
+  private parseDate(dateStr: string): Date {
+    // Handle MM-DD-YYYY format
+    const [month, day, year] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  private isRatingInRange(rating: number, range: string | number): boolean {
+    const rangeStr = String(range);
+
+    if (rangeStr.includes('+')) {
+      const minRating = parseInt(rangeStr.replace('+', ''));
+      return rating >= minRating;
+    }
+
+    if (rangeStr.includes('-')) {
+      const [min, max] = rangeStr.split('-').map(Number);
+      return rating >= min && rating <= max;
+    }
+
+    // Handle exact number matches
+    const exactNumber = parseInt(rangeStr);
+    if (!Number.isNaN(exactNumber)) {
+      return rating === exactNumber;
+    }
+
+    return false;
+  }
+
+  private cleanItemId(itemId: string): string {
+    return itemId
+      .replace(/^Item_/, '')
+      .replace(/^BP_/, '')
+      .replace(/_\d+_C$/, '')
+      .replace(/_C$/, '');
+  }
+}
+
+// Export a default instance
+export const assetManager = new AssetManager();

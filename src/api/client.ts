@@ -1,4 +1,5 @@
 import type { PubgClientConfig } from '../types/api';
+import { AssetManager } from '../utils/assets';
 import { HttpClient } from './http-client';
 import { LeaderboardsService } from './services/leaderboards';
 import { MatchesService } from './services/matches';
@@ -16,6 +17,7 @@ export class PubgClient {
   public readonly leaderboards: LeaderboardsService;
   public readonly samples: SamplesService;
   public readonly telemetry: TelemetryService;
+  public readonly assets: AssetManager;
 
   constructor(config: PubgClientConfig) {
     this.httpClient = new HttpClient(config);
@@ -26,6 +28,7 @@ export class PubgClient {
     this.leaderboards = new LeaderboardsService(this.httpClient, config.shard);
     this.samples = new SamplesService(this.httpClient, config.shard);
     this.telemetry = new TelemetryService(this.httpClient);
+    this.assets = new AssetManager();
   }
 
   getRateLimitStatus() {

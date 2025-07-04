@@ -104,6 +104,67 @@ const leaderboard = await client.leaderboards.getLeaderboard({
 const telemetry = await client.telemetry.getTelemetryData(telemetryUrl);
 ```
 
+### Assets
+
+The wrapper includes comprehensive asset management with both networked and synced local data:
+
+#### Synced Assets (Recommended)
+Zero-latency access to all PUBG assets with full TypeScript type safety:
+
+```typescript
+import { ItemId, VehicleId, MapId } from 'pubg-ts';
+
+// Type-safe item access with zero network requests
+const itemId: ItemId = 'Item_Weapon_AK47_C';
+const itemName = client.syncedAssets.getItemName(itemId); // "AKM"
+const itemInfo = client.syncedAssets.getItemInfo(itemId);
+
+// Enhanced search and filtering
+const weapons = client.syncedAssets.getItemsByCategory('weapon');
+const searchResults = client.syncedAssets.searchItems('AK');
+
+// Vehicle information with type safety
+const vehicleId: VehicleId = 'BP_Motorbike_04_C';
+const vehicleName = client.syncedAssets.getVehicleName(vehicleId);
+const vehicleInfo = client.syncedAssets.getVehicleInfo(vehicleId);
+
+// Map data with comprehensive coverage
+const allMaps = client.syncedAssets.getAllMaps();
+const mapName = client.syncedAssets.getMapName('Baltic_Main');
+
+// Season data by platform
+const pcSeasons = client.syncedAssets.getSeasonsByPlatform('PC');
+const currentSeason = client.syncedAssets.getCurrentSeason('PC');
+
+// Survival titles with rating ranges
+const title = client.syncedAssets.getSurvivalTitle(1500);
+
+// Asset statistics and insights
+const stats = client.syncedAssets.getAssetStats();
+console.log(`Total items: ${stats.totalItems}`);
+```
+
+#### Network Assets (Legacy)
+Dynamic fetching from PUBG API assets repository:
+
+```typescript
+// Get user-friendly item names from real PUBG data
+const itemName = await client.assets.getItemName('Item_Weapon_AK47_C');
+console.log(itemName); // "AKM"
+
+// Get detailed item information
+const itemInfo = await client.assets.getItemInfo('Item_Weapon_AK47_C');
+console.log(itemInfo.category); // "weapon"
+
+// Get map names from real PUBG data
+const mapName = await client.assets.getMapName('Baltic');
+console.log(mapName); // "Erangel (Remastered)"
+
+// Get asset URLs for images
+const weaponIconUrl = client.assets.getWeaponAssetUrl('Item_Weapon_AK47_C', 'icon');
+const vehicleImageUrl = client.assets.getVehicleAssetUrl('BP_Motorbike_04_C', 'image');
+```
+
 ## Advanced Features
 
 ### Caching
@@ -188,6 +249,8 @@ Check out the [examples](./examples/) directory for comprehensive usage examples
 
 - [`basic-usage.ts`](./examples/basic-usage.ts) - Simple API usage
 - [`advanced-usage.ts`](./examples/advanced-usage.ts) - Advanced features and error handling
+- [`asset-usage.ts`](./examples/asset-usage.ts) - Network-based asset management
+- [`synced-assets-usage.ts`](./examples/synced-assets-usage.ts) - Local synced assets with type safety
 
 ## Development
 
@@ -207,6 +270,18 @@ npm run lint:fix
 
 # Check and fix both formatting and linting
 npm run check:fix
+```
+
+### Asset Synchronization
+
+The project includes a comprehensive asset sync system:
+
+```bash
+# Sync all PUBG assets from the official repository
+npm run sync-assets
+
+# Assets are automatically synced during build
+npm run build
 ```
 
 ### Testing

@@ -21,7 +21,9 @@
     "legacy:lint:fix": "eslint src/**/*.ts --fix",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "sync-assets": "ts-node scripts/sync-assets.ts",
+    "prebuild": "npm run sync-assets"
   },
   "keywords": [
     "pubg",
