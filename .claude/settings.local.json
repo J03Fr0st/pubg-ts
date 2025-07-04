@@ -26,7 +26,8 @@
       "Bash(npm run sync-assets:*)",
       "Bash(ls:*)",
       "Bash(/bin/rm:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npx biome check:*)"
     ],
     "deny": []
   }
