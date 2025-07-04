@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PubgClient, PubgRateLimitError, PubgNotFoundError } from '../src/index';
+import { PubgClient, PubgNotFoundError, PubgRateLimitError } from '../src/index';
 
 async function advancedExample() {
   const client = new PubgClient({
@@ -58,12 +58,12 @@ async function advancedExample() {
         gameMode: matchDetails.data.attributes.gameMode,
         mapName: matchDetails.data.attributes.mapName,
         duration: Math.round(matchDetails.data.attributes.duration / 60) + ' minutes',
-        players: matchDetails.included.filter(item => item.type === 'participant').length,
+        players: matchDetails.included.filter((item) => item.type === 'participant').length,
       });
 
       // Get telemetry data if available
       const telemetryAsset = matchDetails.included.find(
-        item => item.type === 'asset' && item.attributes.name === 'telemetry'
+        (item) => item.type === 'asset' && item.attributes.name === 'telemetry'
       );
 
       if (telemetryAsset) {
@@ -75,7 +75,7 @@ async function advancedExample() {
         console.log(`✅ Telemetry events: ${telemetryData.length}`);
 
         // Analyze kill events
-        const killEvents = telemetryData.filter(event => event._T === 'LogPlayerKill');
+        const killEvents = telemetryData.filter((event) => event._T === 'LogPlayerKill');
         console.log(`🔫 Kill events: ${killEvents.length}`);
       }
     }
@@ -95,7 +95,6 @@ async function advancedExample() {
     leaderboardResponse.data[0].attributes.rankedStats.slice(0, 10).forEach((player, index) => {
       console.log(`${index + 1}. ${player.playerName} (${player.rankPoints} RP)`);
     });
-
   } catch (error) {
     if (error instanceof PubgRateLimitError) {
       console.error(`⏳ Rate limited. Retry after ${error.retryAfter} seconds`);
@@ -118,14 +117,14 @@ async function rateLimitExample() {
 
   // Make multiple rapid requests to test rate limiting
   const requests = Array.from({ length: 15 }, (_, i) =>
-    client.players.getPlayerByName(`player${i}`).catch(error => ({ error }))
+    client.players.getPlayerByName(`player${i}`).catch((error) => ({ error }))
   );
 
   const results = await Promise.all(requests);
 
-  const successful = results.filter(r => !('error' in r)).length;
-  const rateLimited = results.filter(r =>
-    'error' in r && r.error instanceof PubgRateLimitError
+  const successful = results.filter((r) => !('error' in r)).length;
+  const rateLimited = results.filter(
+    (r) => 'error' in r && r.error instanceof PubgRateLimitError
   ).length;
 
   console.log(`✅ Successful requests: ${successful}`);

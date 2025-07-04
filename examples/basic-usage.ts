@@ -14,7 +14,7 @@ async function basicExample() {
     console.log('🔍 Looking up player...');
     const playerResponse = await client.players.getPlayerByName('shroud');
     const player = playerResponse.data[0];
-    
+
     console.log('✅ Player found:', {
       name: player.attributes.name,
       id: player.id,
@@ -25,7 +25,7 @@ async function basicExample() {
     console.log('📅 Getting current season...');
     const seasonResponse = await client.seasons.getCurrentSeason();
     const currentSeason = seasonResponse.data[0];
-    
+
     console.log('✅ Current season:', currentSeason.id);
 
     // Get player season stats
@@ -55,7 +55,6 @@ async function basicExample() {
     // Check cache statistics
     const cacheStats = client.getCacheStats();
     console.log('💾 Cache stats:', cacheStats);
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

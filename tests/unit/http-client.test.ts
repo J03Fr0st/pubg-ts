@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { HttpClient } from '../../src/api/http-client';
-import type { PubgClientConfig } from '../../src/types/api';
 import {
   PubgApiError,
   PubgAuthenticationError,
@@ -8,6 +7,7 @@ import {
   PubgRateLimitError,
   PubgValidationError,
 } from '../../src/errors';
+import type { PubgClientConfig } from '../../src/types/api';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -170,20 +170,20 @@ describe('HttpClient', () => {
     it('should generate different cache keys for different URLs and params', async () => {
       const mockResponse1 = { data: { test: 'data1' }, status: 200 };
       const mockResponse2 = { data: { test: 'data2' }, status: 200 };
-      
+
       mockAxiosInstance.get
         .mockResolvedValueOnce(mockResponse1)
         .mockResolvedValueOnce(mockResponse2);
 
       await httpClient.get('/test1');
       await httpClient.get('/test2');
-      
+
       expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
-      
+
       // Requests to same URLs should use cache
       await httpClient.get('/test1');
       await httpClient.get('/test2');
-      
+
       expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2); // Still only 2 calls
     });
   });
@@ -201,8 +201,8 @@ describe('HttpClient', () => {
       const error = {
         response: {
           status: 401,
-          data: { errors: [{ detail: 'Invalid API key' }] }
-        }
+          data: { errors: [{ detail: 'Invalid API key' }] },
+        },
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow(PubgAuthenticationError);
@@ -213,8 +213,8 @@ describe('HttpClient', () => {
       const error = {
         response: {
           status: 404,
-          data: { errors: [{ detail: 'Resource not found' }] }
-        }
+          data: { errors: [{ detail: 'Resource not found' }] },
+        },
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow(PubgNotFoundError);
@@ -225,8 +225,8 @@ describe('HttpClient', () => {
       const error = {
         response: {
           status: 400,
-          data: { errors: [{ detail: 'Invalid request parameters' }] }
-        }
+          data: { errors: [{ detail: 'Invalid request parameters' }] },
+        },
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow(PubgValidationError);
@@ -238,8 +238,8 @@ describe('HttpClient', () => {
         response: {
           status: 429,
           headers: { 'retry-after': '120' },
-          data: { errors: [{ detail: 'Rate limit exceeded' }] }
-        }
+          data: { errors: [{ detail: 'Rate limit exceeded' }] },
+        },
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow(PubgRateLimitError);
@@ -251,8 +251,8 @@ describe('HttpClient', () => {
         response: {
           status: 429,
           headers: {},
-          data: { errors: [{ detail: 'Rate limit exceeded' }] }
-        }
+          data: { errors: [{ detail: 'Rate limit exceeded' }] },
+        },
       };
 
       try {
@@ -267,9 +267,9 @@ describe('HttpClient', () => {
       const error = {
         response: {
           status: 400,
-          data: {}
+          data: {},
         },
-        message: 'Network error'
+        message: 'Network error',
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow('Network error');
@@ -279,8 +279,8 @@ describe('HttpClient', () => {
       const error = {
         response: {
           status: 422,
-          data: { errors: [{ detail: 'Unprocessable entity' }] }
-        }
+          data: { errors: [{ detail: 'Unprocessable entity' }] },
+        },
       };
 
       await expect(responseInterceptorError(error)).rejects.toThrow(PubgApiError);
@@ -301,33 +301,33 @@ describe('HttpClient', () => {
       const serverError = {
         response: { status: 500 },
         message: 'Internal server error',
-        config: { url: '/test' }
+        config: { url: '/test' },
       };
-      
+
       // Mock retry request to succeed
       mockAxiosInstance.request.mockResolvedValueOnce({ data: { success: true } });
 
       const result = await responseInterceptorError(serverError);
-      
+
       expect(mockAxiosInstance.request).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ data: { success: true } });
     });
 
     it('should retry for 502, 503, and 504 errors', async () => {
       const serverErrors = [502, 503, 504];
-      
+
       for (const status of serverErrors) {
         jest.clearAllMocks();
         const error = {
           response: { status },
           message: `Server error ${status}`,
-          config: { url: '/test' }
+          config: { url: '/test' },
         };
-        
+
         mockAxiosInstance.request.mockResolvedValueOnce({ data: { success: true } });
 
         await responseInterceptorError(error);
-        
+
         expect(mockAxiosInstance.request).toHaveBeenCalledTimes(1);
       }
     });
@@ -335,31 +335,33 @@ describe('HttpClient', () => {
     it('should not retry when retryAttempts is 0', async () => {
       // Clear mock calls to get clean state
       jest.clearAllMocks();
-      
+
       const noRetryConfig = { ...config, retryAttempts: 0 };
       const noRetryClient = new HttpClient(noRetryConfig);
-      
+
       // Get the error handler for the no-retry client (should be the first call after clearing)
       const noRetryErrorHandler = mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
-      
+
       const serverError = {
         response: { status: 500 },
-        message: 'Internal server error'
+        message: 'Internal server error',
       };
 
       await expect(noRetryErrorHandler(serverError)).rejects.toThrow(PubgApiError);
-      await expect(noRetryErrorHandler(serverError)).rejects.toThrow('Server error: Internal server error');
+      await expect(noRetryErrorHandler(serverError)).rejects.toThrow(
+        'Server error: Internal server error'
+      );
     });
 
     it('should respect retry configuration', () => {
       // Test that different retry configurations create different clients
       const client1 = new HttpClient({ ...config, retryAttempts: 0 });
       const client2 = new HttpClient({ ...config, retryAttempts: 3 });
-      
+
       // Both should have created axios instances with interceptors
       expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
-      
+
       // This test verifies that the retry configuration is properly set up
       expect(client1).toBeDefined();
       expect(client2).toBeDefined();
@@ -369,7 +371,7 @@ describe('HttpClient', () => {
   describe('utility methods', () => {
     it('should return cache stats', () => {
       const stats = httpClient.getCacheStats();
-      
+
       expect(stats).toHaveProperty('size');
       expect(stats).toHaveProperty('maxSize');
       expect(stats).toHaveProperty('defaultTtl');
@@ -380,7 +382,7 @@ describe('HttpClient', () => {
 
     it('should clear cache', () => {
       httpClient.clearCache();
-      
+
       const stats = httpClient.getCacheStats();
       expect(stats.size).toBe(0);
     });
@@ -400,14 +402,14 @@ describe('HttpClient', () => {
       // Verify interceptors were registered during construction
       expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalledTimes(1);
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalledTimes(1);
-      
+
       // Verify the interceptor functions are properly configured
       const requestInterceptor = mockAxiosInstance.interceptors.request.use.mock.calls[0];
       const responseInterceptor = mockAxiosInstance.interceptors.response.use.mock.calls[0];
-      
+
       expect(typeof requestInterceptor[0]).toBe('function'); // success handler
       expect(typeof requestInterceptor[1]).toBe('function'); // error handler
-      expect(typeof responseInterceptor[0]).toBe('function'); // success handler  
+      expect(typeof responseInterceptor[0]).toBe('function'); // success handler
       expect(typeof responseInterceptor[1]).toBe('function'); // error handler
     });
   });

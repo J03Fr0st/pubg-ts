@@ -29,7 +29,13 @@
       "Bash(npm run lint:*)",
       "Bash(npx biome check:*)",
       "Bash(find:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(npm run test:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(unlink:*)",
+      "Bash(npm run check:*)"
     ],
     "deny": []
   }

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PubgClient, assetManager } from '../src/index';
+import { assetManager, PubgClient } from '../src/index';
 
 async function assetExample() {
   const client = new PubgClient({
@@ -17,7 +17,7 @@ async function assetExample() {
       client.assets.getItemName('Item_Weapon_M416_C'),
       client.assets.getItemName('Item_Heal_FirstAid_C'),
     ]);
-    
+
     console.log('  AK47 ID -> ', itemNames[0]);
     console.log('  M416 ID -> ', itemNames[1]);
     console.log('  FirstAid ID -> ', itemNames[2]);
@@ -41,7 +41,7 @@ async function assetExample() {
       client.assets.getVehicleName('BP_Motorbike_04_C'),
       client.assets.getVehicleName('BP_Pickup_06_C'),
     ]);
-    
+
     console.log('  Motorbike ID -> ', vehicleNames[0]);
     console.log('  Pickup ID -> ', vehicleNames[1]);
     console.log();
@@ -50,7 +50,10 @@ async function assetExample() {
     console.log('4. Asset URLs:');
     console.log('  AK47 Icon:', client.assets.getWeaponAssetUrl('Item_Weapon_AK47_C', 'icon'));
     console.log('  M416 Image:', client.assets.getWeaponAssetUrl('Item_Weapon_M416_C', 'image'));
-    console.log('  FirstAid Icon:', client.assets.getEquipmentAssetUrl('Item_Heal_FirstAid_C', 'icon'));
+    console.log(
+      '  FirstAid Icon:',
+      client.assets.getEquipmentAssetUrl('Item_Heal_FirstAid_C', 'icon')
+    );
     console.log('  Motorbike Icon:', client.assets.getVehicleAssetUrl('BP_Motorbike_04_C', 'icon'));
     console.log();
 
@@ -93,12 +96,8 @@ async function assetExample() {
 
     // 9. Humanize unknown items (fallback functionality)
     console.log('9. Humanized Unknown Items:');
-    const unknownItems = [
-      'Item_Weapon_Thompson_C',
-      'Item_Armor_Vest_05_C',
-      'BP_Van_02_C',
-    ];
-    
+    const unknownItems = ['Item_Weapon_Thompson_C', 'Item_Armor_Vest_05_C', 'BP_Van_02_C'];
+
     for (const item of unknownItems) {
       const name = await client.assets.getItemName(item);
       console.log(`  ${item} -> ${name}`);
@@ -113,7 +112,6 @@ async function assetExample() {
     console.log();
 
     console.log('=== Asset Example Complete ===');
-
   } catch (error) {
     console.error('Error in asset example:', error);
   }

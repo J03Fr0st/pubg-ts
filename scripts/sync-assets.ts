@@ -62,7 +62,7 @@ const ASSET_FILES: AssetFile[] = [
     url: `${REPO_BASE_URL}/survivalTitles.json`,
     outputPath: 'survival-titles.json',
   },
-  
+
   // Dictionaries
   {
     name: 'itemDictionary',
@@ -94,7 +94,7 @@ const ASSET_FILES: AssetFile[] = [
     url: `${REPO_BASE_URL}/dictionaries/gameMode.json`,
     outputPath: 'dictionaries/game-mode.json',
   },
-  
+
   // Enums
   {
     name: 'attackTypeEnum',
@@ -143,24 +143,24 @@ async function ensureDirectoryExists(dirPath: string): Promise<void> {
 
 async function downloadAssetFile(file: AssetFile): Promise<any> {
   console.log(`Downloading ${file.name} from ${file.url}...`);
-  
+
   try {
     const response = await fetch(file.url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
-    
+
     // Ensure output directory exists
     const outputPath = path.join(ASSETS_DIR, file.outputPath);
     const outputDir = path.dirname(outputPath);
     await ensureDirectoryExists(outputDir);
-    
+
     // Write the data to file
     await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
     console.log(`✓ Saved ${file.name} to ${outputPath}`);
-    
+
     return data;
   } catch (error) {
     console.error(`✗ Failed to download ${file.name}:`, error);
@@ -171,7 +171,7 @@ async function downloadAssetFile(file: AssetFile): Promise<any> {
 function generateItemTypes(itemDictionary: DictionaryData): string {
   // Group items by category for better type organization
   const categories: { [key: string]: string[] } = {};
-  
+
   for (const [itemId, itemName] of Object.entries(itemDictionary)) {
     const category = categorizeItemId(itemId);
     if (!categories[category]) {
@@ -179,7 +179,7 @@ function generateItemTypes(itemDictionary: DictionaryData): string {
     }
     categories[category].push(itemId);
   }
-  
+
   let typeDefinitions = `// Generated from PUBG API assets
 // Last updated: ${new Date().toISOString()}
 
@@ -194,20 +194,24 @@ export const ITEM_DICTIONARY: ItemDictionary = ${JSON.stringify(itemDictionary, 
   // Generate union types for each category
   for (const [category, items] of Object.entries(categories)) {
     const typeName = `${category.charAt(0).toUpperCase()}${category.slice(1)}ItemId`;
-    const unionType = items.map(id => `'${id}'`).join(' | ');
+    const unionType = items.map((id) => `'${id}'`).join(' | ');
     typeDefinitions += `export type ${typeName} = ${unionType};\n\n`;
   }
-  
+
   // Generate a master union type
-  const allItems = Object.keys(itemDictionary).map(id => `'${id}'`).join(' | ');
+  const allItems = Object.keys(itemDictionary)
+    .map((id) => `'${id}'`)
+    .join(' | ');
   typeDefinitions += `export type ItemId = ${allItems};\n\n`;
-  
+
   return typeDefinitions;
 }
 
 function generateVehicleTypes(vehicleDictionary: DictionaryData): string {
-  const vehicleIds = Object.keys(vehicleDictionary).map(id => `'${id}'`).join(' | ');
-  
+  const vehicleIds = Object.keys(vehicleDictionary)
+    .map((id) => `'${id}'`)
+    .join(' | ');
+
   return `// Generated from PUBG API assets
 // Last updated: ${new Date().toISOString()}
 
@@ -223,8 +227,10 @@ export type VehicleId = ${vehicleIds};
 }
 
 function generateMapTypes(mapDictionary: DictionaryData): string {
-  const mapIds = Object.keys(mapDictionary).map(id => `'${id}'`).join(' | ');
-  
+  const mapIds = Object.keys(mapDictionary)
+    .map((id) => `'${id}'`)
+    .join(' | ');
+
   return `// Generated from PUBG API assets
 // Last updated: ${new Date().toISOString()}
 
@@ -236,7 +242,9 @@ export const MAP_DICTIONARY: MapDictionary = ${JSON.stringify(mapDictionary, nul
 
 export type MapId = ${mapIds};
 
-export type MapName = ${Object.values(mapDictionary).map(name => `'${name}'`).join(' | ')};
+export type MapName = ${Object.values(mapDictionary)
+    .map((name) => `'${name}'`)
+    .join(' | ')};
 
 `;
 }
@@ -248,28 +256,30 @@ function generateEnumTypes(enumData: { [filename: string]: any }): string {
 `;
 
   for (const [filename, data] of Object.entries(enumData)) {
-    const enumName = filename.replace('.json', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    const enumName = filename
+      .replace('.json', '')
+      .replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
     const capitalizedName = enumName.charAt(0).toUpperCase() + enumName.slice(1);
-    
+
     if (Array.isArray(data)) {
       // Handle simple array enums
-      const unionType = data.map(value => `'${value}'`).join(' | ');
+      const unionType = data.map((value) => `'${value}'`).join(' | ');
       typeDefinitions += `export type ${capitalizedName} = ${unionType};\n\n`;
     } else {
       // Handle object-based enums
       for (const [key, values] of Object.entries(data)) {
         if (Array.isArray(values)) {
           const typeName = `${capitalizedName}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-          const unionType = (values as string[]).map(value => `'${value}'`).join(' | ');
+          const unionType = (values as string[]).map((value) => `'${value}'`).join(' | ');
           typeDefinitions += `export type ${typeName} = ${unionType};\n\n`;
         }
       }
     }
-    
+
     // Export the raw data
     typeDefinitions += `export const ${enumName.toUpperCase()}_ENUM = ${JSON.stringify(data, null, 2)};\n\n`;
   }
-  
+
   return typeDefinitions;
 }
 
@@ -293,7 +303,9 @@ export interface SeasonsData {
 
 export const SEASONS_DATA: SeasonsData = ${JSON.stringify(seasonData, null, 2)};
 
-export type Platform = ${Object.keys(seasonData).map(platform => `'${platform}'`).join(' | ')};
+export type Platform = ${Object.keys(seasonData)
+    .map((platform) => `'${platform}'`)
+    .join(' | ')};
 
 `;
 }
@@ -309,30 +321,30 @@ function categorizeItemId(itemId: string): string {
 
 async function generateAllTypes(assetData: { [key: string]: any }): Promise<void> {
   console.log('Generating TypeScript types...');
-  
+
   await ensureDirectoryExists(path.join(TYPES_DIR, 'assets'));
-  
+
   // Generate item types
   if (assetData.itemDictionary) {
     const itemTypes = generateItemTypes(assetData.itemDictionary);
     await fs.writeFile(path.join(TYPES_DIR, 'assets', 'items.ts'), itemTypes);
     console.log('✓ Generated item types');
   }
-  
+
   // Generate vehicle types
   if (assetData.vehicleDictionary) {
     const vehicleTypes = generateVehicleTypes(assetData.vehicleDictionary);
     await fs.writeFile(path.join(TYPES_DIR, 'assets', 'vehicles.ts'), vehicleTypes);
     console.log('✓ Generated vehicle types');
   }
-  
+
   // Generate map types
   if (assetData.mapDictionary) {
     const mapTypes = generateMapTypes(assetData.mapDictionary);
     await fs.writeFile(path.join(TYPES_DIR, 'assets', 'maps.ts'), mapTypes);
     console.log('✓ Generated map types');
   }
-  
+
   // Generate enum types
   const enumData: { [filename: string]: any } = {};
   for (const file of ASSET_FILES) {
@@ -341,20 +353,20 @@ async function generateAllTypes(assetData: { [key: string]: any }): Promise<void
       enumData[filename] = assetData[file.name];
     }
   }
-  
+
   if (Object.keys(enumData).length > 0) {
     const enumTypes = generateEnumTypes(enumData);
     await fs.writeFile(path.join(TYPES_DIR, 'assets', 'enums.ts'), enumTypes);
     console.log('✓ Generated enum types');
   }
-  
+
   // Generate season types
   if (assetData.seasons) {
     const seasonTypes = generateSeasonTypes(assetData.seasons);
     await fs.writeFile(path.join(TYPES_DIR, 'assets', 'seasons.ts'), seasonTypes);
     console.log('✓ Generated season types');
   }
-  
+
   // Generate index file
   const indexContent = `// Generated asset types index
 // Last updated: ${new Date().toISOString()}
@@ -365,22 +377,22 @@ export * from './maps';
 export * from './enums';
 export * from './seasons';
 `;
-  
+
   await fs.writeFile(path.join(TYPES_DIR, 'assets', 'index.ts'), indexContent);
   console.log('✓ Generated asset types index');
 }
 
 async function main(): Promise<void> {
   console.log('🚀 Starting PUBG asset sync...\n');
-  
+
   try {
     // Ensure base directories exist
     await ensureDirectoryExists(ASSETS_DIR);
     await ensureDirectoryExists(TYPES_DIR);
-    
+
     // Download all asset files
     const assetData: { [key: string]: any } = {};
-    
+
     for (const file of ASSET_FILES) {
       try {
         assetData[file.name] = await downloadAssetFile(file);
@@ -388,17 +400,16 @@ async function main(): Promise<void> {
         console.warn(`Warning: Could not download ${file.name}, continuing...`);
       }
     }
-    
+
     console.log('\n📝 Asset download completed!');
     console.log(`Downloaded ${Object.keys(assetData).length}/${ASSET_FILES.length} asset files\n`);
-    
+
     // Generate TypeScript types
     await generateAllTypes(assetData);
-    
+
     console.log('\n🎉 Asset sync completed successfully!');
     console.log(`Assets saved to: ${ASSETS_DIR}`);
     console.log(`Types generated in: ${path.join(TYPES_DIR, 'assets')}`);
-    
   } catch (error) {
     console.error('\n❌ Asset sync failed:', error);
     process.exit(1);

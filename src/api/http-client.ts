@@ -2,6 +2,9 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 import {
   PubgApiError,
   PubgAuthenticationError,
+  PubgCacheError,
+  PubgConfigurationError,
+  PubgNetworkError,
   PubgNotFoundError,
   PubgRateLimitError,
   PubgValidationError,
@@ -18,6 +21,7 @@ export class HttpClient {
   private cache: MemoryCache;
 
   constructor(config: PubgClientConfig) {
+    this.validateConfig(config);
     this.config = config;
     this.rateLimiter = new RateLimiter(10, 60000);
     this.cache = globalCache;
@@ -36,6 +40,56 @@ export class HttpClient {
     logger.client('HTTP client initialized', { shard: config.shard, timeout: config.timeout });
   }
 
+  private validateConfig(config: PubgClientConfig): void {
+    if (!config.apiKey || typeof config.apiKey !== 'string') {
+      throw new PubgConfigurationError(
+        'API key is required and must be a valid string',
+        'apiKey',
+        'string',
+        config.apiKey
+      );
+    }
+
+    if (!config.shard || typeof config.shard !== 'string') {
+      throw new PubgConfigurationError(
+        'Shard is required and must be a valid string',
+        'shard',
+        'string',
+        config.shard
+      );
+    }
+
+    if (config.timeout && (typeof config.timeout !== 'number' || config.timeout <= 0)) {
+      throw new PubgConfigurationError(
+        'Timeout must be a positive number',
+        'timeout',
+        'positive number',
+        config.timeout
+      );
+    }
+
+    if (
+      config.retryAttempts &&
+      (typeof config.retryAttempts !== 'number' || config.retryAttempts < 0)
+    ) {
+      throw new PubgConfigurationError(
+        'Retry attempts must be a non-negative number',
+        'retryAttempts',
+        'non-negative number',
+        config.retryAttempts
+      );
+    }
+
+    if (config.retryDelay && (typeof config.retryDelay !== 'number' || config.retryDelay < 0)) {
+      throw new PubgConfigurationError(
+        'Retry delay must be a non-negative number',
+        'retryDelay',
+        'non-negative number',
+        config.retryDelay
+      );
+    }
+  }
+
   private setupInterceptors(): void {
     this.axios.interceptors.request.use(
       async (config) => {
@@ -50,17 +104,35 @@ export class HttpClient {
       async (error) => {
         const status = error.response?.status;
         const message = error.response?.data?.errors?.[0]?.detail || error.message;
+        const url = error.config?.url || 'unknown';
+
+        // Handle network-level errors (no response received)
+        if (!error.response) {
+          return this.handleNetworkError(error, url);
+        }
 
         switch (status) {
           case 401:
-            throw new PubgAuthenticationError(message);
+            throw new PubgAuthenticationError(message, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method },
+            });
           case 404:
-            throw new PubgNotFoundError(message);
+            throw new PubgNotFoundError(message, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method },
+            });
           case 400:
-            throw new PubgValidationError(message);
+            throw new PubgValidationError(message, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method },
+            });
           case 429: {
             const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60');
-            throw new PubgRateLimitError(message, retryAfter);
+            throw new PubgRateLimitError(message, retryAfter, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method, retryAfter },
+            });
           }
           case 500:
           case 502:
@@ -69,16 +141,76 @@ export class HttpClient {
             if (this.config.retryAttempts && this.config.retryAttempts > 0) {
               return this.retryRequest(error);
             }
-            throw new PubgApiError(`Server error: ${message}`, status);
+            throw new PubgNetworkError(`Server error: ${message}`, 'request', error, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method, statusCode: status },
+            });
           default:
-            throw new PubgApiError(message, status, error.response?.data);
+            throw new PubgApiError(message, status, error.response?.data, {
+              operation: 'http_request',
+              metadata: { url, method: error.config?.method },
+            });
         }
       }
     );
   }
 
+  private handleNetworkError(error: any, url: string): never {
+    const code = error.code;
+    const message = error.message;
+
+    switch (code) {
+      case 'ECONNREFUSED':
+        throw new PubgNetworkError(`Connection refused: ${message}`, 'connect', error, {
+          operation: 'network_connect',
+          metadata: { url, errorCode: code },
+        });
+      case 'ENOTFOUND':
+      case 'EAI_AGAIN':
+        throw new PubgNetworkError(`DNS lookup failed: ${message}`, 'dns', error, {
+          operation: 'network_dns',
+          metadata: { url, errorCode: code },
+        });
+      case 'ECONNRESET':
+      case 'ECONNABORTED':
+        throw new PubgNetworkError(`Connection reset: ${message}`, 'connect', error, {
+          operation: 'network_connect',
+          metadata: { url, errorCode: code },
+        });
+      case 'ETIMEDOUT':
+        throw new PubgNetworkError(`Request timeout: ${message}`, 'timeout', error, {
+          operation: 'network_timeout',
+          metadata: { url, errorCode: code, timeout: this.config.timeout },
+        });
+      case 'CERT_HAS_EXPIRED':
+      case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
+        throw new PubgNetworkError(`SSL certificate error: ${message}`, 'ssl', error, {
+          operation: 'network_ssl',
+          metadata: { url, errorCode: code },
+        });
+      default:
+        throw new PubgNetworkError(`Network error: ${message}`, 'unknown', error, {
+          operation: 'network_unknown',
+          metadata: { url, errorCode: code },
+        });
+    }
+  }
+
   private async retryRequest(error: any, attempt: number = 1): Promise<AxiosResponse> {
     if (attempt > (this.config.retryAttempts || 3)) {
+      // Convert to network error if it's a network issue
+      if (!error.response) {
+        const url = error.config?.url || 'unknown';
+        throw new PubgNetworkError(
+          `Max retry attempts reached: ${error.message}`,
+          'request',
+          error,
+          {
+            operation: 'network_retry_exhausted',
+            metadata: { url, maxAttempts: this.config.retryAttempts || 3, attempt },
+          }
+        );
+      }
       throw error;
     }
 
@@ -98,9 +230,21 @@ export class HttpClient {
 
     // Check cache first for GET requests
     if (useCache) {
-      const cached = this.cache.get<T>(cacheKey);
-      if (cached !== undefined) {
-        return cached;
+      try {
+        const cached = this.cache.get<T>(cacheKey);
+        if (cached !== undefined) {
+          return cached;
+        }
+      } catch (error) {
+        throw new PubgCacheError(
+          `Failed to retrieve from cache: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          cacheKey,
+          'get',
+          {
+            operation: 'cache_get',
+            metadata: { url, method: 'GET' },
+          }
+        );
       }
     }
 
@@ -109,7 +253,14 @@ export class HttpClient {
 
       // Cache successful GET responses
       if (useCache && response.status === 200) {
-        this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
+        try {
+          this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
+        } catch (error) {
+          // Log cache set error but don't fail the request
+          logger.http(
+            `Cache set failed for ${cacheKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+        }
       }
 
       return response.data;
@@ -143,6 +294,17 @@ export class HttpClient {
   }
 
   clearCache() {
-    this.cache.clear();
+    try {
+      this.cache.clear();
+    } catch (error) {
+      throw new PubgCacheError(
+        `Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'all',
+        'cleanup',
+        {
+          operation: 'cache_clear',
+        }
+      );
+    }
   }
 }

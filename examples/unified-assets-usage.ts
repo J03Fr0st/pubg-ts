@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PubgClient, assetManager, ItemId, VehicleId, MapId } from '../src/index';
+import { assetManager, type ItemId, MapId, PubgClient, type VehicleId } from '../src/index';
 
 async function unifiedAssetsExample() {
   const client = new PubgClient({
@@ -14,7 +14,7 @@ async function unifiedAssetsExample() {
   const ak47Id: ItemId = 'Item_Weapon_AK47_C';
   const itemName = client.assets.getItemName(ak47Id);
   const itemInfo = client.assets.getItemInfo(ak47Id);
-  
+
   console.log(`  Item ID: ${ak47Id}`);
   console.log(`  Name: ${itemName}`);
   if (itemInfo) {
@@ -27,12 +27,12 @@ async function unifiedAssetsExample() {
   console.log('2. Enhanced Search & Filtering:');
   const akWeapons = client.assets.searchItems('AK');
   const allWeapons = client.assets.getItemsByCategory('weapon');
-  
+
   console.log(`  Found ${akWeapons.length} items matching "AK"`);
-  akWeapons.slice(0, 3).forEach(item => {
+  akWeapons.slice(0, 3).forEach((item) => {
     console.log(`    - ${item.name} (${item.category})`);
   });
-  
+
   console.log(`  Total weapons: ${allWeapons.length}`);
   console.log();
 
@@ -41,7 +41,7 @@ async function unifiedAssetsExample() {
   const vehicleId: VehicleId = 'BP_Motorbike_04_C';
   const vehicleName = client.assets.getVehicleName(vehicleId);
   const vehicleInfo = client.assets.getVehicleInfo(vehicleId);
-  
+
   console.log(`  Vehicle: ${vehicleName}`);
   if (vehicleInfo) {
     console.log(`  Type: ${vehicleInfo.type}`);
@@ -53,10 +53,10 @@ async function unifiedAssetsExample() {
   console.log('4. Map Information:');
   const allMaps = client.assets.getAllMaps();
   const mapName = client.assets.getMapName('Baltic_Main');
-  
+
   console.log(`  Baltic map: ${mapName}`);
   console.log(`  Available maps (${allMaps.length} total):`);
-  allMaps.slice(0, 5).forEach(map => {
+  allMaps.slice(0, 5).forEach((map) => {
     console.log(`    - ${map.name} (${map.id})`);
   });
   console.log();
@@ -65,7 +65,7 @@ async function unifiedAssetsExample() {
   console.log('5. Season Information:');
   const pcSeasons = client.assets.getSeasonsByPlatform('PC');
   const currentSeason = client.assets.getCurrentSeason('PC');
-  
+
   console.log(`  Total PC seasons: ${pcSeasons.length}`);
   if (currentSeason) {
     console.log(`  Current season: ${currentSeason.name}`);
@@ -80,7 +80,9 @@ async function unifiedAssetsExample() {
   for (const rating of ratings) {
     const title = client.assets.getSurvivalTitle(rating);
     if (title) {
-      console.log(`  Rating ${rating}: ${title.title} Level ${title.level} (${title.pointsRequired} points)`);
+      console.log(
+        `  Rating ${rating}: ${title.title} Level ${title.level} (${title.pointsRequired} points)`
+      );
     } else {
       console.log(`  Rating ${rating}: No title found`);
     }
@@ -92,7 +94,7 @@ async function unifiedAssetsExample() {
   const damageCauser = client.assets.getDamageCauserName('Item_Weapon_AK47_C');
   const damageType = client.assets.getDamageTypeCategory('Weapon');
   const gameMode = client.assets.getGameModeName('squad');
-  
+
   console.log(`  Damage causer for AK47: ${damageCauser}`);
   console.log(`  Damage type for 'Weapon': ${damageType}`);
   console.log(`  Game mode name for 'squad': ${gameMode}`);
@@ -103,7 +105,7 @@ async function unifiedAssetsExample() {
   const weaponIconUrl = client.assets.getWeaponAssetUrl(ak47Id, 'icon');
   const weaponImageUrl = client.assets.getWeaponAssetUrl(ak47Id, 'image');
   const vehicleIconUrl = client.assets.getVehicleAssetUrl(vehicleId, 'icon');
-  
+
   console.log(`  AK47 Icon: ${weaponIconUrl}`);
   console.log(`  AK47 Image: ${weaponImageUrl}`);
   console.log(`  Motorbike Icon: ${vehicleIconUrl}`);
@@ -116,16 +118,18 @@ async function unifiedAssetsExample() {
   console.log(`  Total vehicles: ${stats.totalVehicles}`);
   console.log(`  Total maps: ${stats.totalMaps}`);
   console.log('  Items by category:');
-  Object.entries(stats.categoryCounts).slice(0, 5).forEach(([category, count]) => {
-    console.log(`    - ${category}: ${count}`);
-  });
+  Object.entries(stats.categoryCounts)
+    .slice(0, 5)
+    .forEach(([category, count]) => {
+      console.log(`    - ${category}: ${count}`);
+    });
   console.log();
 
   // 10. Using the standalone asset manager
   console.log('10. Standalone Asset Manager:');
   const standaloneItemName = assetManager.getItemName('Item_Heal_FirstAid_C');
   const standaloneVehicleName = assetManager.getVehicleName('BP_Pickup_06_C');
-  
+
   console.log(`  FirstAid name: ${standaloneItemName}`);
   console.log(`  Pickup truck name: ${standaloneVehicleName}`);
   console.log();
@@ -134,7 +138,7 @@ async function unifiedAssetsExample() {
   console.log('11. Legacy Async Methods:');
   const legacySeasonInfo = await client.assets.getSeasonInfo('division.bro.official.2018-01');
   const legacySeasons = await client.assets.getSeasons();
-  
+
   if (legacySeasonInfo) {
     console.log(`  Legacy season info: ${legacySeasonInfo.name}`);
   }

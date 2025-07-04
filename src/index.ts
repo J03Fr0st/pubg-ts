@@ -1,54 +1,12 @@
 export { PubgClient } from './api/client';
 export * from './errors';
 export * from './types';
-export { AssetManager, assetManager } from './utils/assets';
-
-// Explicit re-exports from types/assets to avoid conflicts
 export type {
-  EnhancedItemInfo,
-  EnhancedVehicleInfo,
-  EnhancedSeasonInfo,
-  SurvivalTitleInfo,
-  ItemDictionary,
-  VehicleDictionary,
-  AssetConfig
-} from './utils/assets';
-
-// Asset-specific types with prefixes to avoid conflicts
-export type {
-  ItemId,
-  ItemDictionary as AssetItemDictionary,
-  ITEM_DICTIONARY
-} from './types/assets/items';
-
-export type {
-  VehicleId,
-  VehicleDictionary as AssetVehicleDictionary,
-  VEHICLE_DICTIONARY
-} from './types/assets/vehicles';
-
-export type {
-  MapId,
-  MapDictionary,
-  MAP_DICTIONARY,
-  MapName as AssetMapName
-} from './types/assets/maps';
-
-export type {
-  SeasonData,
-  SeasonsData,
-  SEASONS_DATA,
-  Platform as AssetPlatform,
-  SeasonAttributes as AssetSeasonAttributes
-} from './types/assets/seasons';
-
-export type {
-  DamageReason,
   AttackType,
   CarryState,
+  DamageReason,
   ObjectType,
   ObjectTypeStatus,
-  WeatherId,
   RegionIdChimera_Main,
   RegionIdDesert_Main,
   RegionIdDihorOtok_Main,
@@ -56,5 +14,41 @@ export type {
   RegionIdHeaven_Main,
   RegionIdSavage_Main,
   RegionIdSummerland_Main,
-  RegionIdTiger_Main
+  RegionIdTiger_Main,
+  WeatherId,
 } from './types/assets/enums';
+// Asset-specific types with prefixes to avoid conflicts
+export type {
+  ITEM_DICTIONARY,
+  ItemDictionary as AssetItemDictionary,
+  ItemId,
+} from './types/assets/items';
+export type {
+  MAP_DICTIONARY,
+  MapDictionary,
+  MapId,
+  MapName as AssetMapName,
+} from './types/assets/maps';
+export type {
+  Platform as AssetPlatform,
+  SEASONS_DATA,
+  SeasonAttributes as AssetSeasonAttributes,
+  SeasonData,
+  SeasonsData,
+} from './types/assets/seasons';
+export type {
+  VEHICLE_DICTIONARY,
+  VehicleDictionary as AssetVehicleDictionary,
+  VehicleId,
+} from './types/assets/vehicles';
+// Explicit re-exports from types/assets to avoid conflicts
+export type {
+  AssetConfig,
+  EnhancedItemInfo,
+  EnhancedSeasonInfo,
+  EnhancedVehicleInfo,
+  ItemDictionary,
+  SurvivalTitleInfo,
+  VehicleDictionary,
+} from './utils/assets';
+export { AssetManager, assetManager } from './utils/assets';

@@ -7,42 +7,48 @@ import vehicleIdData from '../assets/dictionaries/vehicle-id.json';
 // Import the JSON files directly
 import seasonsData from '../assets/seasons.json';
 import survivalTitlesData from '../assets/survival-titles.json';
+import {
+  PubgAssetError,
+  PubgCacheError,
+  PubgConfigurationError,
+  PubgValidationError,
+} from '../errors';
 // Import the synced asset data and types
 import type { Platform } from '../types/assets/seasons';
 import { logger } from './logger';
 
 /**
  * Unified PUBG Asset Management System
- * 
+ *
  * Provides comprehensive access to all PUBG assets with full TypeScript type safety.
  * Uses synced local data for zero-latency performance.
- * 
+ *
  * ## Recommended Usage
- * 
+ *
  * All methods are synchronous and use locally cached data for optimal performance:
  * - `getItemName()`, `getItemInfo()`, `searchItems()` - Item management
- * - `getVehicleName()`, `getVehicleInfo()` - Vehicle information  
+ * - `getVehicleName()`, `getVehicleInfo()` - Vehicle information
  * - `getMapName()`, `getAllMaps()` - Map data
  * - `getSeasonsByPlatform()`, `getCurrentSeason()` - Season information
  * - `getSurvivalTitle()` - Survival title lookups
- * 
+ *
  * ## Migration from Async Methods
- * 
+ *
  * Legacy async methods are deprecated in favor of synchronous alternatives:
  * - `getSeasonInfo()` → `getSeasonsByPlatform().find(s => s.id === seasonId)`
  * - `getSeasons()` → `getSeasonsByPlatform('PC')`
- * 
+ *
  * @example
  * ```typescript
  * const assetManager = new AssetManager();
- * 
+ *
  * // Get item information (synchronous)
  * const itemName = assetManager.getItemName('Item_Weapon_AK47_C');
  * const itemInfo = assetManager.getItemInfo('Item_Weapon_AK47_C');
- * 
+ *
  * // Search items by category
  * const weapons = assetManager.getItemsByCategory('weapon');
- * 
+ *
  * // Get season information
  * const pcSeasons = assetManager.getSeasonsByPlatform('PC');
  * const currentSeason = assetManager.getCurrentSeason('PC');
@@ -132,6 +138,8 @@ export class AssetManager {
   private seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
 
   constructor(config: AssetConfig = {}) {
+    this.validateConfig(config);
+
     this.config = {
       baseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
       version: 'latest',
@@ -161,6 +169,13 @@ export class AssetManager {
    * Get detailed item information with enhanced metadata
    */
   getItemInfo(itemId: string): EnhancedItemInfo | null {
+    if (!itemId || typeof itemId !== 'string') {
+      throw new PubgAssetError('Invalid item ID provided', itemId || 'undefined', 'item', {
+        operation: 'get_item_info',
+        metadata: { providedId: itemId },
+      });
+    }
+
     if (this.itemCache.has(itemId)) {
       return this.itemCache.get(itemId)!;
     }
@@ -240,6 +255,13 @@ export class AssetManager {
    * Get detailed vehicle information
    */
   getVehicleInfo(vehicleId: string): EnhancedVehicleInfo | null {
+    if (!vehicleId || typeof vehicleId !== 'string') {
+      throw new PubgAssetError('Invalid vehicle ID provided', vehicleId || 'undefined', 'vehicle', {
+        operation: 'get_vehicle_info',
+        metadata: { providedId: vehicleId },
+      });
+    }
+
     if (this.vehicleCache.has(vehicleId)) {
       return this.vehicleCache.get(vehicleId)!;
     }
@@ -285,6 +307,17 @@ export class AssetManager {
    * Get season information by platform
    */
   getSeasonsByPlatform(platform: Platform): EnhancedSeasonInfo[] {
+    const validPlatforms: Platform[] = ['PC', 'XBOX', 'PS4', 'Stadia'];
+
+    if (!validPlatforms.includes(platform)) {
+      throw new PubgConfigurationError(
+        `Invalid platform '${platform}'. Valid platforms are: ${validPlatforms.join(', ')}`,
+        'platform',
+        'Platform',
+        platform
+      );
+    }
+
     if (this.seasonCache.has(platform)) {
       return this.seasonCache.get(platform)!;
     }
@@ -308,6 +341,15 @@ export class AssetManager {
    * Get current active season for a platform
    */
   getCurrentSeason(platform: Platform = 'PC'): EnhancedSeasonInfo | null {
+    if (!platform || typeof platform !== 'string') {
+      throw new PubgConfigurationError(
+        'Invalid platform provided',
+        'platform',
+        'Platform',
+        platform
+      );
+    }
+
     const seasons = this.getSeasonsByPlatform(platform);
     return seasons.find((s) => s.isActive) || null;
   }
@@ -316,6 +358,15 @@ export class AssetManager {
    * Get survival title information
    */
   getSurvivalTitle(rating: number): SurvivalTitleInfo | null {
+    if (typeof rating !== 'number' || rating < 0 || !Number.isFinite(rating)) {
+      throw new PubgAssetError(
+        'Invalid survival rating provided',
+        String(rating),
+        'survival_title',
+        { operation: 'get_survival_title', metadata: { providedRating: rating } }
+      );
+    }
+
     const titles = survivalTitlesData as any;
 
     // Find the appropriate title based on rating
@@ -363,11 +414,11 @@ export class AssetManager {
   /**
    * @deprecated Use getSeasonsByPlatform() for better performance with local data.
    * This method will be removed in v2.0.0.
-   * 
+   *
    * @example
    * // Instead of:
    * const season = await assetManager.getSeasonInfo(seasonId);
-   * 
+   *
    * // Use:
    * const allSeasons = assetManager.getSeasonsByPlatform('PC');
    * const season = allSeasons.find(s => s.id === seasonId);
@@ -376,11 +427,11 @@ export class AssetManager {
     if (process.env.NODE_ENV !== 'test') {
       console.warn(
         '[DEPRECATION WARNING] AssetManager.getSeasonInfo() is deprecated. ' +
-        'Use getSeasonsByPlatform() for better performance with local data. ' +
-        'This method will be removed in v2.0.0.'
+          'Use getSeasonsByPlatform() for better performance with local data. ' +
+          'This method will be removed in v2.0.0.'
       );
     }
-    
+
     const allSeasons = this.getSeasonsByPlatform('PC').concat(
       this.getSeasonsByPlatform('XBOX' as Platform)
     );
@@ -390,11 +441,11 @@ export class AssetManager {
   /**
    * @deprecated Use getSeasonsByPlatform('PC') for better performance with local data.
    * This method will be removed in v2.0.0.
-   * 
+   *
    * @example
    * // Instead of:
    * const seasons = await assetManager.getSeasons();
-   * 
+   *
    * // Use:
    * const seasons = assetManager.getSeasonsByPlatform('PC');
    */
@@ -402,11 +453,11 @@ export class AssetManager {
     if (process.env.NODE_ENV !== 'test') {
       console.warn(
         '[DEPRECATION WARNING] AssetManager.getSeasons() is deprecated. ' +
-        'Use getSeasonsByPlatform() for better performance with local data. ' +
-        'This method will be removed in v2.0.0.'
+          'Use getSeasonsByPlatform() for better performance with local data. ' +
+          'This method will be removed in v2.0.0.'
       );
     }
-    
+
     return this.getSeasonsByPlatform('PC');
   }
 
@@ -468,11 +519,17 @@ export class AssetManager {
    * Clear asset cache
    */
   clearCache(): void {
-    this.cache.clear();
-    this.itemCache.clear();
-    this.vehicleCache.clear();
-    this.seasonCache.clear();
-    logger.cache('All asset caches cleared');
+    try {
+      this.cache.clear();
+      this.itemCache.clear();
+      this.vehicleCache.clear();
+      this.seasonCache.clear();
+      logger.cache('All asset caches cleared');
+    } catch (error) {
+      throw new PubgCacheError('Failed to clear asset caches', 'all_caches', 'cleanup', {
+        metadata: { originalError: error },
+      });
+    }
   }
 
   // Private helper methods
@@ -571,8 +628,30 @@ export class AssetManager {
   }
 
   private parseDate(dateStr: string): Date {
+    if (!dateStr || typeof dateStr !== 'string') {
+      throw new PubgValidationError('Invalid date string provided', {
+        operation: 'parse_date',
+        metadata: { providedDate: dateStr },
+      });
+    }
+
     // Handle MM-DD-YYYY format
-    const [month, day, year] = dateStr.split('-').map(Number);
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) {
+      throw new PubgValidationError(
+        `Invalid date format '${dateStr}'. Expected MM-DD-YYYY format`,
+        { operation: 'parse_date', metadata: { providedDate: dateStr, format: 'MM-DD-YYYY' } }
+      );
+    }
+
+    const [month, day, year] = parts.map(Number);
+    if (isNaN(month) || isNaN(day) || isNaN(year)) {
+      throw new PubgValidationError(
+        `Invalid date components in '${dateStr}'. All parts must be numeric`,
+        { operation: 'parse_date', metadata: { month, day, year } }
+      );
+    }
+
     return new Date(year, month - 1, day);
   }
 
@@ -604,6 +683,47 @@ export class AssetManager {
       .replace(/^BP_/, '')
       .replace(/_\d+_C$/, '')
       .replace(/_C$/, '');
+  }
+
+  /**
+   * Validate configuration object
+   */
+  private validateConfig(config: AssetConfig): void {
+    if (config.baseUrl && typeof config.baseUrl !== 'string') {
+      throw new PubgConfigurationError(
+        'baseUrl must be a string',
+        'baseUrl',
+        'string',
+        config.baseUrl
+      );
+    }
+
+    if (config.version && typeof config.version !== 'string') {
+      throw new PubgConfigurationError(
+        'version must be a string',
+        'version',
+        'string',
+        config.version
+      );
+    }
+
+    if (config.cacheAssets !== undefined && typeof config.cacheAssets !== 'boolean') {
+      throw new PubgConfigurationError(
+        'cacheAssets must be a boolean',
+        'cacheAssets',
+        'boolean',
+        config.cacheAssets
+      );
+    }
+
+    if (config.useLocalData !== undefined && typeof config.useLocalData !== 'boolean') {
+      throw new PubgConfigurationError(
+        'useLocalData must be a boolean',
+        'useLocalData',
+        'boolean',
+        config.useLocalData
+      );
+    }
   }
 }
 
