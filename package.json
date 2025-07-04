@@ -72,6 +72,9 @@
     ],
     "*.{ts,js}": [
       "npm run test -- --findRelatedTests --passWithNoTests --silent"
+    ],
+    "ignore": [
+      ".claude/settings.local.json"
     ]
   }
 }
