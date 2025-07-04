@@ -13,18 +13,21 @@ import type { PubgClientConfig } from '../types/api';
 import { createCacheKey, globalCache, type MemoryCache } from '../utils/cache';
 import { logger, withTiming } from '../utils/logger';
 import { RateLimiter } from '../utils/rate-limiter';
+import { RequestDeduplicator } from '../utils/request';
 
 export class HttpClient {
   private axios: AxiosInstance;
   private rateLimiter: RateLimiter;
   private config: PubgClientConfig;
   private cache: MemoryCache;
+  private deduplicator: RequestDeduplicator;
 
   constructor(config: PubgClientConfig) {
     this.validateConfig(config);
     this.config = config;
     this.rateLimiter = new RateLimiter(10, 60000);
     this.cache = globalCache;
+    this.deduplicator = new RequestDeduplicator();
 
     this.axios = axios.create({
       baseURL: config.baseUrl || 'https://api.pubg.com',
@@ -248,23 +251,27 @@ export class HttpClient {
       }
     }
 
-    return withTiming(logger.http, `GET ${url}`, async () => {
-      const response = await this.axios.get<T>(url, config);
+    return this.deduplicator.deduplicate(cacheKey, () =>
+      withTiming(logger.http, `GET ${url}`, async () => {
+        const response = await this.axios.get<T>(url, config);
 
-      // Cache successful GET responses
-      if (useCache && response.status === 200) {
-        try {
-          this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
-        } catch (error) {
-          // Log cache set error but don't fail the request
-          logger.http(
-            `Cache set failed for ${cacheKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
-          );
+        // Cache successful GET responses
+        if (useCache && response.status === 200) {
+          try {
+            this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
+          } catch (error) {
+            // Log cache set error but don't fail the request
+            logger.http(
+              `Cache set failed for ${cacheKey}: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`
+            );
+          }
         }
-      }
 
-      return response.data;
-    });
+        return response.data;
+      })
+    );
   }
 
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
