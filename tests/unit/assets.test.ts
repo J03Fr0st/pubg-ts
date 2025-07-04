@@ -12,13 +12,13 @@ describe('AssetManager', () => {
   });
 
   describe('Item Management', () => {
-    it('should get user-friendly item names', async () => {
-      const itemName = await assetManager.getItemName('Item_Weapon_AK47_C');
+    it('should get user-friendly item names', () => {
+      const itemName = assetManager.getItemName('Item_Weapon_AK47_C');
       expect(itemName).toBe('AKM'); // Real PUBG data shows AK47 as "AKM"
     });
 
-    it('should get detailed item information', async () => {
-      const itemInfo = await assetManager.getItemInfo('Item_Weapon_AK47_C');
+    it('should get detailed item information', () => {
+      const itemInfo = assetManager.getItemInfo('Item_Weapon_AK47_C');
 
       expect(itemInfo).toMatchObject({
         name: 'AKM',
@@ -28,25 +28,25 @@ describe('AssetManager', () => {
       });
     });
 
-    it('should humanize unknown item IDs', async () => {
-      const unknownItemName = await assetManager.getItemName('Item_Weapon_UnknownGun_C');
+    it('should humanize unknown item IDs', () => {
+      const unknownItemName = assetManager.getItemName('Item_Weapon_UnknownGun_C');
       expect(unknownItemName).toBe('Weapon UnknownGun');
     });
 
-    it('should return null for non-existent items', async () => {
-      const itemInfo = await assetManager.getItemInfo('Item_NonExistent_C');
+    it('should return null for non-existent items', () => {
+      const itemInfo = assetManager.getItemInfo('Item_NonExistent_C');
       expect(itemInfo).toBeNull();
     });
   });
 
   describe('Vehicle Management', () => {
-    it('should get user-friendly vehicle names', async () => {
-      const vehicleName = await assetManager.getVehicleName('BP_Motorbike_04_C');
+    it('should get user-friendly vehicle names', () => {
+      const vehicleName = assetManager.getVehicleName('BP_Motorbike_04_C');
       expect(vehicleName).toBe('Motorcycle');
     });
 
-    it('should get detailed vehicle information', async () => {
-      const vehicleInfo = await assetManager.getVehicleInfo('BP_Motorbike_04_C');
+    it('should get detailed vehicle information', () => {
+      const vehicleInfo = assetManager.getVehicleInfo('BP_Motorbike_04_C');
 
       expect(vehicleInfo).toMatchObject({
         name: 'Motorcycle',
@@ -55,13 +55,13 @@ describe('AssetManager', () => {
       });
     });
 
-    it('should humanize unknown vehicle IDs', async () => {
-      const unknownVehicleName = await assetManager.getVehicleName('BP_UnknownCar_01_C');
+    it('should humanize unknown vehicle IDs', () => {
+      const unknownVehicleName = assetManager.getVehicleName('BP_UnknownCar_01_C');
       expect(unknownVehicleName).toBe('UnknownCar');
     });
 
-    it('should return null for non-existent vehicles', async () => {
-      const vehicleInfo = await assetManager.getVehicleInfo('BP_NonExistent_C');
+    it('should return null for non-existent vehicles', () => {
+      const vehicleInfo = assetManager.getVehicleInfo('BP_NonExistent_C');
       expect(vehicleInfo).toBeNull();
     });
   });
@@ -80,8 +80,8 @@ describe('AssetManager', () => {
       });
     });
 
-    it('should get current active season', async () => {
-      const currentSeason = await assetManager.getCurrentSeason();
+    it('should get current active season', () => {
+      const currentSeason = assetManager.getCurrentSeason();
 
       if (currentSeason) {
         expect(currentSeason).toMatchObject({
@@ -98,22 +98,22 @@ describe('AssetManager', () => {
   });
 
   describe('Map Management', () => {
-    it('should get user-friendly map names', async () => {
-      const mapName = await assetManager.getMapName('Baltic');
+    it('should get user-friendly map names', () => {
+      const mapName = assetManager.getMapName('Baltic');
       // May return real data or fallback - both are valid
       expect(typeof mapName).toBe('string');
       expect(mapName.length).toBeGreaterThan(0);
     });
 
-    it('should get map name for Desert', async () => {
-      const mapName = await assetManager.getMapName('Desert');
+    it('should get map name for Desert', () => {
+      const mapName = assetManager.getMapName('Desert');
       // May return real data or fallback - both are valid
       expect(typeof mapName).toBe('string');
       expect(mapName.length).toBeGreaterThan(0);
     });
 
-    it('should humanize unknown map IDs', async () => {
-      const unknownMapName = await assetManager.getMapName('UnknownMap');
+    it('should humanize unknown map IDs', () => {
+      const unknownMapName = assetManager.getMapName('UnknownMap');
       expect(unknownMapName).toBe('Unknown Map');
     });
   });

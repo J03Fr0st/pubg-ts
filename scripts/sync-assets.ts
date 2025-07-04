@@ -288,8 +288,6 @@ export interface SeasonData {
 }
 
 export interface SeasonsData {
-  pc: SeasonData[];
-  xbox: SeasonData[];
   [platform: string]: SeasonData[];
 }
 
