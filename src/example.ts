@@ -1,6 +1,7 @@
+import 'dotenv/config';
 import { PubgClient } from './index';
 
-async function example() {
+async function _example() {
   const client = new PubgClient({
     apiKey: 'your-api-key-here',
     shard: 'pc-na',

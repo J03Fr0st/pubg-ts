@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PubgClient } from '../../src/api/client';
 import type { PubgClientConfig } from '../../src/types/api';
 

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PubgClient, PubgRateLimitError, PubgNotFoundError } from '../src/index';
 
 async function advancedExample() {
@@ -10,7 +11,7 @@ async function advancedExample() {
     // Batch player lookup with error handling
     const playerNames = ['shroud', 'ninja', 'DrDisrespect'];
     console.log('🔍 Looking up multiple players...');
-    
+
     const playerPromises = playerNames.map(async (name) => {
       try {
         const response = await client.players.getPlayerByName(name);
@@ -21,7 +22,7 @@ async function advancedExample() {
     });
 
     const results = await Promise.all(playerPromises);
-    
+
     results.forEach(({ name, player, error }) => {
       if (player) {
         console.log(`✅ Found ${name}: ${player.id}`);
@@ -49,9 +50,9 @@ async function advancedExample() {
     if (matchesResponse.data.length > 0) {
       const firstMatch = matchesResponse.data[0];
       console.log('📊 Getting match details...');
-      
+
       const matchDetails = await client.matches.getMatch(firstMatch.id);
-      
+
       console.log('✅ Match details:', {
         id: matchDetails.data.id,
         gameMode: matchDetails.data.attributes.gameMode,
@@ -70,9 +71,9 @@ async function advancedExample() {
         const telemetryData = await client.telemetry.getTelemetryData(
           telemetryAsset.attributes.URL
         );
-        
+
         console.log(`✅ Telemetry events: ${telemetryData.length}`);
-        
+
         // Analyze kill events
         const killEvents = telemetryData.filter(event => event._T === 'LogPlayerKill');
         console.log(`🔫 Kill events: ${killEvents.length}`);
@@ -83,7 +84,7 @@ async function advancedExample() {
     console.log('🏆 Getting leaderboards...');
     const seasonsResponse = await client.seasons.getCurrentSeason();
     const currentSeason = seasonsResponse.data[0];
-    
+
     const leaderboardResponse = await client.leaderboards.getLeaderboard({
       seasonId: currentSeason.id,
       gameMode: 'squad',
@@ -114,22 +115,22 @@ async function rateLimitExample() {
   });
 
   console.log('🚀 Testing rate limiting...');
-  
+
   // Make multiple rapid requests to test rate limiting
-  const requests = Array.from({ length: 15 }, (_, i) => 
+  const requests = Array.from({ length: 15 }, (_, i) =>
     client.players.getPlayerByName(`player${i}`).catch(error => ({ error }))
   );
 
   const results = await Promise.all(requests);
-  
+
   const successful = results.filter(r => !('error' in r)).length;
-  const rateLimited = results.filter(r => 
+  const rateLimited = results.filter(r =>
     'error' in r && r.error instanceof PubgRateLimitError
   ).length;
-  
+
   console.log(`✅ Successful requests: ${successful}`);
   console.log(`⏳ Rate limited requests: ${rateLimited}`);
-  
+
   const status = client.getRateLimitStatus();
   console.log('📊 Current rate limit status:', status);
 }

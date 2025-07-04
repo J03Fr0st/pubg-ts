@@ -15,7 +15,8 @@
       "Bash(./node_modules/.bin/lint-staged:*)",
       "Bash(npm run lint-staged:*)",
       "Bash(./test-precommit.sh:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
