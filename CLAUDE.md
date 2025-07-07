@@ -2,71 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-### 🔄 Project Awareness & Context
-- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
-- **Check `TASK.md`** before starting a new task. If the task isn't listed, add it with a brief description and today's date.
-- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
-- **Use the configured package manager** (npm, yarn, or pnpm) as specified in the project for all dependency management and script execution.
+🔄 Project Awareness & Context
+- Always review project planning and architecture documents (e.g., PLANNING.md) at the start of a new task or conversation.
+- Check the task list (e.g., TASK.md) before starting work. If your task isn't listed, add it with a brief description and today's date.
+- Follow established naming conventions, file structures, and architectural patterns as described in project documentation.
 
-### 🧱 Code Structure & Modularity
-- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
-- **Organize code into clearly separated modules**, grouped by feature or responsibility.
-  For services/agents this looks like:
-    - `agent.ts` - Main agent definition and execution logic
-    - `tools.ts` - Tool functions used by the agent
-    - `prompts.ts` - System prompts and templates
-    - `types.ts` - TypeScript type definitions
-- **Use clear, consistent imports** (prefer relative imports within packages, absolute imports for external dependencies).
-- **Use environment variables with proper typing** via `dotenv` and create a `config.ts` file with typed environment variable validation.
+🧱 Code Structure & Modularity
+- Avoid files longer than 500 lines. If a file grows too large, refactor by splitting it into smaller modules or helper files.
+- Organize code into clearly separated modules or files, grouped by feature or responsibility.
+- Use clear and consistent import/include/require statements as appropriate for the language and project.
 
-### 🧪 Testing & Reliability
-- **Always create Jest/Vitest unit tests for new features** (functions, classes, routes, etc).
-- **After updating any logic**, check whether existing unit tests need to be updated. If so, do it.
-- **Tests should live in a `/tests` folder or `__tests__` folders** mirroring the main app structure.
-  - Include at least:
-    - 1 test for expected use
-    - 1 edge case
-    - 1 failure case
-- **Use proper TypeScript testing patterns** with typed test utilities and mocks.
+🧪 Testing & Reliability
+- Always create unit tests for new features (functions, classes, routes, etc.), using the preferred testing framework for the language.
+- After updating any logic, review and update existing tests as needed.
+- Place tests in a dedicated tests directory that mirrors the main code structure.
+- For each feature, include at least:
+  - One test for expected/typical use
+  - One edge case test
+  - One failure or error case test
 
-### ✅ Task Completion
-- **Mark completed tasks in `TASK.md`** immediately after finishing them.
-- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a "Discovered During Work" section.
+✅ Task Completion
+- Mark completed tasks in the task list (e.g., TASK.md) immediately after finishing them.
+- Add any new sub-tasks or TODOs discovered during development to the task list under a "Discovered During Work" section.
 
-### 📎 Style & Conventions
-- **Use TypeScript** as the primary language with strict type checking enabled.
-- **Follow consistent formatting** using Prettier and ESLint configurations.
-- **Use strict TypeScript configuration** with `strict: true` and appropriate compiler options.
-- **Use Zod or similar for runtime validation** when dealing with external data.
-- Use **Express.js/Fastify for APIs** and **Prisma/TypeORM** for database ORM if applicable.
-- Write **JSDoc comments for every exported function** using the TSDoc style:
-  ```typescript
-  /**
-   * Brief summary of what the function does.
-   *
-   * @param param1 - Description of the parameter
-   * @param param2 - Description of the parameter
-   * @returns Description of what is returned
-   * @throws {ErrorType} Description of when this error is thrown
-   */
-  export function example(param1: string, param2: number): Promise<Result> {
-    // Implementation
-  }
-  ```
+📎 Style & Conventions
+- Follow the official or community style guide for the language in use (e.g., PEP8, Google Java Style, Airbnb JavaScript Style).
+- Use consistent naming conventions for variables, functions, classes, and files (e.g., camelCase, snake_case, PascalCase) as appropriate.
+- Write clear, descriptive names for all identifiers; avoid unnecessary abbreviations.
+- Indent code consistently (spaces or tabs as per project/language standard).
+- Limit line length to 80–120 characters, depending on language norms.
+- Use comments to explain non-obvious logic, intent, and complex algorithms.
+- Write documentation comments for all public functions, classes, and modules.
+- Group related code by feature or responsibility.
+- Remove dead code and unused variables/functions promptly.
+- Prefer immutability and pure functions where practical.
+- Avoid deep nesting; refactor complex logic into smaller functions.
+- Use version control best practices: small, focused commits with clear messages.
+- Ensure code is understandable and maintainable by others.
 
-### 📚 Documentation & Explainability
-- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
-- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
-- When writing complex logic, **add an inline `// Reason:` comment** explaining the why, not just the what.
-- **Maintain type documentation** and ensure all public APIs have proper TypeScript types exported.
+📚 Documentation & Explainability
+- Update project documentation (e.g., README.md) when new features are added, dependencies change, or setup steps are modified.
+- Comment non-obvious code and ensure everything is understandable to a mid-level developer.
+- When writing complex logic, add inline comments explaining the "why," not just the "what."
 
-### 🧠 AI Behavior Rules
-- **Never assume missing context. Ask questions if uncertain.**
-- **Never hallucinate libraries or functions** – only use known, verified npm packages and TypeScript/Node.js APIs.
-- **Always confirm file paths and module names** exist before referencing them in code or tests.
-- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
-- **Always use proper TypeScript types** - avoid `any` type unless absolutely necessary and document why.
-- **Check `package.json` and `tsconfig.json`** to understand the project's TypeScript configuration and available dependencies.
+🧠 AI/Automation Behavior Rules
+- Never assume missing context; ask questions if uncertain.
+- Never invent or hallucinate libraries, functions, or APIs—only use known, verified components.
+- Always confirm file paths and module names exist before referencing them in code or documentation.
+- Never delete or overwrite existing code unless explicitly instructed or if it is part of a documented task.
+
 
 
 ## Common Development Commands
