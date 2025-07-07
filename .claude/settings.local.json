@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:documentation.pubg.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(node:*)",
+      "Bash(grep:*)",
+      "Bash(DEBUG=pubg-ts:*)",
+      "Bash(source:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": []
+  },
+  "defaultMode": "default"
+}
