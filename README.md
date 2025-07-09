@@ -339,4 +339,14 @@ Please see [SECURITY.md](./.github/SECURITY.md) for information about reporting 
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+### Open Source
+
+This is an open source project and anyone is free to:
+- Use this software for any purpose
+- Modify and distribute the software
+- Include it in other projects (commercial or non-commercial)
+- Contribute improvements back to the project
+
+The MIT License is one of the most permissive open source licenses, placing minimal restrictions on reuse.
