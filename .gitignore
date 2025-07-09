@@ -41,6 +41,9 @@ logs
 coverage/
 *.lcov
 
+# Generated documentation
+docs/
+
 # nyc test coverage
 .nyc_output
 
