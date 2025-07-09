@@ -1,8 +1,7 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
+#\!/bin/sh
 
 # Get staged files that are not deleted and not ignored by lint-staged/Biome
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|ts|json)$' | grep -v '^\.claude/settings\.local\.json$' || true)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM  < /dev/null |  grep -E '\.(js|ts|json)$' | grep -v '^\.claude/settings\.local\.json$' || true)
 
 if [ -z "$STAGED_FILES" ]; then
   echo "No relevant files staged for lint-staged/Biome. Skipping lint-staged."
