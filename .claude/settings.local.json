@@ -23,6 +23,5 @@
       "Bash(/usr/bin/rm:*)"
     ],
     "deny": []
-  },
-  "defaultMode": "default"
+  }
 }
