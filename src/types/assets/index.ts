@@ -1,5 +1,5 @@
 // Generated asset types index
-// Last updated: 2025-07-06T10:56:25.816Z
+// Last updated: 2025-07-28T14:39:41.304Z
 
 export * from './items';
 export * from './vehicles';
