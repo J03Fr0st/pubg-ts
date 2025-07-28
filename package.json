@@ -54,12 +54,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/pubg-ts.git"
+    "url": "git+https://github.com/J03Fr0st/pubg-ts.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/pubg-ts/issues"
+    "url": "https://github.com/J03Fr0st/pubg-ts/issues"
   },
-  "homepage": "https://github.com/your-username/pubg-ts#readme",
+  "homepage": "https://github.com/J03Fr0st/pubg-ts#readme",
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
     "@types/debug": "^4.1.12",

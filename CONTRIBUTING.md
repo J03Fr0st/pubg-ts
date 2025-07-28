@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/pubg-ts.git
+   git clone https://github.com/J03Fr0st/pubg-ts.git
    cd pubg-ts
    ```
 

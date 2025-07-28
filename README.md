@@ -17,13 +17,13 @@ A comprehensive TypeScript wrapper for the PUBG API with full type safety, rate 
 ## Installation
 
 ```bash
-npm install pubg-ts
+npm install @j03fr0st/pubg-ts
 ```
 
 ## Quick Start
 
 ```typescript
-import { PubgClient } from 'pubg-ts';
+import { PubgClient } from '@j03fr0st/pubg-ts';
 
 const client = new PubgClient({
   apiKey: 'your-api-key',
@@ -112,7 +112,7 @@ The wrapper includes comprehensive asset management with both networked and sync
 Zero-latency access to all PUBG assets with full TypeScript type safety:
 
 ```typescript
-import { ItemId, VehicleId, MapId } from 'pubg-ts';
+import { ItemId, VehicleId, MapId } from '@j03fr0st/pubg-ts';
 
 // Type-safe item access with zero network requests
 const itemId: ItemId = 'Item_Weapon_AK47_C';
@@ -217,7 +217,7 @@ import {
   PubgApiError, 
   PubgRateLimitError, 
   PubgAuthenticationError 
-} from 'pubg-ts';
+} from '@j03fr0st/pubg-ts';
 
 try {
   const player = await client.players.getPlayerByName('nonexistent');
