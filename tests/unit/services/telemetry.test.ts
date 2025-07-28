@@ -14,6 +14,7 @@ describe('TelemetryService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
+      getExternal: jest.fn(),
       getRateLimitStatus: jest.fn(),
     } as any;
 
@@ -38,15 +39,13 @@ describe('TelemetryService', () => {
         },
       ];
 
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      mockHttpClient.getExternal.mockResolvedValue(mockResponse);
 
       const telemetryUrl =
         'https://telemetry-cdn.pubg.com/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json';
       const result = await telemetryService.getTelemetryData(telemetryUrl);
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
-        '/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json'
-      );
+      expect(mockHttpClient.getExternal).toHaveBeenCalledWith(telemetryUrl);
       expect(result).toEqual(mockResponse);
     });
   });
