@@ -1,11 +1,10 @@
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
 import { assetManager } from '../../utils/assets';
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 export const assetsCommand = new Command('assets')
   .description('manage and explore PUBG assets')
@@ -84,12 +83,12 @@ function createSearchCommand() {
               .slice(0, limit);
           }
         } else if (options.type === 'vehicles') {
-          const allMaps = assetManager.getAllMaps();
+          const _allMaps = assetManager.getAllMaps();
           // Get all vehicle IDs from the maps (simplified approach)
           const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C'];
           results = vehicleIds
             .map(id => assetManager.getVehicleInfo(id))
-            .filter(vehicle => vehicle && vehicle.name.toLowerCase().includes(query.toLowerCase()))
+            .filter(vehicle => vehicle?.name.toLowerCase().includes(query.toLowerCase()))
             .slice(0, limit);
         } else if (options.type === 'maps') {
           const allMaps = assetManager.getAllMaps();

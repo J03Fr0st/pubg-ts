@@ -312,7 +312,7 @@ export class SecurityManager {
       
       // Truncate long strings
       if (data.length > 100) {
-        return data.substring(0, 100) + '...[truncated]';
+        return `${data.substring(0, 100)}...[truncated]`;
       }
       
       return data;

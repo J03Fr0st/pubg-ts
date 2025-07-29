@@ -114,7 +114,7 @@ DEBUG=
         stdio: 'inherit',
         env: { ...process.env, NODE_ENV: 'test' }
       });
-    } catch (error) {
+    } catch (_error) {
       console.log('\n⚠️ Tests completed with some failures (this is normal if API key is not set)');
       console.log('Update your .env.test file with a valid API key and try again');
     }

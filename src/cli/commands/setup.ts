@@ -2,9 +2,8 @@ import { Command } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
+import * as fs from 'node:fs';
+import { execSync } from 'node:child_process';
 
 export const setupCommand = new Command('setup')
   .description('setup development environment and tools')
@@ -433,7 +432,7 @@ async function runTests(options: any) {
     spinner.stop();
     execSync(command, { stdio: 'inherit' });
     
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Tests failed'));
   }
 }
@@ -471,7 +470,7 @@ async function runLinting(options: any) {
     spinner.stop();
     execSync(command, { stdio: 'inherit' });
     
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Linting failed'));
   }
 }
@@ -522,7 +521,7 @@ async function serveDocs() {
   
   try {
     execSync('npx http-server docs -p 8080', { stdio: 'inherit' });
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Failed to serve documentation'));
   }
 }

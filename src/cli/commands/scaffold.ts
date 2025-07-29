@@ -2,8 +2,8 @@ import { Command } from 'commander';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 export const scaffoldCommand = new Command('scaffold')
   .alias('new')
@@ -217,7 +217,7 @@ async function generatePackageJson(projectPath: string, projectDetails: any) {
   );
 }
 
-async function generateTsConfig(projectPath: string, projectDetails: any) {
+async function generateTsConfig(projectPath: string, _projectDetails: any) {
   const tsConfig = {
     compilerOptions: {
       target: 'ES2020',
@@ -496,7 +496,7 @@ Thumbs.db
   fs.writeFileSync(path.join(projectPath, '.gitignore'), content);
 }
 
-async function generateBasicTemplate(projectPath: string, projectDetails: any) {
+async function generateBasicTemplate(projectPath: string, _projectDetails: any) {
   // Generate a simple example
   const exampleContent = `import { PubgClient } from 'pubg-ts';
 
@@ -533,7 +533,7 @@ getPlayerStats('example-player');
   fs.writeFileSync(path.join(projectPath, 'examples', 'basic.ts'), exampleContent);
 }
 
-async function generateAdvancedTemplate(projectPath: string, projectDetails: any) {
+async function generateAdvancedTemplate(projectPath: string, _projectDetails: any) {
   // Generate config file
   const configContent = `export const config = {
   apiKey: process.env.PUBG_API_KEY || '',
@@ -564,7 +564,7 @@ export const logger = {
   fs.writeFileSync(path.join(projectPath, 'src', 'utils', 'logger.ts'), loggerContent);
 }
 
-async function generateBotTemplate(projectPath: string, projectDetails: any) {
+async function generateBotTemplate(projectPath: string, _projectDetails: any) {
   // Generate bot commands
   const playerCommandContent = `import { Message } from 'discord.js';
 import { PubgClient } from 'pubg-ts';

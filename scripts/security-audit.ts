@@ -107,7 +107,7 @@ class SecurityAuditor {
       const auditData = JSON.parse(auditOutput);
       
       if (auditData.vulnerabilities) {
-        for (const [name, vuln] of Object.entries(auditData.vulnerabilities)) {
+        for (const [_name, vuln] of Object.entries(auditData.vulnerabilities)) {
           const severity = (vuln as any).severity;
           if (severity && this.results.vulnerabilities[severity as keyof typeof this.results.vulnerabilities] !== undefined) {
             this.results.vulnerabilities[severity as keyof typeof this.results.vulnerabilities]++;
@@ -131,7 +131,7 @@ class SecurityAuditor {
         console.log('✅ No known vulnerabilities found');
       }
       
-    } catch (error) {
+    } catch (_error) {
       console.log('⚠️  NPM audit encountered issues (this may be normal)');
       this.results.checks.npmAudit = true;
     }
@@ -222,7 +222,7 @@ class SecurityAuditor {
     
     try {
       // Check for hardcoded secrets
-      const secretPatterns = [
+      const _secretPatterns = [
         /api[_-]?key[_-]?=.{10,}/i,
         /password[_-]?=.{8,}/i,
         /secret[_-]?=.{10,}/i,
@@ -346,7 +346,7 @@ class SecurityAuditor {
    * Print summary report
    */
   public printSummary(): void {
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('               SECURITY AUDIT SUMMARY');
     console.log('='.repeat(60));
     console.log(`Status: ${this.getStatusIcon()} ${this.results.status.toUpperCase()}`);
@@ -369,7 +369,7 @@ class SecurityAuditor {
       });
     }
     
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
   }
 
   private getStatusIcon(): string {

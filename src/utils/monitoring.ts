@@ -1,6 +1,6 @@
 import { performance } from 'node:perf_hooks';
-import client, { Counter, Histogram, Gauge, Registry } from 'prom-client';
-import { trace, context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { SpanKind, trace } from '@opentelemetry/api';
+import client, { Counter, Gauge, Histogram, Registry } from 'prom-client';
 import { logger } from './logger';
 
 export interface MonitoringConfig {
@@ -48,13 +48,13 @@ export interface SystemHealth {
 
 /**
  * Production-ready monitoring and observability system
- * 
+ *
  * Provides comprehensive monitoring capabilities including:
  * - Prometheus metrics collection
  * - OpenTelemetry distributed tracing
  * - Health checks and system monitoring
  * - Performance tracking and alerting
- * 
+ *
  * @example
  * ```typescript
  * const monitor = new MonitoringSystem({
@@ -63,7 +63,7 @@ export interface SystemHealth {
  *   tracingEnabled: true,
  *   prefix: 'pubg_sdk'
  * });
- * 
+ *
  * // Track API requests
  * const span = monitor.startSpan('api_request', { endpoint: '/players' });
  * try {
@@ -87,7 +87,7 @@ export class MonitoringSystem {
   private config: MonitoringConfig;
   private registry: Registry;
   private tracer: any;
-  
+
   // Prometheus metrics
   private requestCounter!: Counter<string>;
   private requestDuration!: Histogram<string>;
@@ -96,12 +96,13 @@ export class MonitoringSystem {
   private activeConnections!: Gauge<string>;
   private rateLimitRemaining!: Gauge<string>;
   private memoryUsage!: Gauge<string>;
-  
+
   // Health tracking
   private healthStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
   private startTime: number;
   private lastHealthCheck: number = 0;
-  
+  private healthCheckInterval?: NodeJS.Timeout;
+
   constructor(config: Partial<MonitoringConfig> = {}) {
     this.config = {
       enabled: true,
@@ -110,21 +111,21 @@ export class MonitoringSystem {
       healthCheckEnabled: true,
       collectDefaultMetrics: true,
       prefix: 'pubg_sdk',
-      ...config
+      ...config,
     };
-    
+
     this.startTime = Date.now();
     this.registry = new Registry();
-    
+
     if (this.config.enabled) {
       this.initializeMetrics();
       this.initializeTracing();
       this.startHealthChecking();
-      
+
       if (this.config.collectDefaultMetrics) {
-        client.collectDefaultMetrics({ 
+        client.collectDefaultMetrics({
           register: this.registry,
-          prefix: `${this.config.prefix}_`
+          prefix: `${this.config.prefix}_`,
         });
       }
     }
@@ -134,13 +135,13 @@ export class MonitoringSystem {
     if (!this.config.metricsEnabled) return;
 
     const prefix = this.config.prefix;
-    
+
     // Request metrics
     this.requestCounter = new Counter({
       name: `${prefix}_requests_total`,
       help: 'Total number of API requests',
       labelNames: ['method', 'endpoint', 'status_code', 'status_class'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.requestDuration = new Histogram({
@@ -148,40 +149,40 @@ export class MonitoringSystem {
       help: 'Request duration in seconds',
       labelNames: ['method', 'endpoint', 'status_code'],
       buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.errorCounter = new Counter({
       name: `${prefix}_errors_total`,
       help: 'Total number of errors',
       labelNames: ['type', 'endpoint', 'error_code'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // System metrics
     this.cacheHitRate = new Gauge({
       name: `${prefix}_cache_hit_rate`,
       help: 'Cache hit rate percentage',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.activeConnections = new Gauge({
       name: `${prefix}_active_connections`,
       help: 'Number of active connections',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.rateLimitRemaining = new Gauge({
       name: `${prefix}_rate_limit_remaining`,
       help: 'Remaining rate limit quota',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.memoryUsage = new Gauge({
       name: `${prefix}_memory_usage_bytes`,
       help: 'Memory usage in bytes',
       labelNames: ['type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     logger.client('Prometheus metrics initialized');
@@ -189,21 +190,38 @@ export class MonitoringSystem {
 
   private initializeTracing(): void {
     if (!this.config.tracingEnabled) return;
-    
+
     this.tracer = trace.getTracer('pubg-ts-sdk', '1.0.0');
     logger.client('OpenTelemetry tracing initialized');
   }
 
   private startHealthChecking(): void {
     if (!this.config.healthCheckEnabled) return;
-    
+
     // Run health checks every 30 seconds
-    setInterval(() => {
+    this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
     }, 30000);
-    
+
     // Initial health check
     this.performHealthCheck();
+  }
+
+  /**
+   * Stop health checking and clean up resources
+   */
+  stopHealthChecking(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = undefined;
+    }
+  }
+
+  /**
+   * Clean up all monitoring resources
+   */
+  cleanup(): void {
+    this.stopHealthChecking();
   }
 
   /**
@@ -216,7 +234,7 @@ export class MonitoringSystem {
 
     return this.tracer.startSpan(name, {
       kind: SpanKind.CLIENT,
-      attributes
+      attributes,
     });
   }
 
@@ -226,7 +244,13 @@ export class MonitoringSystem {
   public recordRequestMetrics(metrics: RequestMetrics): void {
     if (!this.config.metricsEnabled) return;
 
-    const { duration, statusCode = 0, endpoint = 'unknown', method = 'unknown', error = false } = metrics;
+    const {
+      duration,
+      statusCode = 0,
+      endpoint = 'unknown',
+      method = 'unknown',
+      error = false,
+    } = metrics;
     const statusClass = this.getStatusClass(statusCode);
 
     // Increment request counter
@@ -234,7 +258,7 @@ export class MonitoringSystem {
       method,
       endpoint,
       status_code: statusCode.toString(),
-      status_class: statusClass
+      status_class: statusClass,
     });
 
     // Record request duration
@@ -248,7 +272,7 @@ export class MonitoringSystem {
       this.errorCounter.inc({
         type: error ? 'client_error' : 'http_error',
         endpoint,
-        error_code: statusCode.toString()
+        error_code: statusCode.toString(),
       });
     }
   }
@@ -262,7 +286,7 @@ export class MonitoringSystem {
     this.errorCounter.inc({
       type: error.constructor.name,
       endpoint: context.endpoint || 'unknown',
-      error_code: context.code || 'unknown'
+      error_code: context.code || 'unknown',
     });
 
     logger.error('Error recorded in monitoring', { error: error.message, context });
@@ -298,7 +322,7 @@ export class MonitoringSystem {
   public async getHealth(): Promise<SystemHealth> {
     const now = Date.now();
     const memStats = process.memoryUsage();
-    
+
     return {
       status: this.healthStatus,
       timestamp: now,
@@ -306,23 +330,23 @@ export class MonitoringSystem {
       memory: {
         used: memStats.heapUsed,
         total: memStats.heapTotal,
-        percentage: (memStats.heapUsed / memStats.heapTotal) * 100
+        percentage: (memStats.heapUsed / memStats.heapTotal) * 100,
       },
       api: {
         status: this.healthStatus,
         responseTime: await this.measureApiResponseTime(),
-        errorRate: this.calculateErrorRate()
+        errorRate: this.calculateErrorRate(),
       },
       cache: {
         hitRate: this.getCacheHitRate(),
         size: 0, // Would be set by cache implementation
-        maxSize: 100 // Would be set by cache implementation
+        maxSize: 100, // Would be set by cache implementation
       },
       rateLimit: {
         remaining: this.getRateLimitRemaining(),
         limit: 10, // Would be set by rate limiter
-        resetTime: Date.now() + 60000
-      }
+        resetTime: Date.now() + 60000,
+      },
     };
   }
 
@@ -333,14 +357,14 @@ export class MonitoringSystem {
     if (!this.config.metricsEnabled) {
       return '# Metrics disabled\n';
     }
-    
+
     // Update memory metrics before collecting
     const memStats = process.memoryUsage();
     this.memoryUsage.set({ type: 'heap_used' }, memStats.heapUsed);
     this.memoryUsage.set({ type: 'heap_total' }, memStats.heapTotal);
     this.memoryUsage.set({ type: 'external' }, memStats.external);
     this.memoryUsage.set({ type: 'rss' }, memStats.rss);
-    
+
     return await this.registry.metrics();
   }
 
@@ -349,39 +373,38 @@ export class MonitoringSystem {
    */
   private async performHealthCheck(): Promise<void> {
     const startTime = performance.now();
-    
+
     try {
       // Check memory usage
       const memStats = process.memoryUsage();
       const memoryPercentage = (memStats.heapUsed / memStats.heapTotal) * 100;
-      
+
       // Check API response time
       const apiResponseTime = await this.measureApiResponseTime();
-      
+
       // Calculate error rate
       const errorRate = this.calculateErrorRate();
-      
+
       // Determine overall health status
       let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-      
+
       if (memoryPercentage > 90 || apiResponseTime > 5000 || errorRate > 0.1) {
         status = 'unhealthy';
       } else if (memoryPercentage > 70 || apiResponseTime > 2000 || errorRate > 0.05) {
         status = 'degraded';
       }
-      
+
       this.healthStatus = status;
       this.lastHealthCheck = Date.now();
-      
+
       const duration = performance.now() - startTime;
-      logger.client('Health check completed', { 
-        status, 
+      logger.client('Health check completed', {
+        status,
         duration: `${duration.toFixed(2)}ms`,
         memory: `${memoryPercentage.toFixed(2)}%`,
         apiResponseTime: `${apiResponseTime}ms`,
-        errorRate: `${(errorRate * 100).toFixed(2)}%`
+        errorRate: `${(errorRate * 100).toFixed(2)}%`,
       });
-      
     } catch (error) {
       this.healthStatus = 'unhealthy';
       logger.error('Health check failed', { error });
@@ -424,6 +447,7 @@ export class MonitoringSystem {
   public shutdown(): void {
     logger.client('Shutting down monitoring system');
     this.registry.clear();
+    this.cleanup(); // Call the new cleanup method
   }
 }
 
@@ -432,5 +456,5 @@ export const monitoringSystem = new MonitoringSystem({
   enabled: process.env.MONITORING_ENABLED !== 'false',
   metricsEnabled: process.env.METRICS_ENABLED !== 'false',
   tracingEnabled: process.env.TRACING_ENABLED !== 'false',
-  prefix: process.env.METRICS_PREFIX || 'pubg_sdk'
+  prefix: process.env.METRICS_PREFIX || 'pubg_sdk',
 });

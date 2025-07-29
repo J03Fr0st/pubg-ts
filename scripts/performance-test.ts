@@ -465,7 +465,7 @@ class PerformanceTester {
    * Print performance summary
    */
   private printSummary(results: LoadTestResult[]): void {
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('             PERFORMANCE TEST SUMMARY');
     console.log('='.repeat(60));
     
@@ -487,7 +487,7 @@ class PerformanceTester {
       }
     }
     
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
   }
 }
 

@@ -96,25 +96,6 @@ export interface SurvivalTitleInfo {
   description?: string;
 }
 
-// Legacy interfaces for backward compatibility
-interface ItemDictionary {
-  [key: string]: {
-    name: string;
-    category: string;
-    subcategory?: string;
-    description?: string;
-  };
-}
-
-interface VehicleDictionary {
-  [key: string]: {
-    name: string;
-    type: string;
-    category: string;
-    description?: string;
-  };
-}
-
 interface SeasonInfo {
   id: string;
   name: string;
@@ -122,13 +103,6 @@ interface SeasonInfo {
   endDate: string;
   isActive: boolean;
   isOffseason: boolean;
-}
-
-interface SurvivalTitle {
-  tier: string;
-  title: string;
-  requiredRating: number;
-  description?: string;
 }
 
 export class AssetManager {

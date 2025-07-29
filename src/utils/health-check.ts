@@ -139,7 +139,7 @@ export class HealthChecker {
       }
     });
 
-    const totalDuration = performance.now() - startTime;
+    const _totalDuration = performance.now() - startTime;
 
     return {
       status: overallStatus,
@@ -312,8 +312,8 @@ export class HealthChecker {
     const startTime = performance.now();
     
     try {
-      const cpuUsage = process.cpuUsage();
-      const loadAverage = require('os').loadavg()[0]; // 1-minute load average
+      const _cpuUsage = process.cpuUsage();
+      const loadAverage = require('node:os').loadavg()[0]; // 1-minute load average
       
       let status: 'pass' | 'fail' | 'warn' = 'pass';
       let output = `Load average: ${loadAverage.toFixed(2)}`;

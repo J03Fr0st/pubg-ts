@@ -22,10 +22,6 @@ interface DictionaryData {
   [key: string]: string;
 }
 
-interface EnumData {
-  [key: string]: string[] | string[];
-}
-
 interface SeasonData {
   pc: Array<{
     id: string;
@@ -42,12 +38,6 @@ interface SeasonData {
     };
   }>;
   // Add other platforms as needed
-}
-
-interface SurvivalTitle {
-  [key: string]: {
-    [level: string]: string;
-  };
 }
 
 const ASSET_FILES: AssetFile[] = [
