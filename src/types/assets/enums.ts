@@ -1,5 +1,5 @@
 // Generated from PUBG API assets
-// Last updated: 2025-08-11T14:06:20.060Z
+// Last updated: 2025-08-11T14:51:36.324Z
 
 export type AttackType = 'BlackZone' | 'RedZone' | 'Weapon';
 

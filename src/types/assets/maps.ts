@@ -1,5 +1,5 @@
 // Generated from PUBG API assets
-// Last updated: 2025-08-11T14:06:20.059Z
+// Last updated: 2025-08-11T14:51:36.322Z
 
 export interface MapDictionary {
   [key: string]: string;
@@ -19,6 +19,8 @@ export const MAP_DICTIONARY: MapDictionary = {
   Tiger_Main: 'Taego',
   Neon_Main: 'Rondo',
 };
+
+export const MAP_NAMES = MAP_DICTIONARY;
 
 export type MapId =
   | 'Baltic_Main'

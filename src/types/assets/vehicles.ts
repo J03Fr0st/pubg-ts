@@ -1,5 +1,5 @@
 // Generated from PUBG API assets
-// Last updated: 2025-08-11T14:06:20.059Z
+// Last updated: 2025-08-11T14:51:36.321Z
 
 export interface VehicleDictionary {
   [key: string]: string;
