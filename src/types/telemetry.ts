@@ -38,6 +38,40 @@ export interface DamageInfo {
   isThroughPenetrableWall: boolean;
 }
 
+/**
+ * DamageInfo can appear as a single object, array of objects, null, or undefined in telemetry data
+ */
+export type FlexibleDamageInfo = DamageInfo | DamageInfo[] | null | undefined;
+
+/**
+ * Utility functions for working with FlexibleDamageInfo
+ */
+export const DamageInfoUtils = {
+  /**
+   * Convert FlexibleDamageInfo to an array, handling all possible formats
+   */
+  toArray(damageInfo: FlexibleDamageInfo): DamageInfo[] {
+    if (!damageInfo) return [];
+    return Array.isArray(damageInfo) ? damageInfo : [damageInfo];
+  },
+
+  /**
+   * Get the first damage info item, regardless of format
+   */
+  getFirst(damageInfo: FlexibleDamageInfo): DamageInfo | null {
+    if (!damageInfo) return null;
+    return Array.isArray(damageInfo) ? damageInfo[0] || null : damageInfo;
+  },
+
+  /**
+   * Check if damage info exists and has content
+   */
+  hasData(damageInfo: FlexibleDamageInfo): boolean {
+    if (!damageInfo) return false;
+    return Array.isArray(damageInfo) ? damageInfo.length > 0 : true;
+  },
+};
+
 export interface LogPlayerKillV2 extends TelemetryEvent {
   _T: 'LogPlayerKillV2';
   attackId: number;
@@ -57,11 +91,11 @@ export interface LogPlayerKillV2 extends TelemetryEvent {
   distance: number;
   isSuicide: boolean;
   isTeamKill: boolean;
-  killerDamageInfo: DamageInfo[];
+  killerDamageInfo: FlexibleDamageInfo;
   victimVehicle?: TelemetryVehicle;
   killerVehicle?: TelemetryVehicle;
-  finishDamageInfo?: DamageInfo[];
-  dBNODamageInfo?: DamageInfo[];
+  finishDamageInfo?: FlexibleDamageInfo;
+  dBNODamageInfo?: FlexibleDamageInfo;
 }
 
 export interface LogPlayerMakeGroggy extends TelemetryEvent {
@@ -78,7 +112,7 @@ export interface LogPlayerMakeGroggy extends TelemetryEvent {
   distance: number;
   isAttackerInVehicle: boolean;
   dBNOId: number;
-  groggyDamage: DamageInfo[];
+  groggyDamage: FlexibleDamageInfo;
 }
 
 export interface LogPlayerPosition extends TelemetryEvent {
