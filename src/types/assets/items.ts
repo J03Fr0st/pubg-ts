@@ -1,5 +1,5 @@
 // Generated from PUBG API assets
-// Last updated: 2025-08-11T14:51:36.318Z
+// Last updated: 2025-08-11T14:59:54.971Z
 
 export interface ItemDictionary {
   [key: string]: string;

@@ -1,5 +1,5 @@
 // Generated asset types index
-// Last updated: 2025-08-11T14:51:36.331Z
+// Last updated: 2025-08-11T14:59:54.982Z
 
 export * from './dictionaries';
 export * from './enums';

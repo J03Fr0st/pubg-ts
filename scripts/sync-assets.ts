@@ -230,6 +230,8 @@ export interface MapDictionary {
 
 export const MAP_DICTIONARY: MapDictionary = ${JSON.stringify(mapDictionary, null, 2)};
 
+export const MAP_NAMES = MAP_DICTIONARY;
+
 export type MapId = ${mapIds};
 
 export type MapName = ${Object.values(mapDictionary)
@@ -300,6 +302,31 @@ export type Platform = ${Object.keys(seasonData)
 `;
 }
 
+function generateDictionaryTypes(
+  gameModeDictionary: DictionaryData,
+  damageCauserDictionary: DictionaryData
+): string {
+  return `// Generated from PUBG API assets - Dictionary exports
+// Last updated: ${new Date().toISOString()}
+
+export interface GameModeDictionary {
+  [key: string]: string;
+}
+
+export interface DamageCauserDictionary {
+  [key: string]: string;
+}
+
+export const GAME_MODE_DICTIONARY: GameModeDictionary = ${JSON.stringify(gameModeDictionary, null, 2)};
+
+export const DAMAGE_CAUSER_DICTIONARY: DamageCauserDictionary = ${JSON.stringify(damageCauserDictionary, null, 2)};
+
+export const GAME_MODES = GAME_MODE_DICTIONARY;
+export const DAMAGE_CAUSER_NAME = DAMAGE_CAUSER_DICTIONARY;
+
+`;
+}
+
 function categorizeItemId(itemId: string): string {
   if (itemId.includes('Weapon')) return 'weapon';
   if (itemId.includes('Heal') || itemId.includes('Boost')) return 'consumable';
@@ -357,6 +384,16 @@ async function generateAllTypes(assetData: { [key: string]: any }): Promise<void
     console.log('✓ Generated season types');
   }
 
+  // Generate dictionary types
+  if (assetData.gameModeDictionary && assetData.damageCauserDictionary) {
+    const dictionaryTypes = generateDictionaryTypes(
+      assetData.gameModeDictionary,
+      assetData.damageCauserDictionary
+    );
+    await fs.writeFile(path.join(TYPES_DIR, 'assets', 'dictionaries.ts'), dictionaryTypes);
+    console.log('✓ Generated dictionary types');
+  }
+
   // Generate index file
   const indexContent = `// Generated asset types index
 // Last updated: ${new Date().toISOString()}
@@ -366,6 +403,7 @@ export * from './vehicles';
 export * from './maps';
 export * from './enums';
 export * from './seasons';
+export * from './dictionaries';
 `;
 
   await fs.writeFile(path.join(TYPES_DIR, 'assets', 'index.ts'), indexContent);
