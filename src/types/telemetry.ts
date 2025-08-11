@@ -26,6 +26,15 @@ export interface LogPlayerKill extends TelemetryEvent {
   distance: number;
   isSuicide: boolean;
   isTeamKill: boolean;
+  victimGameResult: TelemetryGameResult;
+}
+
+export interface DamageInfo {
+  damageReason: string;
+  damageTypeCategory: string;
+  damageCauserName: string;
+  additionalInfo: string[];
+  distance: number;
 }
 
 export interface LogPlayerKillV2 extends TelemetryEvent {
@@ -47,6 +56,7 @@ export interface LogPlayerKillV2 extends TelemetryEvent {
   distance: number;
   isSuicide: boolean;
   isTeamKill: boolean;
+  killerDamageInfo: DamageInfo[];
 }
 
 export interface LogPlayerMakeGroggy extends TelemetryEvent {
@@ -63,6 +73,7 @@ export interface LogPlayerMakeGroggy extends TelemetryEvent {
   distance: number;
   isAttackerInVehicle: boolean;
   dBNOId: number;
+  groggyDamage: DamageInfo[];
 }
 
 export interface LogPlayerPosition extends TelemetryEvent {
