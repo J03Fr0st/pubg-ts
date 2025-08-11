@@ -30,7 +30,7 @@
     "prepare": "husky",
     "prepublishOnly": "npm run build",
     "lint-staged": "lint-staged",
-    "sync-assets": "ts-node scripts/sync-assets.ts",
+    "sync-assets": "ts-node scripts/sync-assets.ts && biome format --write .",
     "prebuild": "npm run sync-assets",
     "security:audit": "ts-node scripts/security-audit.ts",
     "security:check": "npm audit && npm run security:audit",
