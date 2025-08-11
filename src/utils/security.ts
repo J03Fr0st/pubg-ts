@@ -25,27 +25,27 @@ export interface SecurityEvent {
 
 /**
  * Comprehensive security utility for input validation, sanitization, and threat detection
- * 
+ *
  * Provides production-ready security features including:
  * - Input validation and sanitization
  * - API key protection and masking
  * - Security event logging and monitoring
  * - Data leak prevention
  * - SQL injection and XSS protection
- * 
+ *
  * @example
  * ```typescript
  * const security = new SecurityManager({
  *   enableInputValidation: true,
  *   strictMode: true
  * });
- * 
+ *
  * // Validate and sanitize player names
  * const result = security.validatePlayerName('player123');
  * if (!result.isValid) {
  *   throw new Error(`Invalid player name: ${result.errors.join(', ')}`);
  * }
- * 
+ *
  * // Secure API key handling
  * const maskedKey = security.maskApiKey('abcd-1234-efgh-5678');
  * security.validateApiKey(apiKey);
@@ -63,7 +63,7 @@ export class SecurityManager {
     /((%3D)|(=))[^\n]*((%27)|(')|(--)|(%3B)|(;))/i,
     /\w*((%27)|('))((%6F)|o|(%4F))((%72)|r|(%52))/i,
     /((%27)|('))union/i,
-    /exec(\s|\+)+(s|x)p\w+/i
+    /exec(\s|\+)+(s|x)p\w+/i,
   ];
 
   private readonly xssPatterns = [
@@ -71,7 +71,7 @@ export class SecurityManager {
     /<iframe[^>]*>.*?<\/iframe>/gi,
     /javascript:/gi,
     /on\w+\s*=/gi,
-    /<img[^>]*src[^>]*>/gi
+    /<img[^>]*src[^>]*>/gi,
   ];
 
   private readonly commandInjectionPatterns = [
@@ -80,7 +80,7 @@ export class SecurityManager {
     /\/etc\/passwd/,
     /\/bin\//,
     /cmd\.exe/i,
-    /powershell/i
+    /powershell/i,
   ];
 
   constructor(config: Partial<SecurityConfig> = {}) {
@@ -89,7 +89,7 @@ export class SecurityManager {
       enableApiKeySanitization: true,
       logSecurityEvents: true,
       strictMode: false,
-      ...config
+      ...config,
     };
   }
 
@@ -128,7 +128,7 @@ export class SecurityManager {
       isValid: errors.length === 0,
       sanitized,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -158,7 +158,7 @@ export class SecurityManager {
       isValid: errors.length === 0,
       sanitized,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -193,16 +193,16 @@ export class SecurityManager {
       message: 'API key validation attempted',
       context: {
         keyLength: trimmed.length,
-        hasValidFormat: errors.length === 0
+        hasValidFormat: errors.length === 0,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return {
       isValid: errors.length === 0,
       sanitized: trimmed,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -213,11 +213,11 @@ export class SecurityManager {
     if (!apiKey || apiKey.length < 8) {
       return '***';
     }
-    
+
     const start = apiKey.substring(0, 4);
     const end = apiKey.substring(apiKey.length - 4);
     const middle = '*'.repeat(Math.max(0, apiKey.length - 8));
-    
+
     return `${start}${middle}${end}`;
   }
 
@@ -246,7 +246,7 @@ export class SecurityManager {
       isValid: errors.length === 0,
       sanitized,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -291,9 +291,9 @@ export class SecurityManager {
         context: {
           input: this.sanitizeForLogging(input),
           threats,
-          location: context
+          location: context,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       this.suspiciousActivityCount++;
@@ -309,12 +309,12 @@ export class SecurityManager {
       if (data.length > 20 && /^[a-zA-Z0-9\-_]+$/.test(data)) {
         return this.maskApiKey(data);
       }
-      
+
       // Truncate long strings
       if (data.length > 100) {
         return `${data.substring(0, 100)}...[truncated]`;
       }
-      
+
       return data;
     }
 
@@ -353,14 +353,14 @@ export class SecurityManager {
         type: event.type,
         severity: event.severity,
         message: event.message,
-        context: this.sanitizeForLogging(event.context)
+        context: this.sanitizeForLogging(event.context),
       });
     } else {
       logger.client('Security event detected', {
         type: event.type,
         severity: event.severity,
         message: event.message,
-        context: this.sanitizeForLogging(event.context)
+        context: this.sanitizeForLogging(event.context),
       });
     }
   }
@@ -369,12 +369,10 @@ export class SecurityManager {
    * Get recent security events
    */
   public getSecurityEvents(limit = 50): SecurityEvent[] {
-    return this.securityEvents
-      .slice(-limit)
-      .map(event => ({
-        ...event,
-        context: this.sanitizeForLogging(event.context)
-      }));
+    return this.securityEvents.slice(-limit).map((event) => ({
+      ...event,
+      context: this.sanitizeForLogging(event.context),
+    }));
   }
 
   /**
@@ -387,11 +385,11 @@ export class SecurityManager {
     lastCheck: number;
   } {
     const recentEvents = this.securityEvents.filter(
-      event => event.timestamp > Date.now() - 3600000 // Last hour
+      (event) => event.timestamp > Date.now() - 3600000 // Last hour
     ).length;
 
     let status: 'secure' | 'warning' | 'critical' = 'secure';
-    
+
     if (this.suspiciousActivityCount > 10 || recentEvents > 20) {
       status = 'critical';
     } else if (this.suspiciousActivityCount > 5 || recentEvents > 10) {
@@ -402,7 +400,7 @@ export class SecurityManager {
       status,
       suspiciousActivityCount: this.suspiciousActivityCount,
       recentEvents,
-      lastCheck: this.lastSecurityCheck
+      lastCheck: this.lastSecurityCheck,
     };
   }
 
@@ -428,7 +426,7 @@ export class SecurityManager {
       if (process.env.DEBUG) {
         warnings.push('Debug mode should be disabled in production');
       }
-      
+
       if (!process.env.PUBG_API_KEY) {
         errors.push('PUBG_API_KEY environment variable is required in production');
       }
@@ -436,9 +434,11 @@ export class SecurityManager {
 
     // Check for exposed secrets in environment
     for (const [key, value] of Object.entries(process.env)) {
-      if (key.toLowerCase().includes('secret') || 
-          key.toLowerCase().includes('password') ||
-          key.toLowerCase().includes('key')) {
+      if (
+        key.toLowerCase().includes('secret') ||
+        key.toLowerCase().includes('password') ||
+        key.toLowerCase().includes('key')
+      ) {
         if (value && value.length < 16) {
           warnings.push(`Environment variable ${key} appears to have a weak value`);
         }
@@ -448,7 +448,7 @@ export class SecurityManager {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 }
@@ -458,5 +458,5 @@ export const securityManager = new SecurityManager({
   enableInputValidation: process.env.ENABLE_INPUT_VALIDATION !== 'false',
   enableApiKeySanitization: true,
   logSecurityEvents: process.env.LOG_SECURITY_EVENTS !== 'false',
-  strictMode: process.env.SECURITY_STRICT_MODE === 'true'
+  strictMode: process.env.SECURITY_STRICT_MODE === 'true',
 });

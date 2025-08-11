@@ -1,12 +1,5 @@
 {
-  "Chimera_Main": [
-    "Lab",
-    "Level_A",
-    "Level_B",
-    "Level_C",
-    "Level_D",
-    "Ruins"
-  ],
+  "Chimera_Main": ["Lab", "Level_A", "Level_B", "Level_C", "Level_D", "Ruins"],
   "Desert_Main": [
     "alcantara",
     "ruins",
@@ -94,14 +87,7 @@
     "ruins",
     "pochinki"
   ],
-  "Heaven_Main": [
-    "coalyards",
-    "docks",
-    "industrialpark",
-    "railyard",
-    "residential",
-    "steelmill"
-  ],
+  "Heaven_Main": ["coalyards", "docks", "industrialpark", "railyard", "residential", "steelmill"],
   "Savage_Main": [
     "kampong",
     "getaway",
@@ -124,14 +110,7 @@
     "ruins",
     "hatinh"
   ],
-  "Summerland_Main": [
-    "alhabar",
-    "alhayik",
-    "bahrsahir",
-    "bashara",
-    "cargoship",
-    "hadiqanemo"
-  ],
+  "Summerland_Main": ["alhabar", "alhayik", "bahrsahir", "bashara", "cargoship", "hadiqanemo"],
   "Tiger_Main": [
     "airport",
     "armybase",

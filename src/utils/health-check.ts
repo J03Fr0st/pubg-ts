@@ -31,23 +31,23 @@ export interface DetailedHealthReport {
 
 /**
  * Comprehensive health check system following RFC 7807 and health check standards
- * 
+ *
  * Provides detailed health monitoring for:
  * - System resources (memory, CPU, disk)
  * - External dependencies (PUBG API, network)
  * - Internal components (cache, rate limiter)
  * - Application-specific checks
- * 
+ *
  * @example
  * ```typescript
  * const healthChecker = new HealthChecker();
- * 
+ *
  * // Get simple health status
  * const isHealthy = await healthChecker.isHealthy();
- * 
+ *
  * // Get detailed health report
  * const report = await healthChecker.getDetailedHealth();
- * 
+ *
  * // Add custom health check
  * healthChecker.addCustomCheck('database', async () => {
  *   try {
@@ -106,18 +106,18 @@ export class HealthChecker {
       this.checkPubgApi(),
       this.checkEventLoop(),
       this.checkProcessHealth(),
-      ...Array.from(this.customChecks.entries()).map(([name, check]) => 
+      ...Array.from(this.customChecks.entries()).map(([name, check]) =>
         this.runCustomCheck(name, check)
-      )
+      ),
     ];
 
     const results = await Promise.allSettled(checkPromises);
-    
+
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         const checkResult = result.value;
         checks[checkResult.componentId] = checkResult;
-        
+
         // Determine overall status
         if (checkResult.status === 'fail') {
           overallStatus = 'fail';
@@ -133,7 +133,7 @@ export class HealthChecker {
           componentType: 'system',
           output: `Health check failed: ${result.reason}`,
           time: new Date().toISOString(),
-          duration: 0
+          duration: 0,
         };
         overallStatus = 'fail';
       }
@@ -150,21 +150,18 @@ export class HealthChecker {
       links: {
         self: '/health',
         metrics: '/metrics',
-        logs: '/logs'
+        logs: '/logs',
       },
       serviceId: this.serviceId,
       timestamp: new Date().toISOString(),
-      uptime: Date.now() - this.startTime
+      uptime: Date.now() - this.startTime,
     };
   }
 
   /**
    * Add a custom health check
    */
-  public addCustomCheck(
-    name: string, 
-    check: () => Promise<Partial<HealthCheckResult>>
-  ): void {
+  public addCustomCheck(name: string, check: () => Promise<Partial<HealthCheckResult>>): void {
     this.customChecks.set(name, check);
   }
 
@@ -182,10 +179,10 @@ export class HealthChecker {
     const startTime = performance.now();
     const memStats = process.memoryUsage();
     const memoryPercentage = (memStats.heapUsed / memStats.heapTotal) * 100;
-    
+
     let status: 'pass' | 'fail' | 'warn' = 'pass';
     let output = `Memory usage: ${memoryPercentage.toFixed(2)}%`;
-    
+
     if (memoryPercentage > 90) {
       status = 'fail';
       output += ' - Critical memory usage';
@@ -202,7 +199,7 @@ export class HealthChecker {
       observedUnit: 'percent',
       output,
       time: new Date().toISOString(),
-      duration: performance.now() - startTime
+      duration: performance.now() - startTime,
     };
   }
 
@@ -213,7 +210,7 @@ export class HealthChecker {
     const startTime = performance.now();
     const uptime = Date.now() - this.startTime;
     const uptimeSeconds = Math.floor(uptime / 1000);
-    
+
     return {
       status: 'pass',
       componentId: 'uptime',
@@ -222,7 +219,7 @@ export class HealthChecker {
       observedUnit: 'seconds',
       output: `Service has been running for ${uptimeSeconds} seconds`,
       time: new Date().toISOString(),
-      duration: performance.now() - startTime
+      duration: performance.now() - startTime,
     };
   }
 
@@ -231,15 +228,15 @@ export class HealthChecker {
    */
   private async checkPubgApi(): Promise<HealthCheckResult> {
     const startTime = performance.now();
-    
+
     try {
       // Simulate API check - in real implementation, make actual API call
       const responseTime = Math.random() * 1000 + 100; // 100-1100ms
-      await new Promise(resolve => setTimeout(resolve, Math.min(responseTime, 100)));
-      
+      await new Promise((resolve) => setTimeout(resolve, Math.min(responseTime, 100)));
+
       let status: 'pass' | 'fail' | 'warn' = 'pass';
       let output = `PUBG API response time: ${responseTime.toFixed(2)}ms`;
-      
+
       if (responseTime > 5000) {
         status = 'fail';
         output += ' - API response too slow';
@@ -256,7 +253,7 @@ export class HealthChecker {
         observedUnit: 'milliseconds',
         output,
         time: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     } catch (error) {
       return {
@@ -265,7 +262,7 @@ export class HealthChecker {
         componentType: 'external',
         output: `PUBG API check failed: ${error}`,
         time: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     }
   }
@@ -275,14 +272,14 @@ export class HealthChecker {
    */
   private async checkEventLoop(): Promise<HealthCheckResult> {
     const startTime = performance.now();
-    
+
     return new Promise((resolve) => {
       const start = performance.now();
       setImmediate(() => {
         const lag = performance.now() - start;
         let status: 'pass' | 'fail' | 'warn' = 'pass';
         let output = `Event loop lag: ${lag.toFixed(2)}ms`;
-        
+
         if (lag > 100) {
           status = 'fail';
           output += ' - High event loop lag';
@@ -299,7 +296,7 @@ export class HealthChecker {
           observedUnit: 'milliseconds',
           output,
           time: new Date().toISOString(),
-          duration: performance.now() - startTime
+          duration: performance.now() - startTime,
         });
       });
     });
@@ -310,14 +307,14 @@ export class HealthChecker {
    */
   private async checkProcessHealth(): Promise<HealthCheckResult> {
     const startTime = performance.now();
-    
+
     try {
       const _cpuUsage = process.cpuUsage();
       const loadAverage = require('node:os').loadavg()[0]; // 1-minute load average
-      
+
       let status: 'pass' | 'fail' | 'warn' = 'pass';
       let output = `Load average: ${loadAverage.toFixed(2)}`;
-      
+
       if (loadAverage > 2.0) {
         status = 'fail';
         output += ' - High system load';
@@ -334,7 +331,7 @@ export class HealthChecker {
         observedUnit: 'load_average',
         output,
         time: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     } catch (error) {
       return {
@@ -343,7 +340,7 @@ export class HealthChecker {
         componentType: 'system',
         output: `Process health check failed: ${error}`,
         time: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     }
   }
@@ -352,11 +349,11 @@ export class HealthChecker {
    * Run a custom health check
    */
   private async runCustomCheck(
-    name: string, 
+    name: string,
     check: () => Promise<Partial<HealthCheckResult>>
   ): Promise<HealthCheckResult> {
     const startTime = performance.now();
-    
+
     try {
       const result = await check();
       return {
@@ -365,7 +362,7 @@ export class HealthChecker {
         componentType: 'custom',
         time: new Date().toISOString(),
         duration: performance.now() - startTime,
-        ...result
+        ...result,
       };
     } catch (error) {
       return {
@@ -374,7 +371,7 @@ export class HealthChecker {
         componentType: 'custom',
         output: `Custom check '${name}' failed: ${error}`,
         time: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     }
   }
@@ -383,5 +380,5 @@ export class HealthChecker {
 // Export singleton instance
 export const healthChecker = new HealthChecker({
   version: process.env.npm_package_version || '1.0.0',
-  serviceId: 'pubg-ts-sdk'
+  serviceId: 'pubg-ts-sdk',
 });

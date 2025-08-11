@@ -21,7 +21,7 @@ function createSyncCommand() {
     .option('--dry-run', 'show what would be synced without actually syncing')
     .action(async (options) => {
       const spinner = ora('Checking asset status...').start();
-      
+
       try {
         if (options.dryRun) {
           spinner.text = 'Checking what would be synced...';
@@ -29,15 +29,15 @@ function createSyncCommand() {
           spinner.succeed('Dry run complete - 15 asset types would be synced');
           return;
         }
-        
+
         spinner.text = 'Synchronizing assets...';
-        
+
         // Run the sync script
         const syncScript = path.join(__dirname, '../../../scripts/sync-assets.ts');
         execSync(`npx ts-node ${syncScript}`, { stdio: 'inherit' });
-        
+
         spinner.succeed(chalk.green('Assets synchronized successfully!'));
-        
+
         // Show sync summary
         console.log(chalk.blue('\n📊 Sync Summary:'));
         console.log(chalk.gray('  • Items: 500+ weapon and equipment items'));
@@ -45,7 +45,6 @@ function createSyncCommand() {
         console.log(chalk.gray('  • Maps: 10+ map variants'));
         console.log(chalk.gray('  • Seasons: Current and historical seasons'));
         console.log(chalk.gray('  • Survival Titles: All ranking information'));
-        
       } catch (error) {
         spinner.fail(chalk.red('Asset synchronization failed'));
         console.error(error);
@@ -63,11 +62,11 @@ function createSearchCommand() {
     .option('--fuzzy', 'enable fuzzy search')
     .action(async (query, options) => {
       const spinner = ora('Searching assets...').start();
-      
+
       try {
         let results: any[] = [];
         const limit = parseInt(options.limit);
-        
+
         if (options.type === 'items') {
           if (options.fuzzy) {
             results = assetManager.searchItems(query).slice(0, limit);
@@ -87,8 +86,8 @@ function createSearchCommand() {
           // Get all vehicle IDs from the maps (simplified approach)
           const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C'];
           results = vehicleIds
-            .map(id => assetManager.getVehicleInfo(id))
-            .filter(vehicle => vehicle?.name.toLowerCase().includes(query.toLowerCase()))
+            .map((id) => assetManager.getVehicleInfo(id))
+            .filter((vehicle) => vehicle?.name.toLowerCase().includes(query.toLowerCase()))
             .slice(0, limit);
         } else if (options.type === 'maps') {
           const allMaps = assetManager.getAllMaps();
@@ -96,14 +95,18 @@ function createSearchCommand() {
             .filter((map: any) => map.name.toLowerCase().includes(query.toLowerCase()))
             .slice(0, limit);
         }
-        
+
         spinner.succeed(`Found ${results.length} results for "${query}"`);
-        
+
         if (results.length === 0) {
-          console.log(chalk.yellow('No results found. Try a different query or use --fuzzy for better matching.'));
+          console.log(
+            chalk.yellow(
+              'No results found. Try a different query or use --fuzzy for better matching.'
+            )
+          );
           return;
         }
-        
+
         // Display results
         console.log(chalk.blue(`\n🔍 Search Results (${options.type}):`));
         results.forEach((item, index) => {
@@ -116,7 +119,6 @@ function createSearchCommand() {
           }
           console.log('');
         });
-        
       } catch (error) {
         spinner.fail(chalk.red('Search failed'));
         console.error(error);
@@ -137,10 +139,10 @@ function createListCommand() {
           showAssetStats();
           return;
         }
-        
+
         const limit = parseInt(options.limit);
         let items: any[] = [];
-        
+
         if (options.type === 'items') {
           if (options.category) {
             items = assetManager.getItemsByCategory(options.category);
@@ -155,18 +157,20 @@ function createListCommand() {
         } else if (options.type === 'vehicles') {
           // Get sample vehicle IDs (in a real implementation, we'd have a method to get all)
           const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C', 'Buggy_A_00_C'];
-          items = vehicleIds.map(id => assetManager.getVehicleInfo(id)).filter(Boolean);
+          items = vehicleIds.map((id) => assetManager.getVehicleInfo(id)).filter(Boolean);
         } else if (options.type === 'maps') {
           items = assetManager.getAllMaps();
         } else if (options.type === 'seasons') {
           const seasons = assetManager.getSeasonsByPlatform('PC');
           items = seasons;
         }
-        
+
         const displayItems = items.slice(0, limit);
-        
-        console.log(chalk.blue(`\n📋 ${options.type.toUpperCase()} (${displayItems.length}/${items.length}):`));
-        
+
+        console.log(
+          chalk.blue(`\n📋 ${options.type.toUpperCase()} (${displayItems.length}/${items.length}):`)
+        );
+
         displayItems.forEach((item, index) => {
           console.log(chalk.gray(`${index + 1}. ${chalk.white(item.name || item.displayName)}`));
           if (item.category) {
@@ -176,11 +180,12 @@ function createListCommand() {
             console.log(chalk.gray(`   ID: ${item.id}`));
           }
         });
-        
+
         if (items.length > limit) {
-          console.log(chalk.yellow(`\n... and ${items.length - limit} more. Use --limit to see more.`));
+          console.log(
+            chalk.yellow(`\n... and ${items.length - limit} more. Use --limit to see more.`)
+          );
         }
-        
       } catch (error) {
         console.error(chalk.red('Failed to list assets:'), error);
       }
@@ -195,7 +200,7 @@ function createInfoCommand() {
     .action(async (id, options) => {
       try {
         let asset: any = null;
-        
+
         if (options.type === 'items') {
           asset = assetManager.getItemInfo(id);
         } else if (options.type === 'vehicles') {
@@ -206,17 +211,17 @@ function createInfoCommand() {
             asset = { id, name: mapName };
           }
         }
-        
+
         if (!asset) {
           console.log(chalk.red(`Asset with ID "${id}" not found in ${options.type}`));
           return;
         }
-        
+
         console.log(chalk.blue(`\n📄 Asset Information:`));
         console.log(chalk.gray(`Type: ${options.type}`));
         console.log(chalk.gray(`ID: ${asset.id || id}`));
         console.log(chalk.gray(`Name: ${chalk.white(asset.name || asset.displayName)}`));
-        
+
         if (asset.category) {
           console.log(chalk.gray(`Category: ${asset.category}`));
         }
@@ -232,7 +237,6 @@ function createInfoCommand() {
         if (asset.vehicleType) {
           console.log(chalk.gray(`Vehicle Type: ${asset.vehicleType}`));
         }
-        
       } catch (error) {
         console.error(chalk.red('Failed to get asset info:'), error);
       }
@@ -247,10 +251,10 @@ function createExportCommand() {
     .option('-o, --output <file>', 'output file path', 'assets-export')
     .action(async (options) => {
       const spinner = ora('Exporting assets...').start();
-      
+
       try {
         let data: any = {};
-        
+
         if (options.type === 'all') {
           const categories = ['Weapon', 'Equipment', 'Consumable', 'Attachment', 'Ammunition'];
           const items: any[] = [];
@@ -258,13 +262,13 @@ function createExportCommand() {
             items.push(...assetManager.getItemsByCategory(category));
           }
           const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C', 'Buggy_A_00_C'];
-          const vehicles = vehicleIds.map(id => assetManager.getVehicleInfo(id)).filter(Boolean);
-          
+          const vehicles = vehicleIds.map((id) => assetManager.getVehicleInfo(id)).filter(Boolean);
+
           data = {
             items,
             vehicles,
             maps: assetManager.getAllMaps(),
-            seasons: assetManager.getSeasonsByPlatform('PC')
+            seasons: assetManager.getSeasonsByPlatform('PC'),
           };
         } else if (options.type === 'items') {
           const categories = ['Weapon', 'Equipment', 'Consumable', 'Attachment', 'Ammunition'];
@@ -274,15 +278,15 @@ function createExportCommand() {
           }
         } else if (options.type === 'vehicles') {
           const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C', 'Buggy_A_00_C'];
-          data = vehicleIds.map(id => assetManager.getVehicleInfo(id)).filter(Boolean);
+          data = vehicleIds.map((id) => assetManager.getVehicleInfo(id)).filter(Boolean);
         } else if (options.type === 'maps') {
           data = assetManager.getAllMaps();
         } else if (options.type === 'seasons') {
           data = assetManager.getSeasonsByPlatform('PC');
         }
-        
+
         const outputFile = `${options.output}.${options.format}`;
-        
+
         if (options.format === 'json') {
           fs.writeFileSync(outputFile, JSON.stringify(data, null, 2));
         } else if (options.format === 'csv') {
@@ -299,9 +303,8 @@ function createExportCommand() {
           const tsContent = generateTypeScriptDefinitions(data, options.type);
           fs.writeFileSync(outputFile, tsContent);
         }
-        
+
         spinner.succeed(`Assets exported to ${outputFile}`);
-        
       } catch (error) {
         spinner.fail(chalk.red('Export failed'));
         console.error(error);
@@ -316,29 +319,31 @@ function showAssetStats() {
     for (const category of categories) {
       items.push(...assetManager.getItemsByCategory(category));
     }
-    
+
     const vehicleIds = ['BP_Motorbike_00_C', 'Dacia_A_00_v2_C', 'Uaz_A_00_C', 'Buggy_A_00_C'];
-    const vehicles = vehicleIds.map(id => assetManager.getVehicleInfo(id)).filter(Boolean);
+    const vehicles = vehicleIds.map((id) => assetManager.getVehicleInfo(id)).filter(Boolean);
     const maps = assetManager.getAllMaps();
     const seasons = assetManager.getSeasonsByPlatform('PC');
-    
+
     console.log(chalk.blue('\n📊 Asset Statistics:'));
     console.log(chalk.gray(`Items: ${items.length}`));
     console.log(chalk.gray(`Vehicles: ${vehicles.length}`));
     console.log(chalk.gray(`Maps: ${maps.length}`));
     console.log(chalk.gray(`Seasons: ${seasons.length}`));
-    
+
     // Item categories
-    const itemCategories = items.reduce((acc: any, item: any) => {
-      acc[item.category] = (acc[item.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
+    const itemCategories = items.reduce(
+      (acc: any, item: any) => {
+        acc[item.category] = (acc[item.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
     console.log(chalk.blue('\n📦 Item Categories:'));
     Object.entries(itemCategories).forEach(([category, count]) => {
       console.log(chalk.gray(`  ${category}: ${count}`));
     });
-    
   } catch (error) {
     console.error(chalk.red('Failed to show statistics:'), error);
   }
@@ -346,22 +351,22 @@ function showAssetStats() {
 
 function convertToCSV(data: any[]): string {
   if (data.length === 0) return '';
-  
+
   const headers = Object.keys(data[0]).join(',');
-  const rows = data.map(item => 
-    Object.values(item).map(value => 
-      typeof value === 'string' ? `"${value}"` : value
-    ).join(',')
+  const rows = data.map((item) =>
+    Object.values(item)
+      .map((value) => (typeof value === 'string' ? `"${value}"` : value))
+      .join(',')
   );
-  
+
   return [headers, ...rows].join('\n');
 }
 
 function generateTypeScriptDefinitions(data: any, type: string): string {
   let content = `// Auto-generated TypeScript definitions for PUBG assets\n\n`;
-  
+
   if (type === 'items' && Array.isArray(data)) {
-    const itemIds = data.map(item => `'${item.id}'`).join(' | ');
+    const itemIds = data.map((item) => `'${item.id}'`).join(' | ');
     content += `export type ItemId = ${itemIds};\n\n`;
     content += `export interface ItemInfo {\n`;
     content += `  id: string;\n`;
@@ -373,6 +378,6 @@ function generateTypeScriptDefinitions(data: any, type: string): string {
     content += `}\n\n`;
     content += `export const ITEM_DICTIONARY: Record<ItemId, ItemInfo> = ${JSON.stringify(data, null, 2)};\n`;
   }
-  
+
   return content;
 }

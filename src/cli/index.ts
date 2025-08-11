@@ -8,7 +8,8 @@ import { scaffoldCommand } from './commands/scaffold';
 import { assetsCommand } from './commands/assets';
 import { setupCommand } from './commands/setup';
 
-console.log(chalk.blue.bold(`
+console.log(
+  chalk.blue.bold(`
 ┌─────────────────────────────────────────────────────┐
 │                                                     │
 │               PUBG TypeScript CLI                   │
@@ -16,7 +17,8 @@ console.log(chalk.blue.bold(`
 │    🎮  Comprehensive PUBG API Development Tools    │
 │                                                     │
 └─────────────────────────────────────────────────────┘
-`));
+`)
+);
 
 program
   .name('pubg-ts')

@@ -20,7 +20,7 @@ export class TelemetryService {
    * ```ts
    * // First, get a match
    * const match = await pubg.matches.getMatch('01234567-89ab-cdef-0123-456789abcdef');
-   * 
+   *
    * // Then, get the telemetry URL from the match data
    * const telemetryAsset = match.included.find(i => i.type === 'asset' && i.attributes.name === 'telemetry');
    * if (telemetryAsset) {

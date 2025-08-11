@@ -69,7 +69,7 @@ describe('AssetManager', () => {
   describe('Season Management', () => {
     it('should get season information by ID', () => {
       const seasons = assetManager.getSeasonsByPlatform('PC');
-      const seasonInfo = seasons.find(s => s.id === 'division.bro.official.2018-01');
+      const seasonInfo = seasons.find((s) => s.id === 'division.bro.official.2018-01');
 
       expect(seasonInfo).toMatchObject({
         id: expect.any(String),
@@ -94,7 +94,7 @@ describe('AssetManager', () => {
 
     it('should return undefined for non-existent season', () => {
       const seasons = assetManager.getSeasonsByPlatform('PC');
-      const seasonInfo = seasons.find(s => s.id === 'non-existent-season');
+      const seasonInfo = seasons.find((s) => s.id === 'non-existent-season');
       expect(seasonInfo).toBeUndefined();
     });
   });

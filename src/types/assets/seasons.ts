@@ -1,5 +1,5 @@
 // Generated from PUBG API assets
-// Last updated: 2025-08-11T14:59:54.977Z
+// Last updated: 2025-08-11T19:00:16.202Z
 
 export interface SeasonAttributes {
   startDate: string;

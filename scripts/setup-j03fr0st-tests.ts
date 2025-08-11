@@ -7,7 +7,7 @@ import * as readline from 'node:readline';
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function question(prompt: string): Promise<string> {
@@ -59,7 +59,10 @@ DEBUG=
     if (apiKey && apiKey !== 'your_pubg_api_key_here') {
       // Update the .env.test file with the actual API key
       let envContent = fs.readFileSync(envTestPath, 'utf8');
-      envContent = envContent.replace('PUBG_API_KEY=your_pubg_api_key_here', `PUBG_API_KEY=${apiKey}`);
+      envContent = envContent.replace(
+        'PUBG_API_KEY=your_pubg_api_key_here',
+        `PUBG_API_KEY=${apiKey}`
+      );
       fs.writeFileSync(envTestPath, envContent);
       console.log('✅ API key updated in .env.test');
     }
@@ -72,7 +75,9 @@ DEBUG=
     console.log('  - pc-oc (Oceania)');
     console.log('  - xbox-na, ps4-na (Console)');
 
-    const shard = await question('\nEnter the shard where J03Fr0st plays (or press Enter for pc-na): ');
+    const shard = await question(
+      '\nEnter the shard where J03Fr0st plays (or press Enter for pc-na): '
+    );
     if (shard && shard !== 'pc-na') {
       let envContent = fs.readFileSync(envTestPath, 'utf8');
       envContent = envContent.replace('PUBG_SHARD=pc-na', `PUBG_SHARD=${shard}`);
@@ -110,9 +115,9 @@ DEBUG=
   if (runTests.toLowerCase() === 'y') {
     console.log('\n🚀 Running J03Fr0st integration tests...\n');
     try {
-      execSync('npm run test:j03fr0st:verbose', { 
+      execSync('npm run test:j03fr0st:verbose', {
         stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'test' }
+        env: { ...process.env, NODE_ENV: 'test' },
       });
     } catch (_error) {
       console.log('\n⚠️ Tests completed with some failures (this is normal if API key is not set)');

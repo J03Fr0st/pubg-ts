@@ -65,7 +65,7 @@ export class PlayersService {
 
   /**
    * Get a single player by their name.
-   * 
+   *
    * @param playerName - The name of the player to retrieve.
    * @returns A promise that resolves with the player data.
    * @example

@@ -14,22 +14,21 @@ export const scaffoldCommand = new Command('scaffold')
   .option('-y, --yes', 'skip prompts and use defaults')
   .action(async (projectName, options) => {
     const spinner = ora('Setting up project...').start();
-    
+
     try {
       // Get project details
       const projectDetails = await getProjectDetails(projectName, options);
-      
+
       // Create project structure
       await createProjectStructure(projectDetails, spinner);
-      
+
       // Generate project files
       await generateProjectFiles(projectDetails, spinner);
-      
+
       spinner.succeed(chalk.green('Project scaffolded successfully!'));
-      
+
       // Show next steps
       showNextSteps(projectDetails);
-      
     } catch (error) {
       spinner.fail(chalk.red('Failed to scaffold project'));
       console.error(error);
@@ -45,7 +44,7 @@ async function getProjectDetails(projectName: string | undefined, options: any) 
       directory: options.directory,
       description: `A PUBG TypeScript project using ${options.template} template`,
       author: '',
-      license: 'MIT'
+      license: 'MIT',
     };
   }
 
@@ -57,9 +56,10 @@ async function getProjectDetails(projectName: string | undefined, options: any) 
       default: projectName || 'my-pubg-project',
       validate: (input: string) => {
         if (!input.trim()) return 'Project name is required';
-        if (!/^[a-zA-Z0-9-_]+$/.test(input)) return 'Project name can only contain letters, numbers, hyphens, and underscores';
+        if (!/^[a-zA-Z0-9-_]+$/.test(input))
+          return 'Project name can only contain letters, numbers, hyphens, and underscores';
         return true;
-      }
+      },
     },
     {
       type: 'list',
@@ -68,29 +68,29 @@ async function getProjectDetails(projectName: string | undefined, options: any) 
       choices: [
         { name: 'Basic - Simple API client setup', value: 'basic' },
         { name: 'Advanced - Full-featured with caching and rate limiting', value: 'advanced' },
-        { name: 'Bot - Discord bot with PUBG stats commands', value: 'bot' }
+        { name: 'Bot - Discord bot with PUBG stats commands', value: 'bot' },
       ],
-      default: options.template
+      default: options.template,
     },
     {
       type: 'input',
       name: 'description',
       message: 'Project description:',
-      default: (answers: any) => `A PUBG TypeScript project using ${answers.template} template`
+      default: (answers: any) => `A PUBG TypeScript project using ${answers.template} template`,
     },
     {
       type: 'input',
       name: 'author',
       message: 'Author:',
-      default: ''
+      default: '',
     },
     {
       type: 'list',
       name: 'license',
       message: 'License:',
       choices: ['MIT', 'Apache-2.0', 'GPL-3.0', 'BSD-3-Clause', 'None'],
-      default: 'MIT'
-    }
+      default: 'MIT',
+    },
   ];
 
   return await inquirer.prompt(questions as any);
@@ -98,9 +98,9 @@ async function getProjectDetails(projectName: string | undefined, options: any) 
 
 async function createProjectStructure(projectDetails: any, spinner: any) {
   const projectPath = path.join(projectDetails.directory, projectDetails.name);
-  
+
   spinner.text = 'Creating project structure...';
-  
+
   // Create main directories
   const directories = [
     projectPath,
@@ -109,7 +109,7 @@ async function createProjectStructure(projectDetails: any, spinner: any) {
     path.join(projectPath, 'src', 'utils'),
     path.join(projectPath, 'tests'),
     path.join(projectPath, 'examples'),
-    path.join(projectPath, 'docs')
+    path.join(projectPath, 'docs'),
   ];
 
   // Add template-specific directories
@@ -138,27 +138,27 @@ async function createProjectStructure(projectDetails: any, spinner: any) {
 
 async function generateProjectFiles(projectDetails: any, spinner: any) {
   const projectPath = path.join(projectDetails.directory, projectDetails.name);
-  
+
   spinner.text = 'Generating project files...';
-  
+
   // Generate package.json
   await generatePackageJson(projectPath, projectDetails);
-  
+
   // Generate TypeScript config
   await generateTsConfig(projectPath, projectDetails);
-  
+
   // Generate main index file
   await generateIndexFile(projectPath, projectDetails);
-  
+
   // Generate environment file
   await generateEnvFile(projectPath, projectDetails);
-  
+
   // Generate README
   await generateReadme(projectPath, projectDetails);
-  
+
   // Generate .gitignore
   await generateGitignore(projectPath);
-  
+
   // Generate template-specific files
   if (projectDetails.template === 'basic') {
     await generateBasicTemplate(projectPath, projectDetails);
@@ -183,13 +183,13 @@ async function generatePackageJson(projectPath: string, projectDetails: any) {
       test: 'jest',
       'test:watch': 'jest --watch',
       lint: 'eslint src/**/*.ts',
-      'lint:fix': 'eslint src/**/*.ts --fix'
+      'lint:fix': 'eslint src/**/*.ts --fix',
     },
     keywords: ['pubg', 'api', 'typescript', 'gaming'],
     author: projectDetails.author,
     license: projectDetails.license,
     dependencies: {
-      'pubg-ts': '^1.0.0'
+      'pubg-ts': '^1.0.0',
     },
     devDependencies: {
       '@types/node': '^18.15.0',
@@ -199,22 +199,19 @@ async function generatePackageJson(projectPath: string, projectDetails: any) {
       jest: '^29.5.0',
       'ts-jest': '^29.1.0',
       'ts-node': '^10.9.0',
-      typescript: '^5.0.0'
-    }
+      typescript: '^5.0.0',
+    },
   };
 
   // Add template-specific dependencies
   if (projectDetails.template === 'bot') {
     packageJson.dependencies = Object.assign(packageJson.dependencies, {
       'discord.js': '^14.0.0',
-      'dotenv': '^16.0.0'
+      dotenv: '^16.0.0',
     });
   }
 
-  fs.writeFileSync(
-    path.join(projectPath, 'package.json'),
-    JSON.stringify(packageJson, null, 2)
-  );
+  fs.writeFileSync(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 }
 
 async function generateTsConfig(projectPath: string, _projectDetails: any) {
@@ -234,21 +231,18 @@ async function generateTsConfig(projectPath: string, _projectDetails: any) {
       moduleResolution: 'node',
       allowSyntheticDefaultImports: true,
       experimentalDecorators: true,
-      emitDecoratorMetadata: true
+      emitDecoratorMetadata: true,
     },
     include: ['src/**/*'],
-    exclude: ['node_modules', '**/*.test.ts', '**/*.spec.ts']
+    exclude: ['node_modules', '**/*.test.ts', '**/*.spec.ts'],
   };
 
-  fs.writeFileSync(
-    path.join(projectPath, 'tsconfig.json'),
-    JSON.stringify(tsConfig, null, 2)
-  );
+  fs.writeFileSync(path.join(projectPath, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2));
 }
 
 async function generateIndexFile(projectPath: string, projectDetails: any) {
   let content = '';
-  
+
   if (projectDetails.template === 'basic') {
     content = `import { PubgClient } from 'pubg-ts';
 
@@ -376,7 +370,7 @@ discord.on('messageCreate', async (message) => {
 
 discord.login(process.env.DISCORD_TOKEN);`;
   }
-  
+
   fs.writeFileSync(path.join(projectPath, 'src', 'index.ts'), content);
 }
 
@@ -420,11 +414,15 @@ ${projectDetails.description}
    - Get your API key from [PUBG Developer Portal](https://developer.pubg.com/)
    - Add it to the \`PUBG_API_KEY\` variable
 
-${projectDetails.template === 'bot' ? `5. Configure Discord bot:
+${
+  projectDetails.template === 'bot'
+    ? `5. Configure Discord bot:
    - Create a Discord application at [Discord Developer Portal](https://discord.com/developers/applications)
    - Add the bot token to the \`DISCORD_TOKEN\` variable
 
-` : ''}## Usage
+`
+    : ''
+}## Usage
 
 Development mode:
 \`\`\`bash
@@ -549,7 +547,7 @@ async function generateAdvancedTemplate(projectPath: string, _projectDetails: an
 `;
 
   fs.writeFileSync(path.join(projectPath, 'src', 'config', 'index.ts'), configContent);
-  
+
   // Generate logger utility
   const loggerContent = `import debug from 'debug';
 
@@ -614,11 +612,11 @@ function showNextSteps(projectDetails: any) {
   console.log(chalk.cyan('  2. npm install'));
   console.log(chalk.cyan('  3. cp .env.example .env'));
   console.log(chalk.cyan('  4. Edit .env with your PUBG API key'));
-  
+
   if (projectDetails.template === 'bot') {
     console.log(chalk.cyan('  5. Add your Discord bot token to .env'));
   }
-  
+
   console.log(chalk.cyan('  5. npm run dev'));
   console.log(chalk.gray('\nHappy coding! 🎮'));
 }

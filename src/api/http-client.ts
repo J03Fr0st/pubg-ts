@@ -108,17 +108,17 @@ export class HttpClient {
     this.axios.interceptors.request.use(
       async (config) => {
         await this.rateLimiter.waitForSlot();
-        
+
         // Add request start time for monitoring
         (config as any).metadata = {
           startTime: performance.now(),
           span: monitoringSystem.startSpan('http_request', {
             method: config.method?.toUpperCase(),
             url: config.url,
-            endpoint: config.url
-          })
+            endpoint: config.url,
+          }),
         };
-        
+
         return config;
       },
       (error) => Promise.reject(error)
@@ -129,7 +129,7 @@ export class HttpClient {
         // Record successful request metrics
         const startTime = (response.config as any).metadata?.startTime;
         const span = (response.config as any).metadata?.span;
-        
+
         if (startTime) {
           const duration = performance.now() - startTime;
           monitoringSystem.recordRequestMetrics({
@@ -137,32 +137,32 @@ export class HttpClient {
             statusCode: response.status,
             endpoint: response.config.url || 'unknown',
             method: response.config.method?.toUpperCase() || 'unknown',
-            error: false
+            error: false,
           });
         }
-        
+
         if (span) {
           span.setStatus({ code: 1 }); // OK
           span.end();
         }
-        
+
         // Update rate limit metrics if available
         const remaining = response.headers['x-ratelimit-remaining'];
         if (remaining) {
           monitoringSystem.updateRateLimitMetrics(parseInt(remaining));
         }
-        
+
         return response;
       },
       async (error) => {
         const status = error.response?.status;
         const message = error.response?.data?.errors?.[0]?.detail || error.message;
         const url = error.config?.url || 'unknown';
-        
+
         // Record error metrics
         const startTime = (error.config as any)?.metadata?.startTime;
         const span = (error.config as any)?.metadata?.span;
-        
+
         if (startTime) {
           const duration = performance.now() - startTime;
           monitoringSystem.recordRequestMetrics({
@@ -170,21 +170,21 @@ export class HttpClient {
             statusCode: status || 0,
             endpoint: url,
             method: error.config?.method?.toUpperCase() || 'unknown',
-            error: true
+            error: true,
           });
         }
-        
+
         if (span) {
           span.recordException(error);
           span.setStatus({ code: 2, message: error.message }); // ERROR
           span.end();
         }
-        
+
         // Record error in monitoring system
         monitoringSystem.recordError(error, {
           endpoint: url,
           method: error.config?.method,
-          statusCode: status
+          statusCode: status,
         });
 
         // Handle network-level errors (no response received)
