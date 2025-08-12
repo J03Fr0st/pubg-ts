@@ -1,5 +1,4 @@
 // Generated from PUBG API assets - Dictionary exports
-// Last updated: 2025-08-11T19:00:16.209Z
 
 export interface GameModeDictionary {
   [key: string]: string;

@@ -16,6 +16,7 @@ describe('CLI Assets Command', () => {
   let originalConsoleLog: any;
   let originalConsoleError: any;
   let originalProcessExit: any;
+  let assetsCommand: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -96,14 +97,16 @@ describe('CLI Assets Command', () => {
       mockExecSync.mockReturnValue(Buffer.from('Assets synced successfully'));
 
       // Import the command after mocks are set up
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       expect(assetsCommand.name()).toBe('assets');
       expect(assetsCommand.description()).toBe('manage and explore PUBG assets');
     });
 
     it('should handle list subcommand', async () => {
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // The command should be configured with subcommands
       expect(assetsCommand.commands).toBeDefined();
@@ -129,7 +132,8 @@ describe('CLI Assets Command', () => {
         },
       ]);
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Verify command is configured correctly
       expect(assetsCommand.name()).toBe('assets');
@@ -148,7 +152,8 @@ describe('CLI Assets Command', () => {
         },
       ]);
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Verify command functionality
       expect(assetsCommand.description()).toBe('manage and explore PUBG assets');
@@ -167,7 +172,8 @@ describe('CLI Assets Command', () => {
         },
       ]);
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Test search functionality setup
       expect(mockAssetManager.searchItems).toBeDefined();
@@ -192,7 +198,8 @@ describe('CLI Assets Command', () => {
         description: 'Two-wheeled vehicle',
       });
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Verify asset info functionality
       expect(mockAssetManager.getItemInfo).toBeDefined();
@@ -224,7 +231,8 @@ describe('CLI Assets Command', () => {
         },
       ]);
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Test validation setup
       expect(assetsCommand.name()).toBe('assets');
@@ -237,7 +245,8 @@ describe('CLI Assets Command', () => {
         throw new Error('Asset loading failed');
       });
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Verify error handling is set up
       expect(assetsCommand).toBeDefined();
@@ -249,7 +258,8 @@ describe('CLI Assets Command', () => {
         throw new Error('Write failed');
       });
 
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Test file system error handling
       expect(assetsCommand).toBeDefined();
@@ -258,14 +268,16 @@ describe('CLI Assets Command', () => {
 
   describe('command structure', () => {
     it('should have correct command metadata', async () => {
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       expect(assetsCommand.name()).toBe('assets');
       expect(assetsCommand.description()).toBe('manage and explore PUBG assets');
     });
 
     it('should have all required subcommands', async () => {
-      const { assetsCommand } = require('../../src/cli/commands/assets');
+      const { assetsCommand: importedCommand } = require('../../src/cli/commands/assets');
+      assetsCommand = importedCommand;
 
       // Verify the command structure
       expect(assetsCommand).toBeDefined();

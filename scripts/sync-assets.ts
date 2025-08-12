@@ -171,7 +171,6 @@ function generateItemTypes(itemDictionary: DictionaryData): string {
   }
 
   let typeDefinitions = `// Generated from PUBG API assets
-// Last updated: ${new Date().toISOString()}
 
 export interface ItemDictionary {
   [key: string]: string;
@@ -203,7 +202,6 @@ function generateVehicleTypes(vehicleDictionary: DictionaryData): string {
     .join(' | ');
 
   return `// Generated from PUBG API assets
-// Last updated: ${new Date().toISOString()}
 
 export interface VehicleDictionary {
   [key: string]: string;
@@ -222,7 +220,6 @@ function generateMapTypes(mapDictionary: DictionaryData): string {
     .join(' | ');
 
   return `// Generated from PUBG API assets
-// Last updated: ${new Date().toISOString()}
 
 export interface MapDictionary {
   [key: string]: string;
@@ -243,7 +240,6 @@ export type MapName = ${Object.values(mapDictionary)
 
 function generateEnumTypes(enumData: { [filename: string]: any }): string {
   let typeDefinitions = `// Generated from PUBG API assets
-// Last updated: ${new Date().toISOString()}
 
 `;
 
@@ -277,7 +273,6 @@ function generateEnumTypes(enumData: { [filename: string]: any }): string {
 
 function generateSeasonTypes(seasonData: SeasonData): string {
   return `// Generated from PUBG API assets
-// Last updated: ${new Date().toISOString()}
 
 export interface SeasonAttributes {
   startDate: string;
@@ -307,7 +302,6 @@ function generateDictionaryTypes(
   damageCauserDictionary: DictionaryData
 ): string {
   return `// Generated from PUBG API assets - Dictionary exports
-// Last updated: ${new Date().toISOString()}
 
 export interface GameModeDictionary {
   [key: string]: string;
@@ -396,7 +390,6 @@ async function generateAllTypes(assetData: { [key: string]: any }): Promise<void
 
   // Generate index file
   const indexContent = `// Generated asset types index
-// Last updated: ${new Date().toISOString()}
 
 export * from './items';
 export * from './vehicles';

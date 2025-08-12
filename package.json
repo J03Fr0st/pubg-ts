@@ -30,18 +30,14 @@
     "prepare": "husky",
     "prepublishOnly": "npm run build",
     "lint-staged": "lint-staged",
-    "sync-assets": "ts-node scripts/sync-assets.ts && biome format --write .",
-    "prebuild": "npm run sync-assets",
+    "sync-assets": "ts-node scripts/sync-assets.ts",
+    "prebuild": "npm run sync-assets && npm run format",
     "security:audit": "ts-node scripts/security-audit.ts",
     "security:check": "npm audit && npm run security:audit",
     "security:fix": "npm audit fix",
     "perf:test": "ts-node scripts/performance-test.ts",
     "perf:profile": "node --prof dist/scripts/performance-test.js",
-    "health:check": "node -e \"import('./dist/utils/health-check.js').then(h => h.healthChecker.getDetailedHealth().then(r => console.log(JSON.stringify(r, null, 2))))\"",
-    "extract:telemetry-types": "ts-node scripts/extract-telemetry-types.ts",
-    "merge:telemetry-types": "ts-node scripts/merge-telemetry-types.ts",
-    "smart-merge:telemetry-types": "ts-node scripts/smart-merge-telemetry.ts",
-    "clean:telemetry-comments": "ts-node scripts/clean-telemetry-comments.ts"
+    "health:check": "node -e \"import('./dist/utils/health-check.js').then(h => h.healthChecker.getDetailedHealth().then(r => console.log(JSON.stringify(r, null, 2))))\""
   },
   "keywords": [
     "pubg",
