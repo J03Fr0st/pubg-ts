@@ -2,7 +2,7 @@
 // Generated on: 2025-08-11T17:48:43.257Z
 // Total events analyzed: 39841
 
-import { TelemetryEvent, TelemetryCommon, TelemetryPlayer, TelemetryGameResult } from './telemetry';
+import type { Character, Common, GameResult, TelemetryEvent } from './telemetry';
 
 /**
  * LogPlayerPosition - Found 7762 instances
@@ -10,8 +10,8 @@ import { TelemetryEvent, TelemetryCommon, TelemetryPlayer, TelemetryGameResult }
 export interface LogPlayerPosition extends TelemetryEvent {
   _T: 'LogPlayerPosition';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   elapsedTime?: number;
   numAlivePlayers?: number;
   vehicle?: any;
@@ -26,7 +26,7 @@ export interface LogPlayerAttack extends TelemetryEvent {
   attackId?: number;
   attackType?: string;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   fireWeaponStackCount?: number;
   vehicle?: any;
   weapon?: any;
@@ -38,8 +38,8 @@ export interface LogPlayerAttack extends TelemetryEvent {
 export interface LogItemPickup extends TelemetryEvent {
   _T: 'LogItemPickup';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -49,8 +49,8 @@ export interface LogItemPickup extends TelemetryEvent {
 export interface LogHeal extends TelemetryEvent {
   _T: 'LogHeal';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   healAmount?: number;
   item?: any;
 }
@@ -63,13 +63,13 @@ export interface LogPlayerTakeDamage extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   damage?: number;
   damageCauserName?: string;
   damageReason?: string;
   damageTypeCategory?: string;
   isThroughPenetrableWall?: boolean;
-  victim?: TelemetryPlayer;
+  victim?: Character;
 }
 
 /**
@@ -78,8 +78,8 @@ export interface LogPlayerTakeDamage extends TelemetryEvent {
 export interface LogItemEquip extends TelemetryEvent {
   _T: 'LogItemEquip';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -89,8 +89,8 @@ export interface LogItemEquip extends TelemetryEvent {
 export interface LogItemUnequip extends TelemetryEvent {
   _T: 'LogItemUnequip';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -100,8 +100,8 @@ export interface LogItemUnequip extends TelemetryEvent {
 export interface LogItemUse extends TelemetryEvent {
   _T: 'LogItemUse';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -111,9 +111,9 @@ export interface LogItemUse extends TelemetryEvent {
 export interface LogItemAttach extends TelemetryEvent {
   _T: 'LogItemAttach';
   _D?: string;
-  character?: TelemetryPlayer;
+  character?: Character;
   childItem?: any;
-  common: TelemetryCommon;
+  common: Common;
   parentItem?: any;
 }
 
@@ -123,9 +123,9 @@ export interface LogItemAttach extends TelemetryEvent {
 export interface LogItemDetach extends TelemetryEvent {
   _T: 'LogItemDetach';
   _D?: string;
-  character?: TelemetryPlayer;
+  character?: Character;
   childItem?: any;
-  common: TelemetryCommon;
+  common: Common;
   parentItem?: any;
 }
 
@@ -135,8 +135,8 @@ export interface LogItemDetach extends TelemetryEvent {
 export interface LogObjectInteraction extends TelemetryEvent {
   _T: 'LogObjectInteraction';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   objectType?: string;
   objectTypeAdditionalInfo?: any[];
   objectTypeStatus?: string;
@@ -148,8 +148,8 @@ export interface LogObjectInteraction extends TelemetryEvent {
 export interface LogItemDrop extends TelemetryEvent {
   _T: 'LogItemDrop';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -159,8 +159,8 @@ export interface LogItemDrop extends TelemetryEvent {
 export interface LogWeaponFireCount extends TelemetryEvent {
   _T: 'LogWeaponFireCount';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   fireCount?: number;
   weaponId?: string;
 }
@@ -173,7 +173,7 @@ export interface LogVehicleDamage extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   damage?: number;
   damageCauserName?: string;
   damageTypeCategory?: string;
@@ -187,8 +187,8 @@ export interface LogVehicleDamage extends TelemetryEvent {
 export interface LogObjectDestroy extends TelemetryEvent {
   _T: 'LogObjectDestroy';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   damageCauserName?: string;
   objectLocation?: any;
   objectType?: string;
@@ -200,8 +200,8 @@ export interface LogObjectDestroy extends TelemetryEvent {
 export interface LogItemPickupFromLootBox extends TelemetryEvent {
   _T: 'LogItemPickupFromLootBox';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   creatorAccountId?: string;
   item?: any;
   ownerTeamId?: number;
@@ -213,8 +213,8 @@ export interface LogItemPickupFromLootBox extends TelemetryEvent {
 export interface LogVaultStart extends TelemetryEvent {
   _T: 'LogVaultStart';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   isLedgeGrab?: boolean;
   isVaultOnVehicle?: boolean;
 }
@@ -225,8 +225,8 @@ export interface LogVaultStart extends TelemetryEvent {
 export interface LogVehicleRide extends TelemetryEvent {
   _T: 'LogVehicleRide';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   fellowPassengers?: any[];
   seatIndex?: number;
   vehicle?: any;
@@ -238,8 +238,8 @@ export interface LogVehicleRide extends TelemetryEvent {
 export interface LogVehicleLeave extends TelemetryEvent {
   _T: 'LogVehicleLeave';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   fellowPassengers?: any[];
   maxSpeed?: number;
   rideDistance?: number;
@@ -256,7 +256,7 @@ export interface LogPlayerUseThrowable extends TelemetryEvent {
   attackId?: number;
   attackType?: string;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   fireWeaponStackCount?: number;
   weapon?: any;
 }
@@ -267,7 +267,7 @@ export interface LogPlayerUseThrowable extends TelemetryEvent {
 export interface LogGameStatePeriodic extends TelemetryEvent {
   _T: 'LogGameStatePeriodic';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   gameState?: any;
 }
 
@@ -277,8 +277,8 @@ export interface LogGameStatePeriodic extends TelemetryEvent {
 export interface LogParachuteLanding extends TelemetryEvent {
   _T: 'LogParachuteLanding';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   distance?: number;
 }
 
@@ -288,8 +288,8 @@ export interface LogParachuteLanding extends TelemetryEvent {
 export interface LogPlayerCreate extends TelemetryEvent {
   _T: 'LogPlayerCreate';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
 }
 
 /**
@@ -299,7 +299,7 @@ export interface LogPlayerLogout extends TelemetryEvent {
   _T: 'LogPlayerLogout';
   _D?: string;
   accountId?: string;
-  common: TelemetryCommon;
+  common: Common;
 }
 
 /**
@@ -309,7 +309,7 @@ export interface LogPlayerLogin extends TelemetryEvent {
   _T: 'LogPlayerLogin';
   _D?: string;
   accountId?: string;
-  common: TelemetryCommon;
+  common: Common;
 }
 
 /**
@@ -320,19 +320,19 @@ export interface LogPlayerKillV2 extends TelemetryEvent {
   _D?: string;
   assists_AccountId?: any[];
   attackId?: number;
-  common: TelemetryCommon;
+  common: Common;
   dBNODamageInfo?: any;
   dBNOId?: number;
   dBNOMaker?: any;
   finishDamageInfo?: any;
   finisher?: any;
   isSuicide?: boolean;
-  killer?: TelemetryPlayer;
+  killer?: Character;
   killerDamageInfo?: any;
   killerVehicle?: any;
   teamKillers_AccountId?: any[];
-  victim?: TelemetryPlayer;
-  victimGameResult?: TelemetryGameResult;
+  victim?: Character;
+  victimGameResult?: GameResult;
   victimVehicle?: any;
   victimWeapon?: string;
   victimWeaponAdditionalInfo?: any[];
@@ -346,7 +346,7 @@ export interface LogPlayerMakeGroggy extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   dBNOId?: number;
   damageCauserAdditionalInfo?: any[];
   damageCauserName?: string;
@@ -355,7 +355,7 @@ export interface LogPlayerMakeGroggy extends TelemetryEvent {
   distance?: number;
   isAttackerInVehicle?: boolean;
   isThroughPenetrableWall?: boolean;
-  victim?: TelemetryPlayer;
+  victim?: Character;
   victimWeapon?: string;
   victimWeaponAdditionalInfo?: any[];
 }
@@ -368,13 +368,13 @@ export interface LogArmorDestroy extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   damageCauserName?: string;
   damageReason?: string;
   damageTypeCategory?: string;
   distance?: number;
   item?: any;
-  victim?: TelemetryPlayer;
+  victim?: Character;
 }
 
 /**
@@ -383,11 +383,11 @@ export interface LogArmorDestroy extends TelemetryEvent {
 export interface LogPlayerRevive extends TelemetryEvent {
   _T: 'LogPlayerRevive';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   dBNOId?: number;
   reviver?: any;
   useTraumaBag?: boolean;
-  victim?: TelemetryPlayer;
+  victim?: Character;
 }
 
 /**
@@ -398,8 +398,8 @@ export interface LogItemPickupFromCarepackage extends TelemetryEvent {
   _D?: string;
   carePackageName?: string;
   carePackageUniqueId?: number;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
 }
 
@@ -411,7 +411,7 @@ export interface LogWheelDestroy extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   damageCauserName?: string;
   damageTypeCategory?: string;
   vehicle?: any;
@@ -424,7 +424,7 @@ export interface LogWheelDestroy extends TelemetryEvent {
 export interface LogPhaseChange extends TelemetryEvent {
   _T: 'LogPhaseChange';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   phase?: number;
   playersInWhiteCircle?: string[];
 }
@@ -436,8 +436,8 @@ export interface LogCharacterCarry extends TelemetryEvent {
   _T: 'LogCharacterCarry';
   _D?: string;
   carryState?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
 }
 
 /**
@@ -446,8 +446,8 @@ export interface LogCharacterCarry extends TelemetryEvent {
 export interface LogSwimStart extends TelemetryEvent {
   _T: 'LogSwimStart';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
 }
 
 /**
@@ -456,7 +456,7 @@ export interface LogSwimStart extends TelemetryEvent {
 export interface LogCarePackageSpawn extends TelemetryEvent {
   _T: 'LogCarePackageSpawn';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   itemPackage?: any;
 }
 
@@ -466,7 +466,7 @@ export interface LogCarePackageSpawn extends TelemetryEvent {
 export interface LogCarePackageLand extends TelemetryEvent {
   _T: 'LogCarePackageLand';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   itemPackage?: any;
 }
 
@@ -477,7 +477,7 @@ export interface LogPlayerDestroyProp extends TelemetryEvent {
   _T: 'LogPlayerDestroyProp';
   _D?: string;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   objectLocation?: any;
   objectType?: string;
 }
@@ -488,7 +488,7 @@ export interface LogPlayerDestroyProp extends TelemetryEvent {
 export interface LogEmPickupLiftOff extends TelemetryEvent {
   _T: 'LogEmPickupLiftOff';
   _D?: string;
-  common: TelemetryCommon;
+  common: Common;
   instigator?: any;
   riders?: any[];
 }
@@ -501,7 +501,7 @@ export interface LogVehicleDestroy extends TelemetryEvent {
   _D?: string;
   attackId?: number;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   damageCauserName?: string;
   damageTypeCategory?: string;
   distance?: number;
@@ -514,8 +514,8 @@ export interface LogVehicleDestroy extends TelemetryEvent {
 export interface LogSwimEnd extends TelemetryEvent {
   _T: 'LogSwimEnd';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   maxSwimDepthOfWater?: number;
   swimDistance?: number;
 }
@@ -526,8 +526,8 @@ export interface LogSwimEnd extends TelemetryEvent {
 export interface LogItemPutToVehicleTrunk extends TelemetryEvent {
   _T: 'LogItemPutToVehicleTrunk';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
   vehicle?: any;
 }
@@ -538,8 +538,8 @@ export interface LogItemPutToVehicleTrunk extends TelemetryEvent {
 export interface LogItemPickupFromVehicleTrunk extends TelemetryEvent {
   _T: 'LogItemPickupFromVehicleTrunk';
   _D?: string;
-  character?: TelemetryPlayer;
-  common: TelemetryCommon;
+  character?: Character;
+  common: Common;
   item?: any;
   vehicle?: any;
 }
@@ -563,7 +563,7 @@ export interface LogMatchStart extends TelemetryEvent {
   blueZoneCustomOptions?: string;
   cameraViewBehaviour?: string;
   characters?: any[];
-  common: TelemetryCommon;
+  common: Common;
   isCustomGame?: boolean;
   isEventMode?: boolean;
   mapName?: string;
@@ -580,7 +580,7 @@ export interface LogPlayerUseFlareGun extends TelemetryEvent {
   attackId?: number;
   attackType?: string;
   attacker?: any;
-  common: TelemetryCommon;
+  common: Common;
   fireWeaponStackCount?: number;
   weapon?: any;
 }
@@ -593,7 +593,7 @@ export interface LogMatchEnd extends TelemetryEvent {
   _D?: string;
   allWeaponStats?: any[];
   characters?: any[];
-  common: TelemetryCommon;
+  common: Common;
   gameResultOnFinished?: any;
 }
 
