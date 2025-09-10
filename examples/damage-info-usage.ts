@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import {
-  LogPlayerKillV2,
+  type LogPlayerKillV2,
   DamageInfoUtils,
   FlexibleDamageInfo,
   DamageInfo,

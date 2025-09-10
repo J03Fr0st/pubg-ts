@@ -1,12 +1,9 @@
 {
   "name": "@j03fr0st/pubg-ts",
-  "version": "1.0.6-beta",
+  "version": "1.0.8-beta",
   "description": "A comprehensive TypeScript wrapper for the PUBG API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "pubg-ts": "dist/cli/index.js"
-  },
   "scripts": {
     "build": "tsc",
     "generate:types": "openapi-typescript ./api-documentation-content/swagger/openapi.yml --output ./src/types/pubg-api.d.ts",
@@ -17,9 +14,6 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
-    "test:j03fr0st": "jest tests/integration/j03fr0st-user.test.ts",
-    "test:j03fr0st:verbose": "jest tests/integration/j03fr0st-user.test.ts --verbose",
-    "setup:j03fr0st": "ts-node scripts/setup-j03fr0st-tests.ts",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
@@ -29,15 +23,7 @@
     "legacy:lint:fix": "eslint src/**/*.ts --fix",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "lint-staged": "lint-staged",
-    "sync-assets": "ts-node scripts/sync-assets.ts",
-    "prebuild": "npm run sync-assets && npm run format",
-    "security:audit": "ts-node scripts/security-audit.ts",
-    "security:check": "npm audit && npm run security:audit",
-    "security:fix": "npm audit fix",
-    "perf:test": "ts-node scripts/performance-test.ts",
-    "perf:profile": "node --prof dist/scripts/performance-test.js",
-    "health:check": "node -e \"import('./dist/utils/health-check.js').then(h => h.healthChecker.getDetailedHealth().then(r => console.log(JSON.stringify(r, null, 2))))\""
+    "lint-staged": "lint-staged"
   },
   "keywords": [
     "pubg",
@@ -51,6 +37,10 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
+  },
+  "browser": {
+    "./dist/utils/monitoring.js": "./dist/utils/monitoring-browser.js",
+    "./dist/utils/health-check.js": "./dist/utils/health-check-browser.js"
   },
   "repository": {
     "type": "git",
@@ -87,14 +77,10 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/instrumentation": "^0.202.0",
-    "@opentelemetry/sdk-node": "^0.202.0",
     "axios": "^1.3.4",
     "debug": "^4.4.1",
     "dotenv": "^17.0.1",
     "fuse.js": "^7.0.0",
-    "prom-client": "^15.1.3",
     "validator": "^13.15.15"
   },
   "lint-staged": {

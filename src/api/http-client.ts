@@ -1,5 +1,21 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { performance } from 'node:perf_hooks';
+
+// Browser-compatible performance API
+const getPerformance = () => {
+  if (typeof window !== 'undefined' && window.performance) {
+    return window.performance;
+  }
+  // Fallback for Node.js environments
+  return {
+    now: () => Date.now(),
+    mark: () => {},
+    measure: () => {},
+    clearMarks: () => {},
+    clearMeasures: () => {}
+  };
+};
+
+const performance = getPerformance();
 import {
   PubgApiError,
   PubgAuthenticationError,
