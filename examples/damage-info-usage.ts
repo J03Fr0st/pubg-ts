@@ -1,11 +1,6 @@
 #!/usr/bin/env ts-node
 
-import {
-  type LogPlayerKillV2,
-  DamageInfoUtils,
-  FlexibleDamageInfo,
-  DamageInfo,
-} from '../src/types/telemetry';
+import { DamageInfoUtils, type LogPlayerKillV2 } from '../src/types/telemetry';
 
 /**
  * Example demonstrating how to handle flexible DamageInfo in LogPlayerKillV2 events

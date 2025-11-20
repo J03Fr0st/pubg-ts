@@ -11,7 +11,7 @@ const getPerformance = () => {
     mark: () => {},
     measure: () => {},
     clearMarks: () => {},
-    clearMeasures: () => {}
+    clearMeasures: () => {},
   };
 };
 
@@ -132,7 +132,7 @@ export class MonitoringSystem {
 
     // Use appropriate setInterval based on environment
     const setIntervalFunc = typeof window !== 'undefined' ? window.setInterval : global.setInterval;
-    
+
     // Run health checks every 30 seconds
     this.healthCheckInterval = setIntervalFunc(() => {
       this.performHealthCheck();
@@ -147,7 +147,8 @@ export class MonitoringSystem {
    */
   stopHealthChecking(): void {
     if (this.healthCheckInterval) {
-      const clearIntervalFunc = typeof window !== 'undefined' ? window.clearInterval : global.clearInterval;
+      const clearIntervalFunc =
+        typeof window !== 'undefined' ? window.clearInterval : global.clearInterval;
       clearIntervalFunc(this.healthCheckInterval);
       this.healthCheckInterval = undefined;
     }
@@ -163,12 +164,12 @@ export class MonitoringSystem {
   /**
    * Start a new tracing span (no-op in browser)
    */
-  public startSpan(name: string, attributes: Record<string, any> = {}): any {
+  public startSpan(_name: string, _attributes: Record<string, any> = {}): any {
     // No-op in browser environment
     return {
       end: () => {},
       setStatus: () => {},
-      recordException: () => {}
+      recordException: () => {},
     };
   }
 
@@ -209,7 +210,7 @@ export class MonitoringSystem {
   /**
    * Update cache metrics
    */
-  public updateCacheMetrics(hitRate: number): void {
+  public updateCacheMetrics(_hitRate: number): void {
     if (!this.config.metricsEnabled) return;
     // Cache metrics are tracked internally
   }
@@ -217,7 +218,7 @@ export class MonitoringSystem {
   /**
    * Update rate limit metrics
    */
-  public updateRateLimitMetrics(remaining: number): void {
+  public updateRateLimitMetrics(_remaining: number): void {
     if (!this.config.metricsEnabled) return;
     // Rate limit metrics are tracked internally
   }
@@ -225,7 +226,7 @@ export class MonitoringSystem {
   /**
    * Update connection metrics
    */
-  public updateConnectionMetrics(active: number): void {
+  public updateConnectionMetrics(_active: number): void {
     if (!this.config.metricsEnabled) return;
     // Connection metrics are tracked internally
   }
@@ -235,7 +236,7 @@ export class MonitoringSystem {
    */
   public async getHealth(): Promise<SystemHealth> {
     const now = Date.now();
-    
+
     // Browser-compatible memory estimation
     const memoryEstimate = this.estimateMemoryUsage();
 
@@ -294,10 +295,10 @@ export class MonitoringSystem {
     try {
       // Check memory usage
       const memoryEstimate = this.estimateMemoryUsage();
-      
+
       // Check API response time
       const apiResponseTime = await this.measureApiResponseTime();
-      
+
       // Calculate error rate
       const errorRate = this.getErrorRate();
 
