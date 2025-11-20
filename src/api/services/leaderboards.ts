@@ -1,6 +1,6 @@
 import type { LeaderboardQuery } from '../../types/api';
-import type { LeaderboardResponse } from '../../types/leaderboard';
 import type { Shard } from '../../types/common';
+import type { LeaderboardResponse } from '../../types/leaderboard';
 import type { HttpClient } from '../http-client';
 
 /**
