@@ -11,11 +11,12 @@ const getPerformance = () => {
     mark: () => {},
     measure: () => {},
     clearMarks: () => {},
-    clearMeasures: () => {}
+    clearMeasures: () => {},
   };
 };
 
 const performance = getPerformance();
+
 import {
   PubgApiError,
   PubgAuthenticationError,

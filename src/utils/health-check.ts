@@ -1,5 +1,5 @@
-import { monitoringSystem, type SystemHealth } from './monitoring';
 import { logger } from './logger';
+import { monitoringSystem, type SystemHealth } from './monitoring';
 
 // Browser-compatible performance API
 const getPerformance = () => {
@@ -12,7 +12,7 @@ const getPerformance = () => {
     mark: () => {},
     measure: () => {},
     clearMarks: () => {},
-    clearMeasures: () => {}
+    clearMeasures: () => {},
   };
 };
 
@@ -182,7 +182,7 @@ export class HealthChecker {
    */
   private async checkMemory(): Promise<HealthCheckResult> {
     const startTime = performance.now();
-    
+
     let memoryPercentage = 50; // Default fallback
     let output = 'Memory usage: 50.00% (estimated)';
 
