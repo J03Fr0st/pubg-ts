@@ -23,7 +23,11 @@
     "legacy:lint:fix": "eslint src/**/*.ts --fix",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "release": "npm run build && changeset publish"
   },
   "keywords": [
     "pubg",
