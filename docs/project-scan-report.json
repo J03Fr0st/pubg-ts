@@ -1,0 +1,130 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-01-02T22:30:00Z",
+    "last_updated": "2026-01-02T23:15:00Z",
+    "completed": "2026-01-02T23:15:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "D:/Source/pubg-ts",
+  "output_folder": "D:/Source/pubg-ts/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-01-02T22:35:00Z",
+      "summary": "Classified as monolith with 1 part - library (TypeScript SDK)"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-01-02T22:40:00Z",
+      "summary": "Found 10 existing docs"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-01-02T22:45:00Z",
+      "summary": "Tech stack: TypeScript + axios + Jest"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-01-02T22:50:00Z",
+      "summary": "Conditional analysis complete - library type requires no specialized scans"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-01-02T22:55:00Z",
+      "summary": "Source tree documented with annotations"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:00:00Z",
+      "summary": "Development and deployment guides written"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:05:00Z",
+      "summary": "Architecture documentation generated"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:08:00Z",
+      "summary": "Project overview written"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:10:00Z",
+      "summary": "Master index generated"
+    },
+    {
+      "step": "step_11",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:12:00Z",
+      "summary": "Validation complete - all documents verified"
+    },
+    {
+      "step": "step_12",
+      "status": "completed",
+      "timestamp": "2026-01-02T23:15:00Z",
+      "summary": "Workflow complete"
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": {
+      "repository_type": "monolith",
+      "parts_count": 1,
+      "primary_tech": "TypeScript + Node.js"
+    },
+    "existing_docs": {
+      "count": 10
+    },
+    "technology_stack": {
+      "language": "TypeScript 5.9.x",
+      "target": "ES2020",
+      "module": "CommonJS",
+      "runtime": "Node.js 18+",
+      "http_client": "axios 1.13.x",
+      "testing": "Jest 30.x + ts-jest",
+      "linting": "Biome 2.3.x",
+      "docs": "TypeDoc 0.28.x"
+    },
+    "architecture_pattern": "Service-Oriented SDK",
+    "source_files": 36,
+    "test_files": 18,
+    "example_files": 7,
+    "test_count": 191
+  },
+  "project_types": [
+    {
+      "part_id": "main",
+      "project_type_id": "library",
+      "display_name": "TypeScript SDK/API Wrapper"
+    }
+  ],
+  "project_parts": [
+    {
+      "part_id": "main",
+      "root_path": "D:/Source/pubg-ts",
+      "project_type_id": "library",
+      "display_name": "pubg-ts"
+    }
+  ],
+  "outputs_generated": [
+    "project-scan-report.json",
+    "index.md",
+    "project-overview.md",
+    "architecture.md",
+    "source-tree-analysis.md",
+    "development-guide.md"
+  ],
+  "resume_instructions": "Workflow completed successfully"
+}
