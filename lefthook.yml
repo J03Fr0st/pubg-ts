@@ -1,0 +1,10 @@
+pre-commit:
+  commands:
+    biome-check:
+      glob: "*.{ts,js,json}"
+      exclude: ".claude/settings.local.json"
+      run: npx biome check --write {staged_files}
+      stage_fixed: true
+    related-tests:
+      glob: "*.{ts,js}"
+      run: npx jest --findRelatedTests --passWithNoTests --silent {staged_files}

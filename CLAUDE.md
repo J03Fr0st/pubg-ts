@@ -58,7 +58,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building and Development
 - `npm run build` - Compile TypeScript to JavaScript in `dist/`
 - `npm run dev` - Run the application in development mode with ts-node
-- `npm run prepare` - Set up Husky pre-commit hooks
+- `npm run prepare` - Install Lefthook Git hooks
 
 ### Testing
 - `npm test` - Run all tests with Jest
@@ -168,7 +168,7 @@ The unified AssetManager provides comprehensive access to all PUBG assets:
 ### Configuration
 - Uses Biome for linting and formatting (replaces ESLint/Prettier)
 - Jest for testing with TypeScript support
-- Husky + lint-staged for pre-commit hooks
+- Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
 
 ### Asset Synchronization
@@ -225,7 +225,7 @@ Enterprise-ready monitoring, security, and performance tools:
 ### Configuration
 - Uses Biome for linting and formatting (replaces ESLint/Prettier)
 - Jest for testing with TypeScript support
-- Husky + lint-staged for pre-commit hooks
+- Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
 - Production monitoring with Prometheus and OpenTelemetry
 - Security hardening with input validation and threat detection
