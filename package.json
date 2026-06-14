@@ -4,6 +4,10 @@
   "description": "A comprehensive TypeScript wrapper for the PUBG API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "generate:types": "openapi-typescript ./api-documentation-content/swagger/openapi.yml --output ./src/types/pubg-api.d.ts",
@@ -42,8 +46,9 @@
     "npm": ">=8.0.0"
   },
   "browser": {
-    "./dist/utils/monitoring.js": "./dist/utils/monitoring-browser.js",
-    "./dist/utils/health-check.js": "./dist/utils/health-check-browser.js"
+    "./dist/utils/monitoring-node.js": "./dist/utils/monitoring.js",
+    "./dist/utils/health-check-node.js": "./dist/utils/health-check.js",
+    "./dist/utils/observability-node.js": "./dist/utils/observability.js"
   },
   "repository": {
     "type": "git",

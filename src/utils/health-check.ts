@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import { monitoringSystem, type SystemHealth } from './monitoring';
+import type { RuntimeObservability } from './observability';
 
 // Browser-compatible performance API
 const getPerformance = () => {
@@ -45,6 +46,12 @@ export interface DetailedHealthReport {
   uptime: number;
 }
 
+interface HealthCheckerOptions {
+  version?: string;
+  serviceId?: string;
+  observability?: RuntimeObservability;
+}
+
 /**
  * Browser-compatible health check system
  *
@@ -69,11 +76,13 @@ export class HealthChecker {
   private startTime: number;
   private version: string;
   private serviceId: string;
+  private observability: RuntimeObservability;
 
-  constructor(options: { version?: string; serviceId?: string } = {}) {
+  constructor(options: HealthCheckerOptions = {}) {
     this.startTime = Date.now();
     this.version = options.version || '1.0.0';
     this.serviceId = options.serviceId || 'pubg-ts-sdk';
+    this.observability = options.observability || monitoringSystem;
   }
 
   /**
@@ -81,7 +90,7 @@ export class HealthChecker {
    */
   public async isHealthy(): Promise<boolean> {
     try {
-      const health = await monitoringSystem.getHealth();
+      const health = await this.observability.getHealth();
       return health.status === 'healthy';
     } catch (error) {
       logger.error('Health check failed', { error });
@@ -93,14 +102,13 @@ export class HealthChecker {
    * Get basic system health
    */
   public async getHealth(): Promise<SystemHealth> {
-    return await monitoringSystem.getHealth();
+    return this.observability.getHealth();
   }
 
   /**
    * Get comprehensive health report with all checks
    */
   public async getDetailedHealth(): Promise<DetailedHealthReport> {
-    const startTime = performance.now();
     const checks: Record<string, HealthCheckResult> = {};
     let overallStatus: 'pass' | 'fail' | 'warn' = 'pass';
 
@@ -143,8 +151,6 @@ export class HealthChecker {
         overallStatus = 'fail';
       }
     });
-
-    const _totalDuration = performance.now() - startTime;
 
     return {
       status: overallStatus,

@@ -1,11 +1,24 @@
 import type {
+  PlayerLifetimeStatsBatchQuery,
   PlayerQuery,
+  PlayerSeasonStatsBatchQuery,
   PlayerSeasonStatsResponse,
   PlayersResponse,
   SeasonStatsQuery,
 } from '../../types';
 import type { Shard } from '../../types/common';
+import { appendArrayFilter, appendQuery, shardPath } from '../endpoint-query';
 import type { HttpClient } from '../http-client';
+
+const MAX_PLAYER_STATS_BATCH_SIZE = 10;
+
+const assertValidPlayerIdBatch = (playerIds: string[]): void => {
+  if (playerIds.length === 0 || playerIds.length > MAX_PLAYER_STATS_BATCH_SIZE) {
+    throw new RangeError(
+      `playerIds must contain between 1 and ${MAX_PLAYER_STATS_BATCH_SIZE} player IDs`
+    );
+  }
+};
 
 /**
  * Service for interacting with the Players endpoint of the PUBG API.
@@ -35,18 +48,12 @@ export class PlayersService {
   async getPlayers(query: PlayerQuery): Promise<PlayersResponse> {
     const params = new URLSearchParams();
 
-    if (query.playerNames) {
-      params.append('filter[playerNames]', query.playerNames.join(','));
-    }
+    appendArrayFilter(params, 'filter[playerNames]', query.playerNames);
+    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
 
-    if (query.playerIds) {
-      params.append('filter[playerIds]', query.playerIds.join(','));
-    }
-
-    const queryString = params.toString();
-    const url = `/shards/${this.shard}/players${queryString ? `?${queryString}` : ''}`;
-
-    return this.httpClient.get<PlayersResponse>(url);
+    return this.httpClient.get<PlayersResponse>(
+      appendQuery(shardPath(this.shard, '/players'), params)
+    );
   }
 
   /**
@@ -91,10 +98,40 @@ export class PlayersService {
    * ```
    */
   async getPlayerSeasonStats(query: SeasonStatsQuery): Promise<PlayerSeasonStatsResponse> {
-    const url = `/shards/${this.shard}/players/${query.playerId}/seasons/${query.seasonId}`;
+    const url = shardPath(this.shard, `/players/${query.playerId}/seasons/${query.seasonId}`);
     const params = query.gameMode ? `?filter[gameMode]=${query.gameMode}` : '';
 
     return this.httpClient.get<PlayerSeasonStatsResponse>(`${url}${params}`);
+  }
+
+  /**
+   * Get season stats for a single game mode for up to 10 players.
+   *
+   * @param query - The season, game mode, and player IDs to retrieve stats for.
+   * @returns A promise that resolves with the players' season stats.
+   * @example
+   * ```ts
+   * const seasonStats = await pubg.players.getPlayerSeasonStatsBatch({
+   *   seasonId: 'division.bro.official.pc-2018-01',
+   *   gameMode: 'squad-fpp',
+   *   playerIds: ['account.0000a000000000000000000000000000'],
+   * });
+   * ```
+   */
+  async getPlayerSeasonStatsBatch(
+    query: PlayerSeasonStatsBatchQuery
+  ): Promise<PlayerSeasonStatsResponse> {
+    assertValidPlayerIdBatch(query.playerIds);
+
+    const params = new URLSearchParams();
+    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
+
+    return this.httpClient.get<PlayerSeasonStatsResponse>(
+      appendQuery(
+        shardPath(this.shard, `/seasons/${query.seasonId}/gameMode/${query.gameMode}/players`),
+        params
+      )
+    );
   }
 
   /**
@@ -108,8 +145,37 @@ export class PlayersService {
    * ```
    */
   async getPlayerLifetimeStats(playerId: string): Promise<PlayerSeasonStatsResponse> {
-    const url = `/shards/${this.shard}/players/${playerId}/seasons/lifetime`;
+    const url = shardPath(this.shard, `/players/${playerId}/seasons/lifetime`);
 
     return this.httpClient.get<PlayerSeasonStatsResponse>(url);
+  }
+
+  /**
+   * Get lifetime stats for a single game mode for up to 10 players.
+   *
+   * @param query - The game mode and player IDs to retrieve lifetime stats for.
+   * @returns A promise that resolves with the players' lifetime stats.
+   * @example
+   * ```ts
+   * const lifetimeStats = await pubg.players.getPlayerLifetimeStatsBatch({
+   *   gameMode: 'squad-fpp',
+   *   playerIds: ['account.0000a000000000000000000000000000'],
+   * });
+   * ```
+   */
+  async getPlayerLifetimeStatsBatch(
+    query: PlayerLifetimeStatsBatchQuery
+  ): Promise<PlayerSeasonStatsResponse> {
+    assertValidPlayerIdBatch(query.playerIds);
+
+    const params = new URLSearchParams();
+    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
+
+    return this.httpClient.get<PlayerSeasonStatsResponse>(
+      appendQuery(
+        shardPath(this.shard, `/seasons/lifetime/gameMode/${query.gameMode}/players`),
+        params
+      )
+    );
   }
 }
