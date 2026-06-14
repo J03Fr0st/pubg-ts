@@ -4,6 +4,10 @@
   "description": "A comprehensive TypeScript wrapper for the PUBG API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "generate:types": "openapi-typescript ./api-documentation-content/swagger/openapi.yml --output ./src/types/pubg-api.d.ts",
@@ -21,9 +25,8 @@
     "check:fix": "biome check --write .",
     "legacy:lint": "eslint src/**/*.ts",
     "legacy:lint:fix": "eslint src/**/*.ts --fix",
-    "prepare": "husky",
+    "prepare": "lefthook install",
     "prepublishOnly": "npm run build",
-    "lint-staged": "lint-staged",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
@@ -43,8 +46,9 @@
     "npm": ">=8.0.0"
   },
   "browser": {
-    "./dist/utils/monitoring.js": "./dist/utils/monitoring-browser.js",
-    "./dist/utils/health-check.js": "./dist/utils/health-check-browser.js"
+    "./dist/utils/monitoring-node.js": "./dist/utils/monitoring.js",
+    "./dist/utils/health-check-node.js": "./dist/utils/health-check.js",
+    "./dist/utils/observability-node.js": "./dist/utils/observability.js"
   },
   "repository": {
     "type": "git",
@@ -70,10 +74,9 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-plugin-security": "^3.0.1",
-    "husky": "^9.1.7",
     "inquirer": "^13.0.1",
     "jest": "^30.2.0",
-    "lint-staged": "^16.2.7",
+    "lefthook": "^2.1.1",
     "openapi-typescript": "^7.10.1",
     "ora": "^9.0.0",
     "ts-jest": "^29.4.5",
@@ -87,16 +90,5 @@
     "axios": "^1.13.2",
     "fuse.js": "^7.1.0",
     "validator": "^13.15.23"
-  },
-  "lint-staged": {
-    "*.{ts,js,json}": [
-      "npx biome check --write"
-    ],
-    "*.{ts,js}": [
-      "npm run test -- --findRelatedTests --passWithNoTests --silent"
-    ],
-    "ignore": [
-      ".claude/settings.local.json"
-    ]
   }
 }

@@ -1,38 +1,13 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-
-// Browser-compatible performance API
-const getPerformance = () => {
-  if (typeof window !== 'undefined' && window.performance) {
-    return window.performance;
-  }
-  // Fallback for Node.js environments
-  return {
-    now: () => Date.now(),
-    mark: () => {},
-    measure: () => {},
-    clearMarks: () => {},
-    clearMeasures: () => {},
-  };
-};
-
-const performance = getPerformance();
-
-import {
-  PubgApiError,
-  PubgAuthenticationError,
-  PubgCacheError,
-  PubgConfigurationError,
-  PubgNetworkError,
-  PubgNotFoundError,
-  PubgRateLimitError,
-  PubgValidationError,
-} from '../errors';
+import axios, { type AxiosRequestConfig } from 'axios';
+import { PubgCacheError, PubgConfigurationError } from '../errors';
 import type { PubgClientConfig } from '../types/api';
-import { createCacheKey, globalCache, type MemoryCache } from '../utils/cache';
-import { logger, withTiming } from '../utils/logger';
+import { globalCache, type MemoryCache } from '../utils/cache';
+import { logger } from '../utils/logger';
 import { monitoringSystem } from '../utils/monitoring';
+import type { RuntimeObservability } from '../utils/observability';
 import { RateLimiter } from '../utils/rate-limiter';
 import { RequestDeduplicator } from '../utils/request';
+import { HttpTransactionRunner } from './http-transaction';
 
 /**
  * A robust HTTP client for interacting with the PUBG API.
@@ -44,20 +19,16 @@ import { RequestDeduplicator } from '../utils/request';
  * @internal
  */
 export class HttpClient {
-  private axios: AxiosInstance;
   private rateLimiter: RateLimiter;
-  private config: PubgClientConfig;
   private cache: MemoryCache;
-  private deduplicator: RequestDeduplicator;
+  private transactionRunner: HttpTransactionRunner;
 
-  constructor(config: PubgClientConfig) {
+  constructor(config: PubgClientConfig, observability: RuntimeObservability = monitoringSystem) {
     this.validateConfig(config);
-    this.config = config;
     this.rateLimiter = new RateLimiter(10, 60000);
     this.cache = globalCache;
-    this.deduplicator = new RequestDeduplicator();
 
-    this.axios = axios.create({
+    const axiosInstance = axios.create({
       baseURL: config.baseUrl || 'https://api.pubg.com',
       timeout: config.timeout || 10000,
       headers: {
@@ -67,10 +38,20 @@ export class HttpClient {
       },
     });
 
-    this.setupInterceptors();
+    this.transactionRunner = new HttpTransactionRunner({
+      cache: this.cache,
+      config,
+      deduplicator: new RequestDeduplicator(),
+      externalGet: (url, requestConfig) => axios.get(url, requestConfig),
+      observability,
+      rateLimiter: this.rateLimiter,
+      request: (requestConfig) => axiosInstance.request(requestConfig),
+    });
+
     logger.client('HTTP client initialized', { shard: config.shard, timeout: config.timeout });
   }
 
+  // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called from the constructor; keep validation private.
   private validateConfig(config: PubgClientConfig): void {
     if (!config.apiKey || typeof config.apiKey !== 'string') {
       throw new PubgConfigurationError(
@@ -121,207 +102,6 @@ export class HttpClient {
     }
   }
 
-  private setupInterceptors(): void {
-    this.axios.interceptors.request.use(
-      async (config) => {
-        await this.rateLimiter.waitForSlot();
-
-        // Add request start time for monitoring
-        (config as any).metadata = {
-          startTime: performance.now(),
-          span: monitoringSystem.startSpan('http_request', {
-            method: config.method?.toUpperCase(),
-            url: config.url,
-            endpoint: config.url,
-          }),
-        };
-
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    this.axios.interceptors.response.use(
-      (response) => {
-        // Record successful request metrics
-        const startTime = (response.config as any).metadata?.startTime;
-        const span = (response.config as any).metadata?.span;
-
-        if (startTime) {
-          const duration = performance.now() - startTime;
-          monitoringSystem.recordRequestMetrics({
-            duration,
-            statusCode: response.status,
-            endpoint: response.config.url || 'unknown',
-            method: response.config.method?.toUpperCase() || 'unknown',
-            error: false,
-          });
-        }
-
-        if (span) {
-          span.setStatus({ code: 1 }); // OK
-          span.end();
-        }
-
-        // Update rate limit metrics if available
-        const remaining = response.headers['x-ratelimit-remaining'];
-        if (remaining) {
-          monitoringSystem.updateRateLimitMetrics(parseInt(remaining));
-        }
-
-        return response;
-      },
-      async (error) => {
-        const status = error.response?.status;
-        const message = error.response?.data?.errors?.[0]?.detail || error.message;
-        const url = error.config?.url || 'unknown';
-
-        // Record error metrics
-        const startTime = (error.config as any)?.metadata?.startTime;
-        const span = (error.config as any)?.metadata?.span;
-
-        if (startTime) {
-          const duration = performance.now() - startTime;
-          monitoringSystem.recordRequestMetrics({
-            duration,
-            statusCode: status || 0,
-            endpoint: url,
-            method: error.config?.method?.toUpperCase() || 'unknown',
-            error: true,
-          });
-        }
-
-        if (span) {
-          span.recordException(error);
-          span.setStatus({ code: 2, message: error.message }); // ERROR
-          span.end();
-        }
-
-        // Record error in monitoring system
-        monitoringSystem.recordError(error, {
-          endpoint: url,
-          method: error.config?.method,
-          statusCode: status,
-        });
-
-        // Handle network-level errors (no response received)
-        if (!error.response) {
-          return this.handleNetworkError(error, url);
-        }
-
-        switch (status) {
-          case 401:
-            throw new PubgAuthenticationError(message, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method },
-            });
-          case 404:
-            throw new PubgNotFoundError(message, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method },
-            });
-          case 400:
-            throw new PubgValidationError(message, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method },
-            });
-          case 429: {
-            const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60');
-            throw new PubgRateLimitError(message, retryAfter, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method, retryAfter },
-            });
-          }
-          case 500:
-          case 502:
-          case 503:
-          case 504:
-            if (this.config.retryAttempts && this.config.retryAttempts > 0) {
-              return this.retryRequest(error);
-            }
-            throw new PubgNetworkError(`Server error: ${message}`, 'request', error, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method, statusCode: status },
-            });
-          default:
-            throw new PubgApiError(message, status, error.response?.data, {
-              operation: 'http_request',
-              metadata: { url, method: error.config?.method },
-            });
-        }
-      }
-    );
-  }
-
-  private handleNetworkError(error: any, url: string): never {
-    const code = error.code;
-    const message = error.message;
-
-    switch (code) {
-      case 'ECONNREFUSED':
-        throw new PubgNetworkError(`Connection refused: ${message}`, 'connect', error, {
-          operation: 'network_connect',
-          metadata: { url, errorCode: code },
-        });
-      case 'ENOTFOUND':
-      case 'EAI_AGAIN':
-        throw new PubgNetworkError(`DNS lookup failed: ${message}`, 'dns', error, {
-          operation: 'network_dns',
-          metadata: { url, errorCode: code },
-        });
-      case 'ECONNRESET':
-      case 'ECONNABORTED':
-        throw new PubgNetworkError(`Connection reset: ${message}`, 'connect', error, {
-          operation: 'network_connect',
-          metadata: { url, errorCode: code },
-        });
-      case 'ETIMEDOUT':
-        throw new PubgNetworkError(`Request timeout: ${message}`, 'timeout', error, {
-          operation: 'network_timeout',
-          metadata: { url, errorCode: code, timeout: this.config.timeout },
-        });
-      case 'CERT_HAS_EXPIRED':
-      case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
-        throw new PubgNetworkError(`SSL certificate error: ${message}`, 'ssl', error, {
-          operation: 'network_ssl',
-          metadata: { url, errorCode: code },
-        });
-      default:
-        throw new PubgNetworkError(`Network error: ${message}`, 'unknown', error, {
-          operation: 'network_unknown',
-          metadata: { url, errorCode: code },
-        });
-    }
-  }
-
-  private async retryRequest(error: any, attempt: number = 1): Promise<AxiosResponse> {
-    if (attempt > (this.config.retryAttempts || 3)) {
-      // Convert to network error if it's a network issue
-      if (!error.response) {
-        const url = error.config?.url || 'unknown';
-        throw new PubgNetworkError(
-          `Max retry attempts reached: ${error.message}`,
-          'request',
-          error,
-          {
-            operation: 'network_retry_exhausted',
-            metadata: { url, maxAttempts: this.config.retryAttempts || 3, attempt },
-          }
-        );
-      }
-      throw error;
-    }
-
-    const delay = (this.config.retryDelay || 1000) * 2 ** (attempt - 1);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-
-    try {
-      return await this.axios.request(error.config);
-    } catch (retryError) {
-      return this.retryRequest(retryError, attempt + 1);
-    }
-  }
-
   /**
    * Performs a GET request.
    *
@@ -331,50 +111,7 @@ export class HttpClient {
    * @template T - The expected response data type.
    */
   async get<T>(url: string, config?: AxiosRequestConfig & { useCache?: boolean }): Promise<T> {
-    const useCache = config?.useCache !== false; // Default to true
-    const cacheKey = createCacheKey('http', 'GET', url, JSON.stringify(config?.params || {}));
-
-    // Check cache first for GET requests
-    if (useCache) {
-      try {
-        const cached = this.cache.get<T>(cacheKey);
-        if (cached !== undefined) {
-          return cached;
-        }
-      } catch (error) {
-        throw new PubgCacheError(
-          `Failed to retrieve from cache: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          cacheKey,
-          'get',
-          {
-            operation: 'cache_get',
-            metadata: { url, method: 'GET' },
-          }
-        );
-      }
-    }
-
-    return this.deduplicator.deduplicate(cacheKey, async () => {
-      const response = await withTiming(logger.http, `GET ${url}`, async () => {
-        return await this.axios.get<T>(url, config);
-      });
-
-      // Cache successful GET responses
-      if (useCache && response && response.status === 200) {
-        try {
-          this.cache.set(cacheKey, response.data, 5 * 60 * 1000); // 5 minute cache
-        } catch (error) {
-          // Log cache set error but don't fail the request
-          logger.http(
-            `Cache set failed for ${cacheKey}: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`
-          );
-        }
-      }
-
-      return response?.data;
-    });
+    return this.transactionRunner.get<T>(url, config);
   }
 
   /**
@@ -387,8 +124,7 @@ export class HttpClient {
    * @template T - The expected response data type.
    */
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.axios.post<T>(url, data, config);
-    return response.data;
+    return this.transactionRunner.post<T>(url, data, config);
   }
 
   /**
@@ -401,8 +137,7 @@ export class HttpClient {
    * @template T - The expected response data type.
    */
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.axios.put<T>(url, data, config);
-    return response.data;
+    return this.transactionRunner.put<T>(url, data, config);
   }
 
   /**
@@ -414,8 +149,7 @@ export class HttpClient {
    * @template T - The expected response data type.
    */
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.axios.delete<T>(url, config);
-    return response.data;
+    return this.transactionRunner.delete<T>(url, config);
   }
 
   /**
@@ -448,11 +182,7 @@ export class HttpClient {
    * @template T - The expected response data type.
    */
   async getExternal<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await axios.get<T>(url, {
-      ...config,
-      timeout: this.config.timeout || 10000,
-    });
-    return response.data;
+    return this.transactionRunner.getExternal<T>(url, config);
   }
 
   /**
