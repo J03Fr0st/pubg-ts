@@ -180,6 +180,48 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('getPlayerSeasonStatsBatch', () => {
+    it('should get season stats for a batch of players', async () => {
+      const mockResponse: PlayerSeasonStatsResponse = { data: [] };
+      mockHttpClient.get.mockResolvedValue(mockResponse);
+
+      const result = await playersService.getPlayerSeasonStatsBatch({
+        seasonId: 'season-1',
+        gameMode: 'squad-fpp',
+        playerIds: ['player-1', 'player-2'],
+      });
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        '/shards/pc-na/seasons/season-1/gameMode/squad-fpp/players?filter%5BplayerIds%5D=player-1%2Cplayer-2'
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should reject empty player ID batches', async () => {
+      await expect(
+        playersService.getPlayerSeasonStatsBatch({
+          seasonId: 'season-1',
+          gameMode: 'squad-fpp',
+          playerIds: [],
+        })
+      ).rejects.toThrow('playerIds must contain between 1 and 10 player IDs');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject player ID batches larger than 10', async () => {
+      await expect(
+        playersService.getPlayerSeasonStatsBatch({
+          seasonId: 'season-1',
+          gameMode: 'squad-fpp',
+          playerIds: Array.from({ length: 11 }, (_, index) => `player-${index + 1}`),
+        })
+      ).rejects.toThrow('playerIds must contain between 1 and 10 player IDs');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getPlayerLifetimeStats', () => {
     it('should get player lifetime stats', async () => {
       const mockResponse: PlayerSeasonStatsResponse = { data: [] };
@@ -190,6 +232,45 @@ describe('PlayersService', () => {
       expect(mockHttpClient.get).toHaveBeenCalledWith(
         '/shards/pc-na/players/player-1/seasons/lifetime'
       );
+    });
+  });
+
+  describe('getPlayerLifetimeStatsBatch', () => {
+    it('should get lifetime stats for a batch of players', async () => {
+      const mockResponse: PlayerSeasonStatsResponse = { data: [] };
+      mockHttpClient.get.mockResolvedValue(mockResponse);
+
+      const result = await playersService.getPlayerLifetimeStatsBatch({
+        gameMode: 'squad-fpp',
+        playerIds: ['player-1', 'player-2'],
+      });
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        '/shards/pc-na/seasons/lifetime/gameMode/squad-fpp/players?filter%5BplayerIds%5D=player-1%2Cplayer-2'
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should reject empty player ID batches', async () => {
+      await expect(
+        playersService.getPlayerLifetimeStatsBatch({
+          gameMode: 'squad-fpp',
+          playerIds: [],
+        })
+      ).rejects.toThrow('playerIds must contain between 1 and 10 player IDs');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject player ID batches larger than 10', async () => {
+      await expect(
+        playersService.getPlayerLifetimeStatsBatch({
+          gameMode: 'squad-fpp',
+          playerIds: Array.from({ length: 11 }, (_, index) => `player-${index + 1}`),
+        })
+      ).rejects.toThrow('playerIds must contain between 1 and 10 player IDs');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
     });
   });
 });

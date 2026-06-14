@@ -1,6 +1,7 @@
 import type { LeaderboardQuery } from '../../types/api';
 import type { Shard } from '../../types/common';
 import type { LeaderboardResponse } from '../../types/leaderboard';
+import { appendPageParams, appendQuery, shardPath } from '../endpoint-query';
 import type { HttpClient } from '../http-client';
 
 /**
@@ -32,16 +33,12 @@ export class LeaderboardsService {
   async getLeaderboard(query: LeaderboardQuery): Promise<LeaderboardResponse> {
     const params = new URLSearchParams();
 
-    if (query.pageSize) {
-      params.append('page[limit]', query.pageSize.toString());
-    }
+    appendPageParams(params, query);
 
-    if (query.offset) {
-      params.append('page[offset]', query.offset.toString());
-    }
-
-    const queryString = params.toString();
-    const url = `/shards/${this.shard}/leaderboards/${query.seasonId}/${query.gameMode}${queryString ? `?${queryString}` : ''}`;
+    const url = appendQuery(
+      shardPath(this.shard, `/leaderboards/${query.seasonId}/${query.gameMode}`),
+      params
+    );
 
     return this.httpClient.get<LeaderboardResponse>(url);
   }

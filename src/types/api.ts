@@ -40,6 +40,17 @@ export interface SeasonStatsQuery {
   gameMode?: GameMode;
 }
 
+export interface PlayerSeasonStatsBatchQuery {
+  seasonId: string;
+  gameMode: GameMode;
+  playerIds: string[];
+}
+
+export interface PlayerLifetimeStatsBatchQuery {
+  gameMode: GameMode;
+  playerIds: string[];
+}
+
 export interface LeaderboardQuery {
   seasonId: string;
   gameMode: GameMode;

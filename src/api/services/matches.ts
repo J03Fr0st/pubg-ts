@@ -1,5 +1,12 @@
 import type { MatchesResponse, MatchQuery, MatchResponse } from '../../types';
 import type { Shard } from '../../types/common';
+import {
+  appendArrayFilter,
+  appendPageParams,
+  appendQuery,
+  appendValue,
+  shardPath,
+} from '../endpoint-query';
 import type { HttpClient } from '../http-client';
 
 /**
@@ -26,7 +33,7 @@ export class MatchesService {
    * ```
    */
   async getMatch(matchId: string): Promise<MatchResponse> {
-    const url = `/shards/${this.shard}/matches/${matchId}`;
+    const url = shardPath(this.shard, `/matches/${matchId}`);
     return this.httpClient.get<MatchResponse>(url);
   }
 
@@ -49,39 +56,18 @@ export class MatchesService {
   async getMatches(query: MatchQuery = {}): Promise<MatchesResponse> {
     const params = new URLSearchParams();
 
-    if (query.pageSize) {
-      params.append('page[limit]', query.pageSize.toString());
-    }
-
-    if (query.offset) {
-      params.append('page[offset]', query.offset.toString());
-    }
-
-    if (query.sort) {
-      params.append('sort', query.sort);
-    }
+    appendPageParams(params, query);
+    appendValue(params, 'sort', query.sort);
 
     if (query.filter) {
-      if (query.filter.createdAt?.start) {
-        params.append('filter[createdAt-start]', query.filter.createdAt.start);
-      }
-
-      if (query.filter.createdAt?.end) {
-        params.append('filter[createdAt-end]', query.filter.createdAt.end);
-      }
-
-      if (query.filter.playerIds) {
-        params.append('filter[playerIds]', query.filter.playerIds.join(','));
-      }
-
-      if (query.filter.gameMode) {
-        params.append('filter[gameMode]', query.filter.gameMode.join(','));
-      }
+      appendValue(params, 'filter[createdAt-start]', query.filter.createdAt?.start);
+      appendValue(params, 'filter[createdAt-end]', query.filter.createdAt?.end);
+      appendArrayFilter(params, 'filter[playerIds]', query.filter.playerIds);
+      appendArrayFilter(params, 'filter[gameMode]', query.filter.gameMode);
     }
 
-    const queryString = params.toString();
-    const url = `/shards/${this.shard}/matches${queryString ? `?${queryString}` : ''}`;
-
-    return this.httpClient.get<MatchesResponse>(url);
+    return this.httpClient.get<MatchesResponse>(
+      appendQuery(shardPath(this.shard, '/matches'), params)
+    );
   }
 }
