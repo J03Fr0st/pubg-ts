@@ -1,22 +1,16 @@
-import type { HttpClient } from '../../../src/api/http-client';
+import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { TelemetryService } from '../../../src/api/services/telemetry';
 import type { TelemetryData } from '../../../src/types';
 
-jest.mock('../../../src/api/http-client');
-
 describe('TelemetryService', () => {
   let telemetryService: TelemetryService;
-  let mockHttpClient: jest.Mocked<HttpClient>;
+  let mockHttpClient: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
     mockHttpClient = {
       get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      getExternal: jest.fn(),
-      getRateLimitStatus: jest.fn(),
-    } as any;
+      fetchTelemetry: jest.fn(),
+    };
 
     telemetryService = new TelemetryService(mockHttpClient);
   });
@@ -39,13 +33,13 @@ describe('TelemetryService', () => {
         },
       ];
 
-      mockHttpClient.getExternal.mockResolvedValue(mockResponse);
+      mockHttpClient.fetchTelemetry.mockResolvedValue(mockResponse);
 
       const telemetryUrl =
         'https://telemetry-cdn.pubg.com/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json';
       const result = await telemetryService.getTelemetryData(telemetryUrl);
 
-      expect(mockHttpClient.getExternal).toHaveBeenCalledWith(telemetryUrl);
+      expect(mockHttpClient.fetchTelemetry).toHaveBeenCalledWith(telemetryUrl);
       expect(result).toEqual(mockResponse);
     });
   });

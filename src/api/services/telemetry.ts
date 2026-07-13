@@ -1,5 +1,5 @@
 import type { TelemetryData } from '../../types';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Telemetry endpoint of the PUBG API.
@@ -9,7 +9,7 @@ import type { HttpClient } from '../http-client';
  * It is accessible via the `pubg.telemetry` property.
  */
 export class TelemetryService {
-  constructor(private httpClient: HttpClient) {}
+  constructor(private httpClient: EndpointTransport) {}
 
   /**
    * Get the telemetry data from a specific URL.
@@ -30,6 +30,6 @@ export class TelemetryService {
    * ```
    */
   async getTelemetryData(telemetryUrl: string): Promise<TelemetryData> {
-    return this.httpClient.getExternal<TelemetryData>(telemetryUrl);
+    return this.httpClient.fetchTelemetry<TelemetryData>(telemetryUrl);
   }
 }

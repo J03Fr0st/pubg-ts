@@ -4,6 +4,8 @@ export interface PubgClientConfig {
   apiKey: string;
   shard: Shard;
   baseUrl?: string;
+  /** Optional base URL reserved for client-local asset retrieval. */
+  assetBaseUrl?: string;
   timeout?: number;
   retryAttempts?: number;
   retryDelay?: number;

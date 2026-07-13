@@ -32,6 +32,11 @@ export class RateLimiter {
     return Math.max(0, this.maxRequests - this.requests.length);
   }
 
+  /** Returns the configured request limit for the active window. */
+  getLimit(): number {
+    return this.maxRequests;
+  }
+
   getResetTime(): number {
     if (this.requests.length === 0) return 0;
 

@@ -1,6 +1,6 @@
 import type { MatchesResponse, SamplesQuery } from '../../types';
 import type { Shard } from '../../types/common';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Samples endpoint of the PUBG API.
@@ -11,7 +11,7 @@ import type { HttpClient } from '../http-client';
  */
 export class SamplesService {
   constructor(
-    private httpClient: HttpClient,
+    private httpClient: EndpointTransport,
     private shard: Shard
   ) {}
 

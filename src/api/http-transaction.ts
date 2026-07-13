@@ -11,11 +11,10 @@ import {
 import type { PubgClientConfig } from '../types/api';
 import { createCacheKey, type MemoryCache } from '../utils/cache';
 import { logger, withTiming } from '../utils/logger';
-import type { ObservabilitySpan, RuntimeObservability } from '../utils/observability';
 import type { RateLimiter } from '../utils/rate-limiter';
 import type { RequestDeduplicator } from '../utils/request';
-
-type CacheRequestConfig = AxiosRequestConfig & { useCache?: boolean };
+import type { RequestOutcome } from './client-health';
+import type { CacheRequestConfig } from './endpoint-transport';
 
 type RequestFunction = (config: AxiosRequestConfig) => Promise<AxiosResponse>;
 
@@ -24,41 +23,22 @@ type ExternalGetFunction = <T>(
   config?: AxiosRequestConfig
 ) => Promise<AxiosResponse<T>>;
 
-type RequestMetadata = {
-  startTime: number;
-  span: ObservabilitySpan;
-};
-
+/** Dependencies required by the internal HTTP transaction runner. */
 export interface HttpTransactionRunnerDependencies {
   request: RequestFunction;
   externalGet?: ExternalGetFunction;
   cache: MemoryCache;
   rateLimiter: RateLimiter;
   deduplicator: RequestDeduplicator;
-  observability: RuntimeObservability;
-  config: PubgClientConfig;
+  recordOutcome: (outcome: RequestOutcome) => void;
+  config: Pick<PubgClientConfig, 'timeout' | 'retryAttempts' | 'retryDelay'>;
 }
 
-const getPerformance = () => {
-  if (typeof window !== 'undefined' && window.performance) {
-    return window.performance;
-  }
-
-  return {
-    now: () => Date.now(),
-    mark: () => {},
-    measure: () => {},
-    clearMarks: () => {},
-    clearMeasures: () => {},
-  };
-};
-
-const performance = getPerformance();
 const SERVER_RETRY_STATUSES = new Set([500, 502, 503, 504]);
 const GET_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
- * Internal request transaction runner for HttpClient.
+ * Internal request transaction runner for a client-local runtime.
  *
  * @internal
  */
@@ -68,8 +48,8 @@ export class HttpTransactionRunner {
   private cache: MemoryCache;
   private rateLimiter: RateLimiter;
   private deduplicator: RequestDeduplicator;
-  private observability: RuntimeObservability;
-  private config: PubgClientConfig;
+  private recordOutcome: (outcome: RequestOutcome) => void;
+  private config: Pick<PubgClientConfig, 'timeout' | 'retryAttempts' | 'retryDelay'>;
 
   constructor(dependencies: HttpTransactionRunnerDependencies) {
     this.request = dependencies.request;
@@ -77,7 +57,7 @@ export class HttpTransactionRunner {
     this.cache = dependencies.cache;
     this.rateLimiter = dependencies.rateLimiter;
     this.deduplicator = dependencies.deduplicator;
-    this.observability = dependencies.observability;
+    this.recordOutcome = dependencies.recordOutcome;
     this.config = dependencies.config;
   }
 
@@ -89,6 +69,7 @@ export class HttpTransactionRunner {
       try {
         const cached = this.cache.get<T>(cacheKey);
         if (cached !== undefined) {
+          this.recordOutcome({ kind: 'cache_hit' });
           return cached;
         }
       } catch (error) {
@@ -168,109 +149,52 @@ export class HttpTransactionRunner {
       throw new PubgNetworkError('External GET request function is not configured', 'request');
     }
 
-    const response = await this.externalGet<T>(url, {
+    const requestConfig = {
       ...config,
+      method: 'get',
       timeout: this.config.timeout || 10000,
-    });
+      url,
+    };
 
-    return response.data;
+    try {
+      const response = await this.externalGet<T>(url, requestConfig);
+      return response.data;
+    } catch (error) {
+      throw this.mapError(error, requestConfig);
+    }
   }
 
   private async execute<T>(
     requestConfig: AxiosRequestConfig,
     attempt = 1
   ): Promise<AxiosResponse<T>> {
-    const metadata = await this.startRequest(requestConfig);
+    await this.rateLimiter.waitForSlot();
 
     try {
       const response = (await this.request(requestConfig)) as AxiosResponse<T>;
-      this.recordSuccess(response, metadata);
+      this.recordOutcome({ kind: 'request_succeeded' });
       return response;
     } catch (error) {
-      this.recordFailure(error, requestConfig, metadata);
-
       if (this.shouldRetry(error, attempt)) {
         await this.waitForRetry(attempt);
         return await this.execute<T>(this.getRetryConfig(error, requestConfig), attempt + 1);
       }
 
+      this.recordOutcome(this.outcomeForError(error));
       throw this.mapError(error, requestConfig);
     }
   }
 
-  private async startRequest(config: AxiosRequestConfig): Promise<RequestMetadata> {
-    await this.rateLimiter.waitForSlot();
-
-    const method = config.method?.toUpperCase();
-    const url = config.url;
-
-    return {
-      startTime: performance.now(),
-      span: this.observability.startSpan('http_request', {
-        endpoint: url,
-        method,
-        url,
-      }),
-    };
-  }
-
-  private recordSuccess(response: AxiosResponse, metadata: RequestMetadata): void {
-    this.recordRequestMetrics(metadata, {
-      statusCode: response.status,
-      endpoint: response.config.url || 'unknown',
-      method: response.config.method?.toUpperCase() || 'unknown',
-      error: false,
-    });
-
-    metadata.span.setStatus({ code: 1 });
-    metadata.span.end();
-
-    const remaining = response.headers['x-ratelimit-remaining'];
-    if (remaining) {
-      this.observability.updateRateLimitMetrics(parseInt(remaining, 10));
-    }
-  }
-
-  private recordFailure(
-    error: any,
-    fallbackConfig: AxiosRequestConfig,
-    metadata: RequestMetadata
-  ): void {
-    const errorConfig = error.config || fallbackConfig;
+  private outcomeForError(error: any): RequestOutcome {
     const status = error.response?.status;
-    const url = errorConfig?.url || 'unknown';
 
-    this.recordRequestMetrics(metadata, {
-      statusCode: status || 0,
-      endpoint: url,
-      method: errorConfig?.method?.toUpperCase() || 'unknown',
-      error: true,
-    });
-
-    metadata.span.recordException(error);
-    metadata.span.setStatus({ code: 2, message: error.message });
-    metadata.span.end();
-
-    this.observability.recordError(error, {
-      endpoint: url,
-      method: errorConfig?.method,
-      statusCode: status,
-    });
-  }
-
-  private recordRequestMetrics(
-    metadata: RequestMetadata,
-    details: {
-      statusCode: number;
-      endpoint: string;
-      method: string;
-      error: boolean;
+    if (status === 401) return { kind: 'authentication_failed', statusCode: 401 };
+    if (status === 429) return { kind: 'rate_limited', statusCode: 429 };
+    if (status === 400 || status === 404) return { kind: 'request_rejected', statusCode: status };
+    if (typeof status === 'number' && status >= 500) {
+      return { kind: 'server_failed', statusCode: status };
     }
-  ): void {
-    this.observability.recordRequestMetrics({
-      duration: performance.now() - metadata.startTime,
-      ...details,
-    });
+    return { kind: 'network_failed' };
   }
 
   private shouldRetry(error: any, attempt: number): boolean {

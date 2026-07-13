@@ -8,7 +8,7 @@ import type {
 } from '../../types';
 import type { Shard } from '../../types/common';
 import { appendArrayFilter, appendQuery, shardPath } from '../endpoint-query';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 const MAX_PLAYER_STATS_BATCH_SIZE = 10;
 
@@ -29,7 +29,7 @@ const assertValidPlayerIdBatch = (playerIds: string[]): void => {
  */
 export class PlayersService {
   constructor(
-    private httpClient: HttpClient,
+    private httpClient: EndpointTransport,
     private shard: Shard
   ) {}
 

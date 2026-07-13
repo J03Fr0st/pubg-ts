@@ -1,6 +1,7 @@
 import type { PubgClientConfig } from '../types/api';
 import { AssetManager } from '../utils/assets';
-import { HttpClient } from './http-client';
+import type { ClientHealth } from './client-health';
+import { ClientRuntime } from './client-runtime';
 import { LeaderboardsService } from './services/leaderboards';
 import { MatchesService } from './services/matches';
 import { PlayersService } from './services/players';
@@ -9,7 +10,7 @@ import { SeasonsService } from './services/seasons';
 import { TelemetryService } from './services/telemetry';
 
 export class PubgClient {
-  private httpClient: HttpClient;
+  private runtime: ClientRuntime;
 
   public readonly players: PlayersService;
   public readonly matches: MatchesService;
@@ -20,26 +21,24 @@ export class PubgClient {
   public readonly assets: AssetManager;
 
   constructor(config: PubgClientConfig) {
-    this.httpClient = new HttpClient(config);
+    this.runtime = new ClientRuntime(config);
 
-    this.players = new PlayersService(this.httpClient, config.shard);
-    this.matches = new MatchesService(this.httpClient, config.shard);
-    this.seasons = new SeasonsService(this.httpClient, config.shard);
-    this.leaderboards = new LeaderboardsService(this.httpClient, config.shard);
-    this.samples = new SamplesService(this.httpClient, config.shard);
-    this.telemetry = new TelemetryService(this.httpClient);
+    this.players = new PlayersService(this.runtime, config.shard);
+    this.matches = new MatchesService(this.runtime, config.shard);
+    this.seasons = new SeasonsService(this.runtime, config.shard);
+    this.leaderboards = new LeaderboardsService(this.runtime, config.shard);
+    this.samples = new SamplesService(this.runtime, config.shard);
+    this.telemetry = new TelemetryService(this.runtime);
     this.assets = new AssetManager();
   }
 
-  getRateLimitStatus() {
-    return this.httpClient.getRateLimitStatus();
+  /** Returns a synchronous, redacted snapshot of this client's request health. */
+  getHealth(): ClientHealth {
+    return this.runtime.getHealth();
   }
 
-  getCacheStats() {
-    return this.httpClient.getCacheStats();
-  }
-
-  clearCache() {
-    this.httpClient.clearCache();
+  /** Clears only this client's cached API responses. */
+  clearResponseCache(): void {
+    this.runtime.clearResponseCache();
   }
 }

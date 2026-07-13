@@ -1,21 +1,16 @@
-import type { HttpClient } from '../../../src/api/http-client';
+import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { LeaderboardsService } from '../../../src/api/services/leaderboards';
 import type { LeaderboardResponse } from '../../../src/types';
 
-jest.mock('../../../src/api/http-client');
-
 describe('LeaderboardsService', () => {
   let leaderboardsService: LeaderboardsService;
-  let mockHttpClient: jest.Mocked<HttpClient>;
+  let mockHttpClient: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
     mockHttpClient = {
       get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      getRateLimitStatus: jest.fn(),
-    } as any;
+      fetchTelemetry: jest.fn(),
+    };
 
     leaderboardsService = new LeaderboardsService(mockHttpClient, 'pc-na');
   });

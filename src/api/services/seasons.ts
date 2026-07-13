@@ -1,6 +1,6 @@
 import type { SeasonsResponse } from '../../types';
 import type { Shard } from '../../types/common';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Seasons endpoint of the PUBG API.
@@ -11,7 +11,7 @@ import type { HttpClient } from '../http-client';
  */
 export class SeasonsService {
   constructor(
-    private httpClient: HttpClient,
+    private httpClient: EndpointTransport,
     private shard: Shard
   ) {}
 

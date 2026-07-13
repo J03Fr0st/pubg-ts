@@ -1,21 +1,16 @@
-import type { HttpClient } from '../../../src/api/http-client';
+import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { MatchesService } from '../../../src/api/services/matches';
 import type { MatchesResponse, MatchResponse } from '../../../src/types';
 
-jest.mock('../../../src/api/http-client');
-
 describe('MatchesService', () => {
   let matchesService: MatchesService;
-  let mockHttpClient: jest.Mocked<HttpClient>;
+  let mockHttpClient: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
     mockHttpClient = {
       get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      getRateLimitStatus: jest.fn(),
-    } as any;
+      fetchTelemetry: jest.fn(),
+    };
 
     matchesService = new MatchesService(mockHttpClient, 'pc-na');
   });
