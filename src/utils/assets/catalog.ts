@@ -22,11 +22,10 @@ import {
 } from './normalization';
 import { createItemSearchIndex, type ItemSearchIndex, searchItems } from './search';
 
-export interface AssetConfig {
-  baseUrl?: string;
-  version?: string;
-  cacheAssets?: boolean;
-  useLocalData?: boolean;
+/** Configuration for generated asset URLs. Catalog data is always bundled locally. */
+export interface AssetCatalogConfig {
+  /** Base URL used when generating asset image URLs. */
+  assetBaseUrl?: string;
 }
 
 export interface EnhancedItemInfo {
@@ -62,11 +61,8 @@ export interface SurvivalTitleInfo {
   description?: string;
 }
 
-const DEFAULT_CONFIG: Required<AssetConfig> = {
-  baseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
-  version: 'latest',
-  cacheAssets: true,
-  useLocalData: true,
+const DEFAULT_CONFIG: Required<AssetCatalogConfig> = {
+  assetBaseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
 };
 
 const VALID_PLATFORMS: Platform[] = ['PC', 'XBOX', 'PS4', 'Stadia'];
@@ -75,13 +71,13 @@ const VEHICLE_IDS = Object.keys(vehicleIdData);
 const MAP_ENTRIES = Object.entries(mapNameData as Record<string, string>);
 
 export class AssetCatalog {
-  private config: Required<AssetConfig>;
-  private itemCache: Map<string, EnhancedItemInfo> = new Map();
-  private vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
-  private seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
-  private itemSearchIndex: ItemSearchIndex<EnhancedItemInfo>;
+  private readonly config: Required<AssetCatalogConfig>;
+  private readonly itemCache: Map<string, EnhancedItemInfo> = new Map();
+  private readonly vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
+  private readonly seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
+  private readonly itemSearchIndex: ItemSearchIndex<EnhancedItemInfo>;
 
-  constructor(config: AssetConfig = {}) {
+  constructor(config: AssetCatalogConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     const allItems = ITEM_IDS.map((id) => this.getItemInfo(id)!);
@@ -89,11 +85,7 @@ export class AssetCatalog {
   }
 
   getItemName(itemId: string): string {
-    if (this.config.useLocalData) {
-      return (itemIdData as Record<string, string>)[itemId] || humanizeItemId(itemId);
-    }
-
-    return humanizeItemId(itemId);
+    return (itemIdData as Record<string, string>)[itemId] || humanizeItemId(itemId);
   }
 
   getItemInfo(itemId: string): EnhancedItemInfo | null {
@@ -143,11 +135,7 @@ export class AssetCatalog {
   }
 
   getVehicleName(vehicleId: string): string {
-    if (this.config.useLocalData) {
-      return (vehicleIdData as Record<string, string>)[vehicleId] || humanizeVehicleId(vehicleId);
-    }
-
-    return humanizeVehicleId(vehicleId);
+    return (vehicleIdData as Record<string, string>)[vehicleId] || humanizeVehicleId(vehicleId);
   }
 
   getVehicleInfo(vehicleId: string): EnhancedVehicleInfo | null {
@@ -180,11 +168,7 @@ export class AssetCatalog {
   }
 
   getMapName(mapId: string): string {
-    if (this.config.useLocalData) {
-      return (mapNameData as Record<string, string>)[mapId] || humanizeMapId(mapId);
-    }
-
-    return humanizeMapId(mapId);
+    return (mapNameData as Record<string, string>)[mapId] || humanizeMapId(mapId);
   }
 
   getAllMaps(): Array<{ id: string; name: string }> {
@@ -279,7 +263,22 @@ export class AssetCatalog {
   }
 
   getAssetUrl(category: string, itemId: string, type: 'icon' | 'image' = 'icon'): string {
-    return buildAssetUrl(this.config.baseUrl, category, itemId, type);
+    return buildAssetUrl(this.config.assetBaseUrl, category, itemId, type);
+  }
+
+  /** Generate a weapon asset URL. */
+  getWeaponAssetUrl(weaponId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('weapons', weaponId, type);
+  }
+
+  /** Generate an equipment asset URL. */
+  getEquipmentAssetUrl(equipmentId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('equipment', equipmentId, type);
+  }
+
+  /** Generate a vehicle asset URL. */
+  getVehicleAssetUrl(vehicleId: string, type: 'icon' | 'image' = 'icon'): string {
+    return this.getAssetUrl('vehicles', vehicleId, type);
   }
 
   getAssetStats(): {
@@ -301,11 +300,5 @@ export class AssetCatalog {
       totalMaps: MAP_ENTRIES.length,
       categoryCounts,
     };
-  }
-
-  clearCache(): void {
-    this.itemCache.clear();
-    this.vehicleCache.clear();
-    this.seasonCache.clear();
   }
 }

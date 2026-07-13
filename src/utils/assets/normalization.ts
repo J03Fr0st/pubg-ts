@@ -152,10 +152,10 @@ export function cleanItemId(itemId: string): string {
 }
 
 export function buildAssetUrl(
-  baseUrl: string,
+  assetBaseUrl: string,
   category: string,
   itemId: string,
   type: 'icon' | 'image' = 'icon'
 ): string {
-  return `${baseUrl}/assets/${category}/${type}s/${cleanItemId(itemId)}.png`;
+  return `${assetBaseUrl}/assets/${category}/${type}s/${cleanItemId(itemId)}.png`;
 }

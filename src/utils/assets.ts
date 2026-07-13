@@ -2,7 +2,6 @@ import { PubgCacheError, PubgConfigurationError } from '../errors';
 import type { Platform } from '../types/assets/seasons';
 import {
   AssetCatalog,
-  type AssetConfig,
   type EnhancedItemInfo,
   type EnhancedSeasonInfo,
   type EnhancedVehicleInfo,
@@ -18,12 +17,23 @@ import { logger } from './logger';
  * Uses synced local data for zero-latency performance.
  */
 export type {
-  AssetConfig,
   EnhancedItemInfo,
   EnhancedSeasonInfo,
   EnhancedVehicleInfo,
   SurvivalTitleInfo,
 } from './assets/catalog';
+
+/** Legacy AssetManager configuration retained until the v2 facade is removed. */
+export interface AssetConfig {
+  /** Base URL used when generating asset image URLs. */
+  baseUrl?: string;
+  /** Legacy catalog version setting retained for facade compatibility. */
+  version?: string;
+  /** Legacy cache setting retained for facade compatibility. */
+  cacheAssets?: boolean;
+  /** Legacy local-data setting retained for facade compatibility. */
+  useLocalData?: boolean;
+}
 
 interface SeasonInfo {
   id: string;
@@ -48,7 +58,7 @@ export class AssetManager {
       useLocalData: true,
       ...config,
     };
-    this.catalog = new AssetCatalog(resolvedConfig);
+    this.catalog = new AssetCatalog({ assetBaseUrl: resolvedConfig.baseUrl });
 
     logger.client('AssetManager initialized with asset catalog', {
       config: resolvedConfig,
@@ -183,21 +193,21 @@ export class AssetManager {
    * Get weapon asset URL with type safety
    */
   getWeaponAssetUrl(weaponId: string, type: 'icon' | 'image' = 'icon'): string {
-    return this.getAssetUrl('weapons', weaponId, type);
+    return this.catalog.getWeaponAssetUrl(weaponId, type);
   }
 
   /**
    * Get equipment asset URL with type safety
    */
   getEquipmentAssetUrl(equipmentId: string, type: 'icon' | 'image' = 'icon'): string {
-    return this.getAssetUrl('equipment', equipmentId, type);
+    return this.catalog.getEquipmentAssetUrl(equipmentId, type);
   }
 
   /**
    * Get vehicle asset URL with type safety
    */
   getVehicleAssetUrl(vehicleId: string, type: 'icon' | 'image' = 'icon'): string {
-    return this.getAssetUrl('vehicles', vehicleId, type);
+    return this.catalog.getVehicleAssetUrl(vehicleId, type);
   }
 
   /**
@@ -218,7 +228,6 @@ export class AssetManager {
   clearCache(): void {
     try {
       this.cache.clear();
-      this.catalog.clearCache();
       logger.cache('All asset caches cleared');
     } catch (error) {
       throw new PubgCacheError('Failed to clear asset caches', 'all_caches', 'cleanup', {

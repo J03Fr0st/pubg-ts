@@ -1,5 +1,5 @@
 import { PubgConfigurationError } from '../../src/errors';
-import { AssetCatalog } from '../../src/utils/assets/catalog';
+import { AssetCatalog, type AssetCatalogConfig } from '../../src/utils/assets/catalog';
 
 describe('AssetCatalog', () => {
   let catalog: AssetCatalog;
@@ -18,12 +18,6 @@ describe('AssetCatalog', () => {
         category: 'weapon',
         subcategory: 'assault_rifle',
       });
-    });
-
-    it('falls back to humanized item names when local data is disabled', () => {
-      const remoteCatalog = new AssetCatalog({ useLocalData: false });
-
-      expect(remoteCatalog.getItemName('Item_Weapon_AK47_C')).toBe('Weapon AK47');
     });
 
     it('returns sorted items by category', () => {
@@ -98,12 +92,30 @@ describe('AssetCatalog', () => {
       );
     });
 
-    it('clears cached item instances', () => {
-      const first = catalog.getItemInfo('Item_Weapon_AK47_C');
+    it('uses assetBaseUrl only for generated URLs', () => {
+      const customCatalog = new AssetCatalog({
+        assetBaseUrl: 'https://cdn.example.test/pubg',
+      });
 
-      catalog.clearCache();
+      expect(customCatalog.getWeaponAssetUrl('Item_Weapon_AK47_C', 'icon')).toBe(
+        'https://cdn.example.test/pubg/assets/weapons/icons/Weapon_AK47.png'
+      );
+      expect(customCatalog.getItemName('Item_Weapon_AK47_C')).toBe('AKM');
+    });
 
-      expect(catalog.getItemInfo('Item_Weapon_AK47_C')).not.toBe(first);
+    it('does not expose public cache clearing', () => {
+      expect('clearCache' in new AssetCatalog()).toBe(false);
     });
   });
 });
+
+const validConfig: AssetCatalogConfig = { assetBaseUrl: 'https://cdn.example.test/pubg' };
+void validConfig;
+
+// @ts-expect-error v2 has no remote catalog version
+const versionConfig: AssetCatalogConfig = { version: 'latest' };
+// @ts-expect-error v2 derived caches are not caller-configurable
+const cacheConfig: AssetCatalogConfig = { cacheAssets: false };
+// @ts-expect-error v2 catalog data is always local
+const localDataConfig: AssetCatalogConfig = { useLocalData: false };
+void [versionConfig, cacheConfig, localDataConfig];
