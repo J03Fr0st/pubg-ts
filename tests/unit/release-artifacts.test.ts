@@ -5,6 +5,33 @@ import { resolve } from 'node:path';
 const root = resolve(__dirname, '../..');
 const browserHarness = readFileSync(resolve(root, 'browser-test.html'), 'utf8');
 
+function runNpm(npmExecPath: string, args: string[]): string {
+  try {
+    return execFileSync(process.execPath, [npmExecPath, ...args], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    const failure = error as { message?: string; stderr?: unknown; stdout?: unknown };
+    const output = [failure.stdout, failure.stderr]
+      .map((value) => {
+        if (typeof value === 'string') {
+          return value.trim();
+        }
+        if (Buffer.isBuffer(value)) {
+          return value.toString('utf8').trim();
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+    const details = output || failure.message || String(error);
+
+    throw new Error(`npm ${args.join(' ')} failed:\n${details}`);
+  }
+}
+
 describe('v2 release artifacts', () => {
   it('keeps the browser harness truthful and executable', () => {
     expect(browserHarness).not.toMatch(
@@ -31,11 +58,8 @@ describe('v2 release artifacts', () => {
       throw new Error('npm_execpath is required to inspect the npm package');
     }
 
-    const output = execFileSync(
-      process.execPath,
-      [npmExecPath, 'pack', '--dry-run', '--json', '--ignore-scripts'],
-      { cwd: root, encoding: 'utf8' }
-    );
+    runNpm(npmExecPath, ['run', 'build', '--ignore-scripts']);
+    const output = runNpm(npmExecPath, ['pack', '--dry-run', '--json', '--ignore-scripts']);
     const [pack] = JSON.parse(output) as Array<{ files: Array<{ path: string }> }>;
     const files = new Set(pack.files.map(({ path }) => path.split('\\').join('/')));
 
