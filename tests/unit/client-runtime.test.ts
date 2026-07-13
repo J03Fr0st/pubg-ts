@@ -2,11 +2,13 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { ClientRuntime } from '../../src/api/client-runtime';
 import {
+  type PubgApiError,
   PubgAuthenticationError,
   PubgConfigurationError,
   PubgNetworkError,
   PubgNotFoundError,
   PubgRateLimitError,
+  PubgValidationError,
 } from '../../src/errors';
 
 jest.mock('axios');
@@ -50,6 +52,81 @@ const createExternalError = (status?: number, code?: string) => ({
       }
     : {}),
 });
+
+const SECRET_TELEMETRY_URL = 'https://telemetry.test/match?token=secret';
+const TELEMETRY_SECRET_MARKERS = [
+  SECRET_TELEMETRY_URL,
+  'telemetry.test',
+  'token',
+  'secret',
+  'request-config-secret',
+  'response-config-secret',
+];
+
+const createSecretExternalError = (status?: number, code?: string) => {
+  const config = {
+    headers: { 'X-Diagnostic': 'request-config-secret' },
+    method: 'get',
+    url: SECRET_TELEMETRY_URL,
+  };
+
+  return {
+    code,
+    config,
+    message: `Telemetry request to ${SECRET_TELEMETRY_URL} failed with secret`,
+    request: { config },
+    ...(status
+      ? {
+          response: {
+            config: {
+              ...config,
+              headers: { 'X-Diagnostic': 'response-config-secret' },
+            },
+            data: {
+              errors: [{ detail: `Telemetry response exposed ${SECRET_TELEMETRY_URL}` }],
+            },
+            headers: {},
+            status,
+          },
+        }
+      : {}),
+  };
+};
+
+const makeInspectable = (value: unknown, seen = new WeakSet<object>()): unknown => {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) {
+    return '[circular]';
+  }
+
+  seen.add(value);
+  return Object.fromEntries(
+    Object.getOwnPropertyNames(value).map((key) => [
+      key,
+      makeInspectable((value as Record<string, unknown>)[key], seen),
+    ])
+  );
+};
+
+const expectTelemetryErrorRedacted = (error: PubgApiError): void => {
+  const surfaces = [
+    JSON.stringify(makeInspectable(error)),
+    JSON.stringify(error),
+    JSON.stringify(error.getDetails()),
+    JSON.stringify(error.context),
+  ].join('\n');
+
+  for (const marker of TELEMETRY_SECRET_MARKERS) {
+    expect(surfaces).not.toContain(marker);
+  }
+  expect(error.context.metadata).toMatchObject({
+    endpoint: 'external_telemetry',
+    method: 'get',
+  });
+  expect(error.context.metadata).not.toHaveProperty('url');
+};
 
 describe('ClientRuntime isolation', () => {
   beforeEach(() => {
@@ -143,8 +220,45 @@ describe('ClientRuntime isolation', () => {
     });
   });
 
-  it('preserves prior health when telemetry returns 404', async () => {
-    const externalGet = jest.fn().mockRejectedValue(createExternalError(404));
+  it('redacts secret-bearing telemetry network failures from every public error surface', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn(),
+      externalGet: jest.fn().mockRejectedValue(createSecretExternalError(undefined, 'ENOTFOUND')),
+    });
+
+    const error = await runtime.fetchTelemetry(SECRET_TELEMETRY_URL).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(PubgNetworkError);
+    expectTelemetryErrorRedacted(error as PubgNetworkError);
+    expect((error as PubgNetworkError).originalError).toBeUndefined();
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'degraded',
+      reason: 'network_failed',
+    });
+  });
+
+  it('redacts secret-bearing telemetry HTTP failures while preserving typed health mapping', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn(),
+      externalGet: jest.fn().mockRejectedValue(createSecretExternalError(401)),
+    });
+
+    const error = await runtime.fetchTelemetry(SECRET_TELEMETRY_URL).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(PubgAuthenticationError);
+    expectTelemetryErrorRedacted(error as PubgAuthenticationError);
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'unhealthy',
+      reason: 'authentication_failed',
+      statusCode: 401,
+    });
+  });
+
+  it.each([
+    [400, PubgValidationError],
+    [404, PubgNotFoundError],
+  ])('preserves prior health when telemetry returns %i', async (status, ErrorType) => {
+    const externalGet = jest.fn().mockRejectedValue(createExternalError(status));
     const runtime = ClientRuntime.forTest({
       request: jest.fn().mockResolvedValue(createResponse({ ok: true })),
       externalGet,
@@ -153,7 +267,7 @@ describe('ClientRuntime isolation', () => {
 
     await runtime.get('/players', { useCache: false });
     await expect(runtime.fetchTelemetry('https://telemetry.test/match-1')).rejects.toThrow(
-      PubgNotFoundError
+      ErrorType
     );
     expect(runtime.getHealth()).toMatchObject({
       status: 'healthy',

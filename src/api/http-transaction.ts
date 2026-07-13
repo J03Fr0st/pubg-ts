@@ -36,6 +36,8 @@ export interface HttpTransactionRunnerDependencies {
 
 const SERVER_RETRY_STATUSES = new Set([500, 502, 503, 504]);
 const GET_CACHE_TTL_MS = 5 * 60 * 1000;
+const EXTERNAL_TELEMETRY_ENDPOINT = 'external_telemetry';
+const EXTERNAL_TELEMETRY_ERROR_MESSAGE = 'External telemetry request failed';
 
 /**
  * Internal request transaction runner for a client-local runtime.
@@ -160,7 +162,7 @@ export class HttpTransactionRunner {
       const response = await this.externalGet<T>(url, requestConfig);
       return response.data;
     } catch (error) {
-      throw this.mapError(error, requestConfig);
+      throw this.mapExternalError(error);
     }
   }
 
@@ -259,6 +261,71 @@ export class HttpTransactionRunner {
           operation: 'http_request',
           metadata: { url, method: errorConfig?.method },
         });
+    }
+  }
+
+  private mapExternalError(error: any): PubgApiError {
+    const status = error.response?.status;
+    const metadata = { endpoint: EXTERNAL_TELEMETRY_ENDPOINT, method: 'get' };
+    const context = { operation: EXTERNAL_TELEMETRY_ENDPOINT, metadata };
+
+    if (!error.response) {
+      return new PubgNetworkError(
+        EXTERNAL_TELEMETRY_ERROR_MESSAGE,
+        this.externalNetworkOperationFor(error.code),
+        undefined,
+        {
+          ...context,
+          metadata: { ...metadata, errorCode: error.code },
+        }
+      );
+    }
+
+    switch (status) {
+      case 401:
+        return new PubgAuthenticationError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
+      case 404:
+        return new PubgNotFoundError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
+      case 400:
+        return new PubgValidationError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
+      case 429: {
+        const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60', 10);
+        return new PubgRateLimitError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, retryAfter, {
+          ...context,
+          metadata: { ...metadata, retryAfter },
+        });
+      }
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return new PubgNetworkError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, 'request', undefined, {
+          ...context,
+          metadata: { ...metadata, statusCode: status },
+        });
+      default:
+        return new PubgApiError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, status, undefined, context);
+    }
+  }
+
+  private externalNetworkOperationFor(
+    code: string | undefined
+  ): PubgNetworkError['networkOperation'] {
+    switch (code) {
+      case 'ECONNREFUSED':
+      case 'ECONNRESET':
+      case 'ECONNABORTED':
+        return 'connect';
+      case 'ENOTFOUND':
+      case 'EAI_AGAIN':
+        return 'dns';
+      case 'ETIMEDOUT':
+        return 'timeout';
+      case 'CERT_HAS_EXPIRED':
+      case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
+        return 'ssl';
+      default:
+        return 'unknown';
     }
   }
 
