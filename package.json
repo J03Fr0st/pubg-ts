@@ -10,7 +10,8 @@
     "MIGRATION.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
+    "clean": "node scripts/clean.js",
     "generate:types": "openapi-typescript ./api-documentation-content/swagger/openapi.yml --output ./src/types/pubg-api.d.ts",
     "generate:docs": "typedoc --out docs/api src/index.ts",
     "dev": "ts-node src/index.ts",

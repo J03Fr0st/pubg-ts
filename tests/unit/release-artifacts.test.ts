@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(__dirname, '../..');
@@ -58,7 +58,13 @@ describe('v2 release artifacts', () => {
       throw new Error('npm_execpath is required to inspect the npm package');
     }
 
+    const staleArtifact = resolve(root, 'dist/utils/assets.js');
+    mkdirSync(resolve(root, 'dist/utils'), { recursive: true });
+    writeFileSync(staleArtifact, 'module.exports = { stale: true };\n', 'utf8');
+
     runNpm(npmExecPath, ['run', 'build', '--ignore-scripts']);
+    expect(existsSync(staleArtifact)).toBe(false);
+
     const output = runNpm(npmExecPath, ['pack', '--dry-run', '--json', '--ignore-scripts']);
     const [pack] = JSON.parse(output) as Array<{ files: Array<{ path: string }> }>;
     const files = new Set(pack.files.map(({ path }) => path.split('\\').join('/')));
