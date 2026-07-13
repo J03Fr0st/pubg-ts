@@ -1,4 +1,9 @@
 import { PubgClient } from '../../src/api/client';
+import { Leaderboards } from '../../src/api/services/leaderboards';
+import { Matches } from '../../src/api/services/matches';
+import { Players } from '../../src/api/services/players';
+import { Samples } from '../../src/api/services/samples';
+import { Seasons } from '../../src/api/services/seasons';
 import type { PubgClientConfig } from '../../src/types/api';
 
 describe('PubgClient', () => {
@@ -10,11 +15,11 @@ describe('PubgClient', () => {
   it('initializes all endpoint services and assets', () => {
     const client = new PubgClient(config);
 
-    expect(client.players).toBeDefined();
-    expect(client.matches).toBeDefined();
-    expect(client.seasons).toBeDefined();
-    expect(client.leaderboards).toBeDefined();
-    expect(client.samples).toBeDefined();
+    expect(client.players).toBeInstanceOf(Players);
+    expect(client.matches).toBeInstanceOf(Matches);
+    expect(client.seasons).toBeInstanceOf(Seasons);
+    expect(client.leaderboards).toBeInstanceOf(Leaderboards);
+    expect(client.samples).toBeInstanceOf(Samples);
     expect(client.telemetry).toBeDefined();
     expect(client.assets).toBeDefined();
   });

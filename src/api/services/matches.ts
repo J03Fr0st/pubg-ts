@@ -16,10 +16,10 @@ import type { EndpointTransport } from '../endpoint-transport';
  * This service provides methods for retrieving match data.
  * It is accessible via the `pubg.matches` property.
  */
-export class MatchesService {
+export class Matches {
   constructor(
-    private httpClient: EndpointTransport,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -34,7 +34,7 @@ export class MatchesService {
    */
   async getMatch(matchId: string): Promise<MatchResponse> {
     const url = shardPath(this.shard, `/matches/${matchId}`);
-    return this.httpClient.get<MatchResponse>(url);
+    return this.transport.get<MatchResponse>(url);
   }
 
   /**
@@ -66,7 +66,7 @@ export class MatchesService {
       appendArrayFilter(params, 'filter[gameMode]', query.filter.gameMode);
     }
 
-    return this.httpClient.get<MatchesResponse>(
+    return this.transport.get<MatchesResponse>(
       appendQuery(shardPath(this.shard, '/matches'), params)
     );
   }

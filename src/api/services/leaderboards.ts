@@ -11,10 +11,10 @@ import type { EndpointTransport } from '../endpoint-transport';
  * This service provides methods for retrieving leaderboard data.
  * It is accessible via the `pubg.leaderboards` property.
  */
-export class LeaderboardsService {
+export class Leaderboards {
   constructor(
-    private httpClient: EndpointTransport,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -40,6 +40,6 @@ export class LeaderboardsService {
       params
     );
 
-    return this.httpClient.get<LeaderboardResponse>(url);
+    return this.transport.get<LeaderboardResponse>(url);
   }
 }

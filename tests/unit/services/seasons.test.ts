@@ -1,18 +1,18 @@
 import type { EndpointTransport } from '../../../src/api/endpoint-transport';
-import { SeasonsService } from '../../../src/api/services/seasons';
+import { Seasons } from '../../../src/api/services/seasons';
 import type { SeasonsResponse } from '../../../src/types';
 
-describe('SeasonsService', () => {
-  let seasonsService: SeasonsService;
-  let mockHttpClient: jest.Mocked<EndpointTransport>;
+describe('Seasons', () => {
+  let seasons: Seasons;
+  let transport: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
-    mockHttpClient = {
+    transport = {
       get: jest.fn(),
       fetchTelemetry: jest.fn(),
     };
 
-    seasonsService = new SeasonsService(mockHttpClient, 'pc-na');
+    seasons = new Seasons(transport, 'pc-na');
   });
 
   afterEach(() => {
@@ -44,11 +44,11 @@ describe('SeasonsService', () => {
         ],
       };
 
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue(mockResponse);
 
-      const result = await seasonsService.getSeasons();
+      const result = await seasons.getSeasons();
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
+      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
       expect(result).toEqual(mockResponse);
     });
   });
@@ -78,11 +78,11 @@ describe('SeasonsService', () => {
         ],
       };
 
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue(mockResponse);
 
-      const result = await seasonsService.getCurrentSeason();
+      const result = await seasons.getCurrentSeason();
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
+      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
       expect(result.data).toHaveLength(1);
       expect(result.data[0].attributes.isCurrentSeason).toBe(true);
     });
@@ -102,9 +102,9 @@ describe('SeasonsService', () => {
         ],
       };
 
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue(mockResponse);
 
-      await expect(seasonsService.getCurrentSeason()).rejects.toThrow('No current season found');
+      await expect(seasons.getCurrentSeason()).rejects.toThrow('No current season found');
     });
   });
 });

@@ -4,15 +4,15 @@ import type { TelemetryData } from '../../../src/types';
 
 describe('TelemetryService', () => {
   let telemetryService: TelemetryService;
-  let mockHttpClient: jest.Mocked<EndpointTransport>;
+  let transport: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
-    mockHttpClient = {
+    transport = {
       get: jest.fn(),
       fetchTelemetry: jest.fn(),
     };
 
-    telemetryService = new TelemetryService(mockHttpClient);
+    telemetryService = new TelemetryService(transport);
   });
 
   afterEach(() => {
@@ -33,13 +33,13 @@ describe('TelemetryService', () => {
         },
       ];
 
-      mockHttpClient.fetchTelemetry.mockResolvedValue(mockResponse);
+      transport.fetchTelemetry.mockResolvedValue(mockResponse);
 
       const telemetryUrl =
         'https://telemetry-cdn.pubg.com/bluehole-pubg/pc-na/2023/01/01/0/0/match-1-telemetry.json';
       const result = await telemetryService.getTelemetryData(telemetryUrl);
 
-      expect(mockHttpClient.fetchTelemetry).toHaveBeenCalledWith(telemetryUrl);
+      expect(transport.fetchTelemetry).toHaveBeenCalledWith(telemetryUrl);
       expect(result).toEqual(mockResponse);
     });
   });

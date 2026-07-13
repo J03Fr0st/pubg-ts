@@ -9,10 +9,10 @@ import type { EndpointTransport } from '../endpoint-transport';
  * This service provides methods for retrieving a sample of match data.
  * It is accessible via the `pubg.samples` property.
  */
-export class SamplesService {
+export class Samples {
   constructor(
-    private httpClient: EndpointTransport,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -43,6 +43,6 @@ export class SamplesService {
     const queryString = params.toString();
     const url = `/shards/${this.shard}/samples${queryString ? `?${queryString}` : ''}`;
 
-    return this.httpClient.get<MatchesResponse>(url);
+    return this.transport.get<MatchesResponse>(url);
   }
 }

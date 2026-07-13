@@ -9,10 +9,10 @@ import type { EndpointTransport } from '../endpoint-transport';
  * This service provides methods for retrieving season data.
  * It is accessible via the `pubg.seasons` property.
  */
-export class SeasonsService {
+export class Seasons {
   constructor(
-    private httpClient: EndpointTransport,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -26,7 +26,7 @@ export class SeasonsService {
    */
   async getSeasons(): Promise<SeasonsResponse> {
     const url = `/shards/${this.shard}/seasons`;
-    return this.httpClient.get<SeasonsResponse>(url);
+    return this.transport.get<SeasonsResponse>(url);
   }
 
   /**
