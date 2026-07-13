@@ -107,13 +107,12 @@ This is a TypeScript SDK for the PUBG API with a service-oriented architecture:
 **Main Client (`src/api/client.ts`)**
 - `PubgClient` - Main entry point that orchestrates all services
 - Provides unified access to all API endpoints through service instances
-- Handles configuration and provides utility methods for cache and rate limiting
+- Handles configuration and exposes client-local health and response-cache utilities
 
-**HTTP Layer (`src/api/http-client.ts`)**
-- `HttpClient` - Handles all HTTP communication with the PUBG API
-- Implements rate limiting (10 requests/minute default)
-- Provides automatic retries, caching, and error handling
-- Uses axios for HTTP requests with custom interceptors
+**Runtime Layer (`src/api/client-runtime.ts`, `src/api/http-transaction.ts`)**
+- `ClientRuntime` - Owns one client's cache, rate limiter, request deduplicator, and health state
+- `HttpTransactionRunner` - Handles retries, caching, error mapping, and authenticated/external requests
+- Uses axios for HTTP requests while keeping runtime state isolated per client
 
 **Service Layer (`src/api/services/`)**
 Each service corresponds to a major PUBG API endpoint:
@@ -124,13 +123,13 @@ Each service corresponds to a major PUBG API endpoint:
 - `SamplesService` - Sample data for testing
 - `TelemetryService` - Match telemetry data
 
-**Utilities (`src/utils/`)**
+**Runtime & Utilities (`src/api/`, `src/utils/`)**
+- `ClientRuntime` - Client-local request composition with response caching, rate limiting, request deduplication, and health state
+- `PubgClient.getHealth()` - Synchronous, redacted request-health snapshot with response-cache and rate-limit state
 - `RateLimiter` - Token bucket rate limiting implementation
 - `Cache` - Memory-based caching with TTL and size limits
 - `Logger` - Debug logging with namespaces (`pubg-ts:*`)
 - `AssetManager` - Unified asset management system with zero-latency access to all PUBG assets
-- `MonitoringSystem` - Prometheus metrics collection and OpenTelemetry tracing
-- `HealthChecker` - System health monitoring with memory, connectivity, and event loop checks
 - `SecurityManager` - Input validation, sanitization, and threat detection
 
 **Asset Management System (`src/utils/assets.ts`)**
@@ -153,8 +152,8 @@ The unified AssetManager provides comprehensive access to all PUBG assets:
 
 ### Key Design Patterns
 - **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive HttpClient and configuration
-- **Caching Layer**: Transparent caching with configurable TTL
+- **Dependency Injection**: Services receive an endpoint transport and configuration
+- **Caching Layer**: Transparent response caching within each client runtime
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
 - **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
@@ -198,11 +197,11 @@ Comprehensive command-line interface for development and project management:
 - **Asset Management**: Search, explore, and export PUBG assets with fuzzy search capabilities
 - **Development Setup**: Interactive configuration for API keys, testing, and linting
 
-**Production Features (`scripts/`, `src/utils/`)**
-Enterprise-ready monitoring, security, and performance tools:
+**Production Features (`scripts/`, `src/api/`, `src/utils/`)**
+Runtime health, security, and performance tools:
 - **Performance Testing**: Load testing with concurrent request validation and memory profiling
 - **Security Auditing**: Vulnerability scanning, dependency analysis, and code security validation
-- **Monitoring & Observability**: Prometheus metrics, OpenTelemetry tracing, and health checks
+- **Client Runtime Health**: Synchronous, redacted snapshots derived from each client's request outcomes, response cache, and rate limiter
 - **Input Security**: Validation, sanitization, and threat detection for all user inputs
 
 ### Key Design Patterns
@@ -212,7 +211,7 @@ Enterprise-ready monitoring, security, and performance tools:
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
 - **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
-- **Monitoring Integration**: HTTP client automatically tracks metrics and distributed tracing
+- **Runtime Health**: Client-local request outcomes feed synchronous, redacted health snapshots
 - **Security Hardening**: All inputs validated and sanitized at entry points
 
 ### Testing Strategy
@@ -227,7 +226,7 @@ Enterprise-ready monitoring, security, and performance tools:
 - Jest for testing with TypeScript support
 - Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
-- Production monitoring with Prometheus and OpenTelemetry
+- Client-local runtime health snapshots without global monitors or background health timers
 - Security hardening with input validation and threat detection
 
 ### Asset Synchronization
@@ -251,27 +250,14 @@ The project includes a comprehensive asset synchronization system:
 - `seasons.ts` - Season data interfaces and platform types
 - `enums.ts` - Game mode, damage type, and other enumerations
 
-### Production Monitoring
-The system includes comprehensive monitoring and observability:
+### Client Runtime Health
+Each `PubgClient` owns a `ClientRuntime`; request state is not shared across client instances.
 
-**Metrics Collection**
-- HTTP request/response timing and status codes
-- Cache hit/miss rates and performance
-- Rate limiting events and throttling
-- Memory usage and garbage collection
-- Event loop lag monitoring
-
-**Distributed Tracing**
-- OpenTelemetry integration with automatic span creation
-- Request correlation across service boundaries
-- Performance bottleneck identification
-- Detailed operation timing
-
-**Health Checks**
-- System resource monitoring (memory, CPU)
-- API connectivity validation
-- Event loop responsiveness
-- Custom health check support
+**Health Snapshot (`getHealth()`)**
+- Returns synchronously with redacted status, reason, transition time, and request counts
+- Includes response-cache size, capacity, hits, misses, and hit rate
+- Includes the last-known rate-limit remaining count, limit, and reset time
+- Reflects real request and telemetry outcomes without synthetic checks, background timers, or environment-specific monitoring variants
 
 ### Security Features
 Built-in security hardening and validation:
@@ -292,7 +278,7 @@ Built-in security hardening and validation:
 
 ### Debug Logging
 Enable debug logging with `DEBUG=pubg-ts:*` environment variable.
-Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`, `monitoring`, `security`.
+Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
 
 ## Development Workflow
 
@@ -307,10 +293,10 @@ Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`, `monitor
 3. **Update assets**: Run `npm run sync-assets` if working with PUBG asset data
 
 ### When Modifying Services
-- **HTTP Client Integration**: All services use the shared `HttpClient` with automatic monitoring
+- **Transport Integration**: Services use the client runtime through the `EndpointTransport` boundary
 - **Error Handling**: Throw appropriate error types from `src/errors/`
-- **Caching**: Use the built-in cache for expensive operations
-- **Rate Limiting**: Respect the shared rate limiter across all services
+- **Caching**: Use the client-local response cache for eligible requests
+- **Rate Limiting**: Respect the client-local rate limiter across all services
 
 ### Working with Assets
 - **Local First**: Use `AssetManager` synchronous methods for zero-latency access
@@ -325,10 +311,9 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - **Binary**: Available as `npx pubg-ts` after build
 
 ### Performance Considerations
-- **Monitoring Built-in**: HTTP client automatically tracks all metrics
-- **Caching Strategy**: TTL-based with size limits, check stats with `getCacheStats()`
+- **Runtime Health**: Use synchronous `getHealth()` snapshots for request, cache, and rate-limit state
+- **Caching Strategy**: TTL-based with size limits; inspect `getHealth().responseCache` for redacted statistics
 - **Asset Performance**: Local assets preferred over network calls
-- **Memory Management**: Health checker monitors memory usage and event loop
 
 ### Security Guidelines
 - **Input Validation**: All user inputs must go through `SecurityManager`
@@ -337,7 +322,7 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - **Audit Compliance**: Use `npm run security:audit` for comprehensive security analysis
 
 ### Production Deployment
-- **Health Monitoring**: Use `npm run health:check` to verify system status
+- **Runtime Health**: Inspect each `PubgClient` through synchronous `getHealth()` snapshots
 - **Performance Testing**: Run `npm run perf:test` for load validation
 - **Security Validation**: Run `npm run security:check` before deployment
 - **Asset Sync**: Ensure assets are synced with `npm run sync-assets`
@@ -346,7 +331,8 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 
 ### Core Architecture
 - `src/api/client.ts` - Main PubgClient entry point
-- `src/api/http-client.ts` - HTTP layer with monitoring integration
+- `src/api/client-runtime.ts` - Client-local runtime composition and health snapshots
+- `src/api/http-transaction.ts` - HTTP transaction, retry, cache, and error-mapping mechanics
 - `src/api/services/` - Individual API service implementations
 
 ### Utilities & Infrastructure

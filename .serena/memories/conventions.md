@@ -2,8 +2,8 @@
 
 - Keep changes surgical; project AGENTS.md emphasizes explicit assumptions, minimum code, no speculative abstractions, and every changed line tracing to the task.
 - Public API flows through `src/index.ts`; add exports there only when intentionally exposing new SDK surface.
-- Service pattern: add endpoint behavior as a method on the matching `src/api/services/*Service`; services receive `HttpClient` and shard/config through constructor injection and build paths with `URLSearchParams` for query parameters.
-- Use the shared `HttpClient` for PUBG API calls so rate limiting, caching, monitoring, retry behavior, and domain error mapping stay consistent.
+- Service pattern: add endpoint behavior as a method on the matching `src/api/services/*Service`; services receive an `EndpointTransport` and shard/config through constructor injection and build paths with `URLSearchParams` for query parameters.
+- Route PUBG API calls through the client-local `ClientRuntime` transport so rate limiting, response caching, retry behavior, domain error mapping, and health state stay consistent without sharing runtime state across clients.
 - Error classes live in `src/errors/index.ts`; map new domain failures to existing `Pubg*Error` classes where possible before adding new classes.
 - Asset data/types under `src/assets/` and `src/types/assets/` are treated as generated/static catalog surfaces. Do not hand-edit generated asset catalogs unless the task explicitly targets them and generation source is verified.
 - Prefer local `AssetManager` synchronous methods for asset lookups; async/network methods are legacy compatibility surface per README.

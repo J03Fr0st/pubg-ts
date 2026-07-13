@@ -1,9 +1,9 @@
 # Core
 
 - TypeScript SDK package for PUBG API; public entrypoint is `src/index.ts`, emitted to `dist/index.js` and `dist/index.d.ts`.
-- `src/api/client.ts` exposes `PubgClient`; constructor wires one shared `HttpClient` plus service instances: players, matches, seasons, leaderboards, samples, telemetry, assets.
-- API service files live in `src/api/services/`; each service builds PUBG endpoint URLs for one API domain and delegates HTTP to shared `HttpClient`.
-- `src/api/http-client.ts` is the cross-cutting HTTP layer: axios instance, API auth headers, rate limiter, global cache, retry/error mapping, monitoring hooks, external telemetry URL fetches.
+- `src/api/client.ts` exposes `PubgClient`; each instance owns one `ClientRuntime` plus service instances for players, matches, seasons, leaderboards, samples, telemetry, and assets.
+- API service files live in `src/api/services/`; each service builds PUBG endpoint URLs for one API domain and delegates requests through the endpoint transport.
+- `src/api/client-runtime.ts` is the client-local composition root for response caching, rate limiting, request deduplication, HTTP transactions, external telemetry fetches, and synchronous redacted health snapshots.
 - `src/types/` contains hand-maintained API response/query types plus generated/static asset types under `src/types/assets/`.
 - `src/assets/` contains local JSON dictionaries/enums used by `AssetManager` for zero-network lookups.
 - `src/utils/` contains shared infrastructure: `AssetManager`, `MemoryCache`, `RateLimiter`, logger/timing, security validation, and request deduplication.
