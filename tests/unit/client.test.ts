@@ -23,6 +23,14 @@ describe('PubgClient', () => {
     expect(client.assets).toBeDefined();
   });
 
+  it('uses the default PUBG asset URL when assetBaseUrl is omitted', () => {
+    const client = new PubgClient({ apiKey: 'x', shard: 'steam' });
+
+    expect(client.assets.getWeaponAssetUrl('Item_Weapon_AK47_C')).toBe(
+      'https://raw.githubusercontent.com/pubg/api-assets/master/assets/weapons/icons/Weapon_AK47.png'
+    );
+  });
+
   it('exposes a synchronous redacted health snapshot', () => {
     const client = new PubgClient(config);
 

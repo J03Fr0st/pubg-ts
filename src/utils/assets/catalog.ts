@@ -78,7 +78,9 @@ export class AssetCatalog {
   private readonly itemSearchIndex: ItemSearchIndex<EnhancedItemInfo>;
 
   constructor(config: AssetCatalogConfig = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = {
+      assetBaseUrl: config?.assetBaseUrl ?? DEFAULT_CONFIG.assetBaseUrl,
+    };
 
     const allItems = ITEM_IDS.map((id) => this.getItemInfo(id)!);
     this.itemSearchIndex = createItemSearchIndex(allItems);
