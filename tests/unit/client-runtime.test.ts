@@ -1,11 +1,29 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { ClientRuntime } from '../../src/api/client-runtime';
-import { PubgConfigurationError, PubgNetworkError } from '../../src/errors';
+import {
+  PubgAuthenticationError,
+  PubgConfigurationError,
+  PubgNetworkError,
+  PubgNotFoundError,
+  PubgRateLimitError,
+} from '../../src/errors';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
-mockedAxios.get = jest.fn();
+Object.defineProperty(mockedAxios, 'defaults', {
+  configurable: true,
+  value: { adapter: jest.fn(), headers: { common: {} } },
+  writable: true,
+});
+mockedAxios.getAdapter = jest.fn();
+
+const resetAxiosMock = (): void => {
+  mockedAxios.create.mockReset();
+  mockedAxios.getAdapter.mockReset();
+  mockedAxios.getAdapter.mockReturnValue(jest.fn());
+  mockedAxios.create.mockReturnValue({ request: jest.fn() } as unknown as AxiosInstance);
+};
 
 const createResponse = <T>(
   data: T,
@@ -18,10 +36,24 @@ const createResponse = <T>(
   statusText: '200',
 });
 
+const createExternalError = (status?: number, code?: string) => ({
+  code,
+  config: { method: 'get', url: 'https://telemetry.test/match-1' },
+  message: status ? `Request failed with ${status}` : 'lookup failed',
+  ...(status
+    ? {
+        response: {
+          data: { errors: [{ detail: `Request failed with ${status}` }] },
+          headers: status === 429 ? { 'retry-after': '120' } : {},
+          status,
+        },
+      }
+    : {}),
+});
+
 describe('ClientRuntime isolation', () => {
   beforeEach(() => {
-    mockedAxios.create.mockReset();
-    mockedAxios.get.mockReset();
+    resetAxiosMock();
   });
 
   it('does not share cached responses between clients', async () => {
@@ -93,11 +125,7 @@ describe('ClientRuntime isolation', () => {
   });
 
   it('maps telemetry failures before recording one network failure', async () => {
-    const externalGet = jest.fn().mockRejectedValue({
-      code: 'ENOTFOUND',
-      config: { method: 'get', url: 'https://telemetry.test/match-1' },
-      message: 'lookup failed',
-    });
+    const externalGet = jest.fn().mockRejectedValue(createExternalError(undefined, 'ENOTFOUND'));
     const runtime = ClientRuntime.forTest({
       request: jest.fn(),
       externalGet,
@@ -114,6 +142,90 @@ describe('ClientRuntime isolation', () => {
       requests: { attempted: 1, succeeded: 0, failed: 1 },
     });
   });
+
+  it('preserves prior health when telemetry returns 404', async () => {
+    const externalGet = jest.fn().mockRejectedValue(createExternalError(404));
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn().mockResolvedValue(createResponse({ ok: true })),
+      externalGet,
+      now: () => new Date('2026-07-13T15:00:00.000Z'),
+    });
+
+    await runtime.get('/players', { useCache: false });
+    await expect(runtime.fetchTelemetry('https://telemetry.test/match-1')).rejects.toThrow(
+      PubgNotFoundError
+    );
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'healthy',
+      reason: 'request_succeeded',
+      requests: { attempted: 2, succeeded: 1, failed: 1 },
+    });
+  });
+
+  it('records telemetry 401 as an authentication failure', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn(),
+      externalGet: jest.fn().mockRejectedValue(createExternalError(401)),
+    });
+
+    await expect(runtime.fetchTelemetry('https://telemetry.test/match-1')).rejects.toThrow(
+      PubgAuthenticationError
+    );
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'unhealthy',
+      reason: 'authentication_failed',
+      statusCode: 401,
+    });
+  });
+
+  it('records telemetry 429 as a rate-limit failure', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn(),
+      externalGet: jest.fn().mockRejectedValue(createExternalError(429)),
+    });
+
+    await expect(runtime.fetchTelemetry('https://telemetry.test/match-1')).rejects.toThrow(
+      PubgRateLimitError
+    );
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'degraded',
+      reason: 'rate_limited',
+      statusCode: 429,
+    });
+  });
+
+  it('records telemetry 5xx as a server failure', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn(),
+      externalGet: jest.fn().mockRejectedValue(createExternalError(503)),
+    });
+
+    await expect(runtime.fetchTelemetry('https://telemetry.test/match-1')).rejects.toThrow(
+      PubgNetworkError
+    );
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'degraded',
+      reason: 'server_failed',
+      statusCode: 503,
+    });
+  });
+
+  it('does not recover upstream failure health after telemetry succeeds', async () => {
+    const runtime = ClientRuntime.forTest({
+      request: jest.fn().mockRejectedValue(createExternalError(401)),
+      externalGet: jest.fn().mockResolvedValue(createResponse([{ _T: 'LogMatchStart' }])),
+    });
+
+    await expect(runtime.get('/players', { useCache: false })).rejects.toThrow(
+      PubgAuthenticationError
+    );
+    await runtime.fetchTelemetry('https://telemetry.test/match-1');
+    expect(runtime.getHealth()).toMatchObject({
+      status: 'unhealthy',
+      reason: 'authentication_failed',
+      requests: { attempted: 2, succeeded: 1, failed: 1 },
+    });
+  });
 });
 
 describe('ClientRuntime construction', () => {
@@ -126,9 +238,7 @@ describe('ClientRuntime construction', () => {
   };
 
   beforeEach(() => {
-    mockedAxios.create.mockReset();
-    mockedAxios.get.mockReset();
-    mockedAxios.create.mockReturnValue({ request: jest.fn() } as unknown as AxiosInstance);
+    resetAxiosMock();
   });
 
   it('creates the authenticated Axios adapter with the default PUBG API URL', () => {
@@ -148,7 +258,7 @@ describe('ClientRuntime construction', () => {
   it('uses a custom PUBG API base URL', () => {
     new ClientRuntime({ ...config, baseUrl: 'https://custom.api.test' });
 
-    expect(mockedAxios.create).toHaveBeenLastCalledWith(
+    expect(mockedAxios.create).toHaveBeenCalledWith(
       expect.objectContaining({ baseURL: 'https://custom.api.test' })
     );
   });
@@ -172,19 +282,23 @@ describe('ClientRuntime construction', () => {
   });
 
   it('uses the no-auth external Axios adapter for telemetry', async () => {
-    mockedAxios.get.mockResolvedValue(createResponse([{ _T: 'LogMatchStart' }]));
+    const authenticatedRequest = jest.fn();
+    const telemetryRequest = jest.fn().mockResolvedValue(createResponse([{ _T: 'LogMatchStart' }]));
+    mockedAxios.create
+      .mockReturnValueOnce({ request: authenticatedRequest } as unknown as AxiosInstance)
+      .mockReturnValueOnce({ request: telemetryRequest } as unknown as AxiosInstance);
     const runtime = new ClientRuntime(config);
 
     await runtime.fetchTelemetry('https://telemetry.test/match-1');
 
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      'https://telemetry.test/match-1',
+    expect(authenticatedRequest).not.toHaveBeenCalled();
+    expect(telemetryRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: { Accept: 'application/json' },
         method: 'get',
         url: 'https://telemetry.test/match-1',
       })
     );
-    expect(mockedAxios.get.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization');
+    expect(telemetryRequest.mock.calls[0][0].headers).not.toHaveProperty('Authorization');
   });
 });

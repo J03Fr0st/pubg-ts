@@ -1,5 +1,11 @@
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { PubgConfigurationError } from '../errors';
+import axios, {
+  type AxiosAdapter,
+  AxiosHeaders,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
+import { PubgApiError, PubgConfigurationError, PubgNetworkError } from '../errors';
 import type { PubgClientConfig } from '../types/api';
 import { MemoryCache } from '../utils/cache';
 import { logger } from '../utils/logger';
@@ -27,6 +33,46 @@ interface TransactionRuntimeDependencies {
   deduplicator: RequestDeduplicator;
   recordOutcome: (outcome: RequestOutcome) => void;
 }
+
+const createTelemetryAdapter = (): AxiosAdapter => {
+  const adapter = axios.getAdapter(axios.defaults.adapter);
+
+  return (config) => {
+    const headers = AxiosHeaders.from(config.headers);
+    headers.delete('Authorization');
+    return adapter({ ...config, headers });
+  };
+};
+
+const createProductionTelemetryGet = (): RuntimeExternalGetFunction => {
+  let telemetryClient: AxiosInstance | undefined;
+
+  return <T>(url: string, config?: AxiosRequestConfig) => {
+    telemetryClient ??= axios.create({ adapter: createTelemetryAdapter() });
+    return telemetryClient.request<T>({ ...config, method: 'get', url });
+  };
+};
+
+const telemetryOutcomeFor = (error: unknown): RequestOutcome => {
+  const contextStatus =
+    error instanceof PubgNetworkError ? error.context.metadata?.statusCode : undefined;
+  const statusCode =
+    typeof contextStatus === 'number'
+      ? contextStatus
+      : error instanceof PubgApiError
+        ? error.statusCode
+        : undefined;
+
+  if (statusCode === 401) return { kind: 'authentication_failed', statusCode: 401 };
+  if (statusCode === 429) return { kind: 'rate_limited', statusCode: 429 };
+  if (statusCode === 400 || statusCode === 404) {
+    return { kind: 'request_rejected', statusCode };
+  }
+  if (typeof statusCode === 'number' && statusCode >= 500) {
+    return { kind: 'server_failed', statusCode };
+  }
+  return { kind: 'network_failed' };
+};
 
 const validateConfig = (config: PubgClientConfig): void => {
   if (!config.apiKey || typeof config.apiKey !== 'string') {
@@ -98,7 +144,7 @@ const createTransactionRunner = (
   return new HttpTransactionRunner({
     ...dependencies,
     config,
-    externalGet: adapters.externalGet ?? ((url, requestConfig) => axios.get(url, requestConfig)),
+    externalGet: adapters.externalGet ?? createProductionTelemetryGet(),
     request: adapters.request ?? ((requestConfig) => axiosInstance!.request(requestConfig)),
   });
 };
@@ -168,7 +214,7 @@ export class ClientRuntime implements EndpointTransport {
       this.health.record({ kind: 'telemetry_succeeded' });
       return data;
     } catch (error) {
-      this.health.record({ kind: 'network_failed' });
+      this.health.record(telemetryOutcomeFor(error));
       throw error;
     }
   }
