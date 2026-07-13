@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUBG-TS Browser Compatibility Test</title>
+    <title>PUBG-TS Browser Capability Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,20 +54,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎮 PUBG-TS Browser Compatibility Test</h1>
-        <p>This page tests the browser compatibility of the PUBG-TS SDK after removing Node.js-specific dependencies.</p>
+        <h1>🎮 PUBG-TS Browser Capability Test</h1>
+        <p>Package artifacts are CommonJS for Node.js or bundler consumption. This page tests browser capabilities only.</p>
         
         <div id="test-results">
             <div class="test-result info">
-                <strong>🔄 Loading SDK...</strong>
+                <strong>🔄 Running browser capability checks...</strong>
             </div>
         </div>
         
         <div class="test-result info">
             <h2>📋 Test Summary</h2>
             <ul>
-                <li><strong>Asset Catalog:</strong> Local-only bundled asset data</li>
-                <li><strong>Removed:</strong> CLI tools, OpenTelemetry, Prometheus, Node.js scripts</li>
+                <li><strong>JavaScript:</strong> ES6 module scripts</li>
+                <li><strong>Web APIs:</strong> Fetch, performance, timers, and optional memory data</li>
+                <li><strong>SDK artifacts:</strong> Consume through Node.js or a bundler, not as native browser modules</li>
             </ul>
         </div>
     </div>
@@ -84,18 +85,16 @@
         }
 
         try {
-            // Test basic SDK imports
-            addResult('Testing basic SDK imports...', 'info');
-            const { AssetCatalog, PubgClient } = await import('./dist/index.js');
-            
-            // Test asset catalog
-            addResult('Testing asset catalog...', 'info');
-            const assets = new AssetCatalog();
-            const itemName = assets.getItemName('Item_Weapon_AK47_C');
-            addResult(`✅ Asset catalog working: ${itemName}`, 'success');
-            
-            // Test browser APIs
-            addResult('Testing browser APIs...', 'info');
+            addResult('✅ ES6 module scripts are supported', 'success');
+
+            addResult('Testing Fetch API...', 'info');
+            if (typeof window.fetch === 'function') {
+                addResult('✅ Fetch API available', 'success');
+            } else {
+                addResult('❌ Fetch API not available', 'error');
+            }
+
+            addResult('Testing browser performance and timer APIs...', 'info');
             if (window.performance) {
                 addResult('✅ Performance API available', 'success');
             } else {
@@ -118,15 +117,7 @@
                 addResult('⚠️ Memory API not available (limited in Chrome)', 'info');
             }
             
-            // Test core client
-            addResult('Testing core client...', 'info');
-            const client = new PubgClient({
-                apiKey: 'test-key',
-                shard: 'pc-na'
-            });
-            addResult('✅ Core client created successfully', 'success');
-            
-            addResult('🎉 All browser compatibility tests passed!', 'success');
+            addResult('🎉 Browser capability checks completed!', 'success');
             
         } catch (error) {
             addResult(`❌ Error during testing: ${error.message}`, 'error');
