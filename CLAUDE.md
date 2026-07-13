@@ -302,10 +302,9 @@ Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`, `monitor
 3. **Lint code**: `npm run lint` - Check for code quality issues
 
 ### When Adding New Features
-1. **Update monitoring**: Add metrics to `src/utils/monitoring.ts` for new operations
-2. **Add security validation**: Use `SecurityManager` for any user input processing
-3. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
-4. **Update assets**: Run `npm run sync-assets` if working with PUBG asset data
+1. **Add security validation**: Use `SecurityManager` for any user input processing
+2. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
+3. **Update assets**: Run `npm run sync-assets` if working with PUBG asset data
 
 ### When Modifying Services
 - **HTTP Client Integration**: All services use the shared `HttpClient` with automatic monitoring
@@ -352,9 +351,7 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 
 ### Utilities & Infrastructure
 - `src/utils/assets.ts` - AssetManager for zero-latency asset access
-- `src/utils/monitoring.ts` - Prometheus metrics and OpenTelemetry tracing
 - `src/utils/security.ts` - Input validation and threat detection
-- `src/utils/health-check.ts` - System health monitoring
 - `src/utils/cache.ts` - Memory caching with hit rate tracking
 
 ### Production Tools

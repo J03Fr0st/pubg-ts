@@ -66,8 +66,6 @@
         <div class="test-result info">
             <h2>📋 Test Summary</h2>
             <ul>
-                <li><strong>Monitoring System:</strong> Browser-compatible metrics collection</li>
-                <li><strong>Health Checks:</strong> Basic health monitoring without Node.js dependencies</li>
                 <li><strong>HTTP Client:</strong> Axios-based API client with browser performance timing</li>
                 <li><strong>Asset Management:</strong> Zero-latency asset data access</li>
                 <li><strong>Removed:</strong> CLI tools, OpenTelemetry, Prometheus, Node.js scripts</li>
@@ -89,19 +87,6 @@
         try {
             // Test basic SDK imports
             addResult('Testing basic SDK imports...', 'info');
-            
-            // Test monitoring system
-            addResult('Testing monitoring system...', 'info');
-            const { MonitoringSystem } = await import('./dist/utils/monitoring.js');
-            const monitor = new MonitoringSystem();
-            addResult('✅ Monitoring system loaded successfully', 'success');
-            
-            // Test health checking
-            addResult('Testing health checking...', 'info');
-            const { HealthChecker } = await import('./dist/utils/health-check.js');
-            const healthChecker = new HealthChecker();
-            const health = await healthChecker.isHealthy();
-            addResult(`✅ Health check completed: ${health ? 'Healthy' : 'Issues detected'}`, 'success');
             
             // Test HTTP client
             addResult('Testing HTTP client...', 'info');
