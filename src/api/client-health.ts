@@ -1,5 +1,7 @@
+/** Overall last-observed operability of a client runtime. */
 export type ClientHealthStatus = 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
 
+/** Stable, redacted reason for the most recent health transition. */
 export type ClientHealthReason =
   | 'not_observed'
   | 'request_succeeded'
@@ -8,6 +10,7 @@ export type ClientHealthReason =
   | 'network_failed'
   | 'server_failed';
 
+/** Terminal outcome of one logical request after retries and cache handling. */
 export type RequestOutcome =
   | { kind: 'request_succeeded' }
   | { kind: 'authentication_failed'; statusCode: 401 }
@@ -18,6 +21,7 @@ export type RequestOutcome =
   | { kind: 'cache_hit' }
   | { kind: 'telemetry_succeeded' };
 
+/** Redacted response-cache statistics included with a health snapshot. */
 export interface CacheHealthSnapshot {
   readonly size: number;
   readonly maxSize: number;
@@ -26,12 +30,14 @@ export interface CacheHealthSnapshot {
   readonly hitRate: number;
 }
 
+/** Redacted last-known rate-limit state included with a health snapshot. */
 export interface RateLimitHealthSnapshot {
   readonly remaining: number;
   readonly limit: number;
   readonly resetAt: string | null;
 }
 
+/** Synchronous, redacted view of client request health and runtime statistics. */
 export interface ClientHealth {
   readonly status: ClientHealthStatus;
   readonly reason: ClientHealthReason;
@@ -42,6 +48,7 @@ export interface ClientHealth {
   readonly rateLimit: RateLimitHealthSnapshot;
 }
 
+/** Reduces terminal request outcomes into client-local health state. */
 export class ClientHealthState {
   private status: ClientHealthStatus = 'unknown';
   private reason: ClientHealthReason = 'not_observed';
@@ -51,6 +58,7 @@ export class ClientHealthState {
 
   constructor(private readonly now: () => Date = () => new Date()) {}
 
+  /** Records one terminal logical request outcome and applies any health transition. */
   record(outcome: RequestOutcome): void {
     this.requests.attempted++;
     if (
@@ -71,6 +79,7 @@ export class ClientHealthState {
     this.transitionedAt = this.now().toISOString();
   }
 
+  /** Returns a synchronous, redacted copy of current health with the supplied runtime statistics. */
   snapshot(responseCache: CacheHealthSnapshot, rateLimit: RateLimitHealthSnapshot): ClientHealth {
     return {
       status: this.status,
