@@ -1,4 +1,5 @@
-import type { MatchesResponse, MatchQuery, MatchResponse } from '../../types';
+import { PubgNotFoundError, PubgValidationError } from '../../errors';
+import type { Asset, MatchesResponse, MatchQuery, MatchResponse, TelemetryData } from '../../types';
 import type { Shard } from '../../types/common';
 import {
   appendArrayFilter,
@@ -38,6 +39,26 @@ export class Matches {
   }
 
   /**
+   * Get the telemetry data for a match.
+   *
+   * @param matchId - The ID of the match whose telemetry to retrieve.
+   * @returns A promise that resolves with the match telemetry events.
+   * @throws {@link PubgNotFoundError} When the match has no telemetry asset.
+   * @throws {@link PubgValidationError} When the match has multiple or invalid telemetry assets.
+   * @example
+   * ```ts
+   * const telemetry = await pubg.matches.getTelemetry(
+   *   '01234567-89ab-cdef-0123-456789abcdef'
+   * );
+   * ```
+   */
+  async getTelemetry(matchId: string): Promise<TelemetryData> {
+    const match = await this.getMatch(matchId);
+    const telemetryUrl = this.getTelemetryUrl(matchId, match);
+    return this.transport.fetchTelemetry<TelemetryData>(telemetryUrl);
+  }
+
+  /**
    * Get a list of matches, with optional filtering and pagination.
    *
    * @param query - The query parameters to filter and paginate matches.
@@ -69,5 +90,37 @@ export class Matches {
     return this.transport.get<MatchesResponse>(
       appendQuery(shardPath(this.shard, '/matches'), params)
     );
+  }
+
+  private getTelemetryUrl(matchId: string, match: MatchResponse): string {
+    const candidates = (match.included ?? []).filter(
+      (entry): entry is Asset => entry.type === 'asset' && entry.attributes?.name === 'telemetry'
+    );
+
+    if (candidates.length === 0) {
+      throw new PubgNotFoundError(`No telemetry asset found for match ${matchId}`);
+    }
+
+    if (candidates.length !== 1) {
+      throw new PubgValidationError(`Expected one telemetry asset for match ${matchId}`);
+    }
+
+    const url = candidates[0].attributes?.URL;
+    if (typeof url !== 'string') {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    let protocol: string;
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    if (protocol !== 'https:') {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    return url;
   }
 }

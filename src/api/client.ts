@@ -7,7 +7,6 @@ import { Matches } from './services/matches';
 import { Players } from './services/players';
 import { Samples } from './services/samples';
 import { Seasons } from './services/seasons';
-import { TelemetryService } from './services/telemetry';
 
 export class PubgClient {
   private runtime: ClientRuntime;
@@ -17,7 +16,6 @@ export class PubgClient {
   public readonly seasons: Seasons;
   public readonly leaderboards: Leaderboards;
   public readonly samples: Samples;
-  public readonly telemetry: TelemetryService;
   public readonly assets: AssetManager;
 
   constructor(config: PubgClientConfig) {
@@ -28,7 +26,6 @@ export class PubgClient {
     this.seasons = new Seasons(this.runtime, config.shard);
     this.leaderboards = new Leaderboards(this.runtime, config.shard);
     this.samples = new Samples(this.runtime, config.shard);
-    this.telemetry = new TelemetryService(this.runtime);
     this.assets = new AssetManager();
   }
 

@@ -276,13 +276,10 @@ describe('J03Fr0st User Integration Tests', () => {
           (item) => item.type === 'asset' && item.attributes.name === 'telemetry'
         );
 
-        if (telemetryAsset?.attributes && 'URL' in telemetryAsset.attributes) {
-          const telemetryUrl = (telemetryAsset.attributes as any).URL;
-          console.log(`   Telemetry URL available: ${telemetryUrl.substring(0, 50)}...`);
-
+        if (telemetryAsset) {
           // Test telemetry data retrieval (first few events only)
           try {
-            const telemetryData = await client.telemetry.getTelemetryData(telemetryUrl);
+            const telemetryData = await client.matches.getTelemetry(matchId);
             console.log(`   Telemetry events: ${telemetryData.length}`);
 
             if (telemetryData.length > 0) {

@@ -20,7 +20,6 @@ describe('PubgClient', () => {
     expect(client.seasons).toBeInstanceOf(Seasons);
     expect(client.leaderboards).toBeInstanceOf(Leaderboards);
     expect(client.samples).toBeInstanceOf(Samples);
-    expect(client.telemetry).toBeDefined();
     expect(client.assets).toBeDefined();
   });
 
