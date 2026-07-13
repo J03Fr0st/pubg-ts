@@ -18,12 +18,15 @@ The project is structured as a library and published to npm as `@j03fr0st/pubg-t
 
 The project follows a service-based architecture. The main `PubgClient` class acts as a facade, providing access to various services, each responsible for a specific area of the PUBG API (e.g., players, matches, seasons).
 
-The `HttpClient` class is the core of the library, handling all the complexities of interacting with the PUBG API, including:
+Each `PubgClient` owns an internal `ClientRuntime`, which implements the `EndpointTransport` used by services. The runtime owns client-local request state and delegates transaction mechanics to `HttpTransactionRunner`, including:
 
 *   **Rate Limiting**: Implements a token bucket algorithm to avoid exceeding the API rate limits.
-*   **Caching**: Caches API responses to improve performance and reduce the number of requests.
-*   **Error Handling**: Provides custom error types for different API errors.
+*   **Caching**: Caches eligible API responses within that client instance.
+*   **Error Handling**: Maps transaction failures to the library's domain error types.
 *   **Retries**: Automatically retries failed requests with exponential backoff.
+*   **Health State**: Reduces real request outcomes into synchronous, redacted `PubgClient.getHealth()` snapshots.
+
+Match telemetry is fetched through `Matches.getTelemetry()` using the runtime's external transport path without authenticated headers or response caching.
 
 # Building and Running
 

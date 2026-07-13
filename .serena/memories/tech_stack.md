@@ -2,7 +2,7 @@
 
 - Runtime/package: Node.js >=18, npm >=8. Lockfile is `package-lock.json`; use npm commands unless user requests otherwise.
 - Language: TypeScript 5.9, `strict: true`, CommonJS modules, target ES2020, output `dist/`, declarations/source maps enabled.
-- HTTP: axios with a custom `HttpClient` wrapper; consumers should not bypass it for PUBG API endpoints unless the endpoint is explicitly external telemetry URL handling.
+- HTTP: axios behind a client-local `ClientRuntime`; services use its `EndpointTransport` boundary, while `HttpTransactionRunner` owns retry, response-cache, deduplication, rate-limit, and error-mapping mechanics. Match telemetry uses the runtime's unauthenticated external transport path.
 - Tests: Jest 30 with ts-jest, `testEnvironment: node`, setup in `tests/setup.ts`, test timeout 20s, `forceExit: true`.
 - ESM CLI deps (`chalk`, `inquirer`, `ora`) are mapped to local mocks in Jest even though no `src/cli` tree exists in current checkout.
 - Formatting/linting: Biome 2.3.6. Formatter uses 2 spaces, LF, line width 100, single quotes in JS/TS, trailing commas `es5`, semicolons always. Biome linter recommended rules; explicit `any` and non-null assertions are allowed.

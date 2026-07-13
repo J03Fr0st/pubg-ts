@@ -66,7 +66,6 @@
         <div class="test-result info">
             <h2>📋 Test Summary</h2>
             <ul>
-                <li><strong>HTTP Client:</strong> Axios-based API client with browser performance timing</li>
                 <li><strong>Asset Management:</strong> Zero-latency asset data access</li>
                 <li><strong>Removed:</strong> CLI tools, OpenTelemetry, Prometheus, Node.js scripts</li>
             </ul>
@@ -87,16 +86,6 @@
         try {
             // Test basic SDK imports
             addResult('Testing basic SDK imports...', 'info');
-            
-            // Test HTTP client
-            addResult('Testing HTTP client...', 'info');
-            const { HttpClient } = await import('./dist/api/http-client.js');
-            const config = {
-                apiKey: 'test-key',
-                shard: 'pc-na'
-            };
-            const httpClient = new HttpClient(config);
-            addResult('✅ HTTP client created successfully', 'success');
             
             // Test asset management
             addResult('Testing asset management...', 'info');
@@ -121,8 +110,8 @@
             
             // Test memory estimation
             addResult('Testing memory estimation...', 'info');
-            if ((window as any).performance?.memory) {
-                const memory = (window as any).performance.memory;
+            if (window.performance?.memory) {
+                const memory = window.performance.memory;
                 const percentage = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
                 addResult(`✅ Memory API available: ${percentage.toFixed(2)}% used`, 'success');
             } else {

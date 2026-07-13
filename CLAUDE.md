@@ -88,7 +88,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run security:fix` - Fix npm audit vulnerabilities automatically
 - `npm run perf:test` - Run performance testing and load validation
 - `npm run perf:profile` - Profile performance with Node.js profiler
-- `npm run health:check` - Check system health status including memory, connectivity, and event loop
 
 ### CLI Tool
 - `npx pubg-ts scaffold` - Create new PUBG TypeScript projects with templates
@@ -117,11 +116,10 @@ This is a TypeScript SDK for the PUBG API with a service-oriented architecture:
 **Service Layer (`src/api/services/`)**
 Each service corresponds to a major PUBG API endpoint:
 - `PlayersService` - Player data and statistics
-- `MatchesService` - Match details and history
+- `MatchesService` - Match details, history, and telemetry through `getTelemetry()`
 - `SeasonsService` - Season information
 - `LeaderboardsService` - Leaderboard data
 - `SamplesService` - Sample data for testing
-- `TelemetryService` - Match telemetry data
 
 **Runtime & Utilities (`src/api/`, `src/utils/`)**
 - `ClientRuntime` - Client-local request composition with response caching, rate limiting, request deduplication, and health state
@@ -206,8 +204,8 @@ Runtime health, security, and performance tools:
 
 ### Key Design Patterns
 - **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive HttpClient and configuration
-- **Caching Layer**: Transparent caching with configurable TTL
+- **Dependency Injection**: Services receive an `EndpointTransport` backed by the client-local runtime
+- **Caching Layer**: Transparent response caching within each client runtime
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
 - **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
