@@ -45,11 +45,6 @@
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
-  "browser": {
-    "./dist/utils/monitoring-node.js": "./dist/utils/monitoring.js",
-    "./dist/utils/health-check-node.js": "./dist/utils/health-check.js",
-    "./dist/utils/observability-node.js": "./dist/utils/observability.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/J03Fr0st/pubg-ts.git"
