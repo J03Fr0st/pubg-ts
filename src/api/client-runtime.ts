@@ -40,7 +40,9 @@ const createTelemetryAdapter = (): AxiosAdapter => {
   return (config) => {
     const headers = AxiosHeaders.from(config.headers);
     headers.delete('Authorization');
-    return adapter({ ...config, headers });
+    const telemetryConfig = { ...config, headers };
+    delete telemetryConfig.auth;
+    return adapter(telemetryConfig);
   };
 };
 
