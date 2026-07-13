@@ -68,9 +68,7 @@ async function advancedExample() {
 
       if (telemetryAsset) {
         console.log('📡 Getting telemetry data...');
-        const telemetryData = await client.telemetry.getTelemetryData(
-          telemetryAsset.attributes.URL
-        );
+        const telemetryData = await client.matches.getTelemetry(firstMatch.id);
 
         console.log(`✅ Telemetry events: ${telemetryData.length}`);
 
