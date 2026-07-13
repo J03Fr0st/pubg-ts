@@ -1,5 +1,5 @@
 import type { PubgClientConfig } from '../types/api';
-import { AssetManager } from '../utils/assets';
+import { AssetCatalog } from '../utils/assets/catalog';
 import type { ClientHealth } from './client-health';
 import { ClientRuntime } from './client-runtime';
 import { Leaderboards } from './services/leaderboards';
@@ -16,7 +16,7 @@ export class PubgClient {
   public readonly seasons: Seasons;
   public readonly leaderboards: Leaderboards;
   public readonly samples: Samples;
-  public readonly assets: AssetManager;
+  public readonly assets: AssetCatalog;
 
   constructor(config: PubgClientConfig) {
     this.runtime = new ClientRuntime(config);
@@ -26,7 +26,7 @@ export class PubgClient {
     this.seasons = new Seasons(this.runtime, config.shard);
     this.leaderboards = new Leaderboards(this.runtime, config.shard);
     this.samples = new Samples(this.runtime, config.shard);
-    this.assets = new AssetManager();
+    this.assets = new AssetCatalog({ assetBaseUrl: config.assetBaseUrl });
   }
 
   /** Returns a synchronous, redacted snapshot of this client's request health. */

@@ -1,4 +1,10 @@
 export { PubgClient } from './api/client';
+export type { ClientHealth, ClientHealthReason, ClientHealthStatus } from './api/client-health';
+export { Leaderboards } from './api/services/leaderboards';
+export { Matches } from './api/services/matches';
+export { Players } from './api/services/players';
+export { Samples } from './api/services/samples';
+export { Seasons } from './api/services/seasons';
 export * from './errors';
 export * from './types';
 export type {
@@ -41,12 +47,11 @@ export type {
   VehicleDictionary as AssetVehicleDictionary,
   VehicleId,
 } from './types/assets/vehicles';
-// Explicit re-exports from types/assets to avoid conflicts
 export type {
-  AssetConfig,
+  AssetCatalogConfig,
   EnhancedItemInfo,
   EnhancedSeasonInfo,
   EnhancedVehicleInfo,
   SurvivalTitleInfo,
-} from './utils/assets';
-export { AssetManager, assetManager } from './utils/assets';
+} from './utils/assets/catalog';
+export { AssetCatalog } from './utils/assets/catalog';

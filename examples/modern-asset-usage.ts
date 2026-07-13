@@ -1,4 +1,4 @@
-import { AssetManager } from '../src/utils/assets';
+import { AssetCatalog } from '../src';
 
 /**
  * Modern Asset Management Usage Examples
@@ -7,8 +7,8 @@ import { AssetManager } from '../src/utils/assets';
  * that provide zero-latency access to PUBG asset data.
  */
 
-async function modernAssetUsage() {
-  const assetManager = new AssetManager();
+function modernAssetUsage() {
+  const assets = new AssetCatalog();
 
   console.log('=== Modern Asset Management Examples ===\n');
 
@@ -18,23 +18,23 @@ async function modernAssetUsage() {
   console.log('📦 Item Management:');
 
   // Get user-friendly item names
-  const akName = assetManager.getItemName('Item_Weapon_AK47_C');
-  const m416Name = assetManager.getItemName('Item_Weapon_M416_C');
+  const akName = assets.getItemName('Item_Weapon_AK47_C');
+  const m416Name = assets.getItemName('Item_Weapon_M416_C');
   console.log(`  AK47: ${akName}`);
   console.log(`  M416: ${m416Name}`);
 
   // Get detailed item information
-  const akInfo = assetManager.getItemInfo('Item_Weapon_AK47_C');
+  const akInfo = assets.getItemInfo('Item_Weapon_AK47_C');
   if (akInfo) {
     console.log(`  ${akInfo.name} - Category: ${akInfo.category}, Type: ${akInfo.subcategory}`);
   }
 
   // Search for weapons
-  const weapons = assetManager.getItemsByCategory('weapon');
+  const weapons = assets.getItemsByCategory('weapon');
   console.log(`  Found ${weapons.length} weapons in database`);
 
   // Fuzzy search
-  const akWeapons = assetManager.searchItems('AK');
+  const akWeapons = assets.searchItems('AK');
   console.log(`  AK search results: ${akWeapons.map((w) => w.name).join(', ')}`);
 
   // ================================
@@ -42,8 +42,8 @@ async function modernAssetUsage() {
   // ================================
   console.log('\n🚗 Vehicle Information:');
 
-  const motorcycleName = assetManager.getVehicleName('BP_Motorbike_04_C');
-  const motorcycleInfo = assetManager.getVehicleInfo('BP_Motorbike_04_C');
+  const motorcycleName = assets.getVehicleName('BP_Motorbike_04_C');
+  const motorcycleInfo = assets.getVehicleInfo('BP_Motorbike_04_C');
 
   console.log(`  Vehicle: ${motorcycleName}`);
   if (motorcycleInfo) {
@@ -55,13 +55,13 @@ async function modernAssetUsage() {
   // ================================
   console.log('\n🗺️ Map Information:');
 
-  const erangelName = assetManager.getMapName('Erangel_Main');
-  const miramarName = assetManager.getMapName('Desert_Main');
+  const erangelName = assets.getMapName('Erangel_Main');
+  const miramarName = assets.getMapName('Desert_Main');
   console.log(`  Erangel: ${erangelName}`);
   console.log(`  Miramar: ${miramarName}`);
 
   // Get all available maps
-  const allMaps = assetManager.getAllMaps();
+  const allMaps = assets.getAllMaps();
   console.log(`  Available maps: ${allMaps.map((m) => m.name).join(', ')}`);
 
   // ================================
@@ -70,14 +70,14 @@ async function modernAssetUsage() {
   console.log('\n🏆 Season Information:');
 
   // Get seasons by platform
-  const pcSeasons = assetManager.getSeasonsByPlatform('PC');
-  const xboxSeasons = assetManager.getSeasonsByPlatform('XBOX');
+  const pcSeasons = assets.getSeasonsByPlatform('PC');
+  const xboxSeasons = assets.getSeasonsByPlatform('XBOX');
 
   console.log(`  PC Seasons: ${pcSeasons.length}`);
   console.log(`  Xbox Seasons: ${xboxSeasons.length}`);
 
   // Get current active season
-  const currentPcSeason = assetManager.getCurrentSeason('PC');
+  const currentPcSeason = assets.getCurrentSeason('PC');
   if (currentPcSeason) {
     console.log(`  Current PC Season: ${currentPcSeason.name}`);
     console.log(`  Is Active: ${currentPcSeason.isActive}`);
@@ -90,7 +90,7 @@ async function modernAssetUsage() {
 
   const ratings = [100, 500, 1000, 1500, 2000];
   ratings.forEach((rating) => {
-    const title = assetManager.getSurvivalTitle(rating);
+    const title = assets.getSurvivalTitle(rating);
     if (title) {
       console.log(`  Rating ${rating}: ${title.title} Level ${title.level}`);
     }
@@ -101,9 +101,9 @@ async function modernAssetUsage() {
   // ================================
   console.log('\n⚔️ Game Information:');
 
-  const damageCauser = assetManager.getDamageCauserName('Item_Weapon_AK47_C');
-  const damageType = assetManager.getDamageTypeCategory('Damage_Gun');
-  const gameMode = assetManager.getGameModeName('squad-fpp');
+  const damageCauser = assets.getDamageCauserName('Item_Weapon_AK47_C');
+  const damageType = assets.getDamageTypeCategory('Damage_Gun');
+  const gameMode = assets.getGameModeName('squad-fpp');
 
   console.log(`  Damage Causer: ${damageCauser}`);
   console.log(`  Damage Type: ${damageType}`);
@@ -114,8 +114,8 @@ async function modernAssetUsage() {
   // ================================
   console.log('\n🖼️ Asset URLs:');
 
-  const weaponIconUrl = assetManager.getWeaponAssetUrl('Item_Weapon_AK47_C', 'icon');
-  const vehicleImageUrl = assetManager.getVehicleAssetUrl('BP_Motorbike_04_C', 'image');
+  const weaponIconUrl = assets.getWeaponAssetUrl('Item_Weapon_AK47_C', 'icon');
+  const vehicleImageUrl = assets.getVehicleAssetUrl('BP_Motorbike_04_C', 'image');
 
   console.log(`  AK47 Icon: ${weaponIconUrl}`);
   console.log(`  Motorcycle Image: ${vehicleImageUrl}`);
@@ -125,7 +125,7 @@ async function modernAssetUsage() {
   // ================================
   console.log('\n📊 Asset Statistics:');
 
-  const stats = assetManager.getAssetStats();
+  const stats = assets.getAssetStats();
   console.log(`  Total Items: ${stats.totalItems}`);
   console.log(`  Total Vehicles: ${stats.totalVehicles}`);
   console.log(`  Total Maps: ${stats.totalMaps}`);
@@ -134,42 +134,33 @@ async function modernAssetUsage() {
     console.log(`    ${category}: ${count}`);
   });
 
-  // ================================
-  // Migration Examples
-  // ================================
-  console.log('\n🔄 Migration from Legacy Async Methods:');
-
-  // ❌ Old way (deprecated):
-  // const seasonInfo = await assetManager.getSeasonInfo('division.bro.official.pc-2018-01');
-  // const seasons = await assetManager.getSeasons();
-
-  // ✅ New way (recommended):
-  const allPcSeasons = assetManager.getSeasonsByPlatform('PC');
+  // Catalog data is local and synchronous.
+  const allPcSeasons = assets.getSeasonsByPlatform('PC');
   const specificSeason = allPcSeasons.find((s) => s.id === 'division.bro.official.pc-2018-01');
 
-  console.log('  ✅ Using synchronous methods for better performance');
+  console.log('\n  ✅ Using the local-only Asset Catalog');
   console.log(`  Found specific season: ${specificSeason ? 'Yes' : 'No'}`);
 
-  console.log('\n🎉 All asset operations completed synchronously with zero network latency!');
+  console.log('\n🎉 All asset operations completed synchronously from bundled data!');
 }
 
 // Error handling example
 function assetErrorHandling() {
-  const assetManager = new AssetManager();
+  const assets = new AssetCatalog();
 
   console.log('\n🛡️ Error Handling Examples:');
 
   // Handle non-existent items gracefully
-  const unknownItem = assetManager.getItemInfo('Item_NonExistent_C');
+  const unknownItem = assets.getItemInfo('Item_NonExistent_C');
   console.log(`  Unknown item result: ${unknownItem ? 'Found' : 'Not found (null)'}`);
 
   // Fallback for unknown IDs
-  const unknownItemName = assetManager.getItemName('Item_Unknown_C');
+  const unknownItemName = assets.getItemName('Item_Unknown_C');
   console.log(`  Unknown item name: ${unknownItemName}`); // Will be humanized
 
   // Safe platform handling
   try {
-    const invalidSeasons = assetManager.getSeasonsByPlatform('INVALID' as any);
+    const invalidSeasons = assets.getSeasonsByPlatform('INVALID' as any);
     console.log(`  Invalid platform result: ${invalidSeasons.length} seasons`);
   } catch (error) {
     console.log(`  Error handled: ${error}`);
@@ -178,7 +169,7 @@ function assetErrorHandling() {
 
 // Performance comparison
 function performanceComparison() {
-  const assetManager = new AssetManager();
+  const assets = new AssetCatalog();
 
   console.log('\n⚡ Performance Comparison:');
 
@@ -186,26 +177,22 @@ function performanceComparison() {
   const startSync = performance.now();
 
   for (let i = 0; i < 1000; i++) {
-    assetManager.getItemName('Item_Weapon_AK47_C');
-    assetManager.getMapName('Erangel_Main');
-    assetManager.getCurrentSeason('PC');
+    assets.getItemName('Item_Weapon_AK47_C');
+    assets.getMapName('Erangel_Main');
+    assets.getCurrentSeason('PC');
   }
 
   const endSync = performance.now();
   console.log(`  Synchronous (1000 operations): ${(endSync - startSync).toFixed(2)}ms`);
 
-  // Note: Async operations would require network requests and be much slower
-  console.log('  📈 Synchronous operations are 100x+ faster than network requests');
+  console.log('  📈 Catalog lookups use bundled local data');
 }
 
 // Run examples
 if (require.main === module) {
-  modernAssetUsage()
-    .then(() => {
-      assetErrorHandling();
-      performanceComparison();
-    })
-    .catch(console.error);
+  modernAssetUsage();
+  assetErrorHandling();
+  performanceComparison();
 }
 
 export { modernAssetUsage, assetErrorHandling, performanceComparison };

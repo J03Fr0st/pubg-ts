@@ -1,11 +1,12 @@
 import 'dotenv/config';
-import { assetManager, type ItemId, PubgClient, type VehicleId } from '../src/index';
+import { AssetCatalog, type ItemId, PubgClient, type VehicleId } from '../src/index';
 
-async function unifiedAssetsExample() {
+function unifiedAssetsExample() {
   const client = new PubgClient({
     apiKey: process.env.PUBG_API_KEY || 'your-api-key-here',
     shard: 'pc-na',
   });
+  const assets = new AssetCatalog({ assetBaseUrl: 'https://cdn.example.com/pubg' });
 
   console.log('=== PUBG Unified Assets Example ===\n');
 
@@ -125,27 +126,26 @@ async function unifiedAssetsExample() {
     });
   console.log();
 
-  // 10. Using the standalone asset manager
-  console.log('10. Standalone Asset Manager:');
-  const standaloneItemName = assetManager.getItemName('Item_Heal_FirstAid_C');
-  const standaloneVehicleName = assetManager.getVehicleName('BP_Pickup_06_C');
+  // 10. Using a standalone asset catalog
+  console.log('10. Standalone Asset Catalog:');
+  const standaloneItemName = assets.getItemName('Item_Heal_FirstAid_C');
+  const standaloneVehicleName = assets.getVehicleName('BP_Pickup_06_C');
 
   console.log(`  FirstAid name: ${standaloneItemName}`);
   console.log(`  Pickup truck name: ${standaloneVehicleName}`);
   console.log();
 
   console.log('=== Unified Assets Example Complete ===');
-  console.log('\n✨ Benefits of Unified Asset Manager:');
-  console.log('  - Zero network requests (all data is local by default)');
+  console.log('\n✨ Benefits of the Asset Catalog:');
+  console.log('  - Bundled local data for synchronous lookups');
   console.log('  - Full TypeScript type safety with IntelliSense');
   console.log('  - Enhanced search and filtering capabilities');
   console.log('  - Comprehensive PUBG asset coverage');
-  console.log('  - Backward compatibility with existing APIs');
-  console.log('  - Single unified interface for all asset operations');
-  console.log('  - Performance caching and smart categorization');
+  console.log('  - One catalog interface for all asset operations');
+  console.log('  - Derived-data caching and smart categorization');
 }
 
 // Example usage (uncomment to run):
-// unifiedAssetsExample().catch(console.error);
+// unifiedAssetsExample();
 
 export { unifiedAssetsExample };

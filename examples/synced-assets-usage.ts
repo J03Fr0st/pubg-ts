@@ -1,11 +1,12 @@
 import 'dotenv/config';
-import { assetManager, type ItemId, PubgClient, type VehicleId } from '../src/index';
+import { AssetCatalog, type ItemId, PubgClient, type VehicleId } from '../src/index';
 
-async function unifiedAssetsExample() {
+function unifiedAssetsExample() {
   const client = new PubgClient({
     apiKey: process.env.PUBG_API_KEY || 'your-api-key-here',
     shard: 'pc-na',
   });
+  const assets = new AssetCatalog();
 
   console.log('=== PUBG Unified Assets Example ===\n');
 
@@ -123,10 +124,10 @@ async function unifiedAssetsExample() {
   });
   console.log();
 
-  // 11. Using the standalone unified asset manager
-  console.log('11. Standalone Unified Asset Manager:');
-  const standaloneItemName = assetManager.getItemName('Item_Heal_FirstAid_C');
-  const standaloneMapName = assetManager.getMapName('Desert');
+  // 11. Using a standalone local catalog
+  console.log('11. Standalone Asset Catalog:');
+  const standaloneItemName = assets.getItemName('Item_Heal_FirstAid_C');
+  const standaloneMapName = assets.getMapName('Desert');
 
   console.log(`  FirstAid name: ${standaloneItemName}`);
   console.log(`  Desert map name: ${standaloneMapName}`);
@@ -134,7 +135,7 @@ async function unifiedAssetsExample() {
 
   console.log('=== Unified Assets Example Complete ===');
   console.log('\n✨ Benefits of Unified Assets:');
-  console.log('  - Zero network requests (all data is local)');
+  console.log('  - Bundled local data for synchronous lookups');
   console.log('  - Full TypeScript type safety');
   console.log('  - Comprehensive PUBG asset coverage');
   console.log('  - Enhanced search and filtering capabilities');
@@ -142,6 +143,6 @@ async function unifiedAssetsExample() {
 }
 
 // Example usage (uncomment to run):
-// unifiedAssetsExample().catch(console.error);
+// unifiedAssetsExample();
 
 export { unifiedAssetsExample };
