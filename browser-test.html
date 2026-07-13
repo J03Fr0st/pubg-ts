@@ -66,7 +66,7 @@
         <div class="test-result info">
             <h2>📋 Test Summary</h2>
             <ul>
-                <li><strong>Asset Management:</strong> Zero-latency asset data access</li>
+                <li><strong>Asset Catalog:</strong> Local-only bundled asset data</li>
                 <li><strong>Removed:</strong> CLI tools, OpenTelemetry, Prometheus, Node.js scripts</li>
             </ul>
         </div>
@@ -86,13 +86,13 @@
         try {
             // Test basic SDK imports
             addResult('Testing basic SDK imports...', 'info');
+            const { AssetCatalog, PubgClient } = await import('./dist/index.js');
             
-            // Test asset management
-            addResult('Testing asset management...', 'info');
-            const { AssetManager } = await import('./dist/utils/assets.js');
-            const assetManager = new AssetManager();
-            const itemName = assetManager.getItemName('Item_Weapon_AK47_C');
-            addResult(`✅ Asset management working: ${itemName}`, 'success');
+            // Test asset catalog
+            addResult('Testing asset catalog...', 'info');
+            const assets = new AssetCatalog();
+            const itemName = assets.getItemName('Item_Weapon_AK47_C');
+            addResult(`✅ Asset catalog working: ${itemName}`, 'success');
             
             // Test browser APIs
             addResult('Testing browser APIs...', 'info');
@@ -120,7 +120,6 @@
             
             // Test core client
             addResult('Testing core client...', 'info');
-            const { PubgClient } = await import('./dist/api/client.js');
             const client = new PubgClient({
                 apiKey: 'test-key',
                 shard: 'pc-na'

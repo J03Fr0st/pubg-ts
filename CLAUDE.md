@@ -78,9 +78,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run legacy:lint` - Lint with ESLint
 - `npm run legacy:lint:fix` - Fix ESLint issues
 
-### Asset Management
-- `npm run sync-assets` - Download and sync all PUBG assets from official repository
-- `npm run prebuild` - Automatically syncs assets before building (runs sync-assets)
+### Asset Catalog
+- Asset dictionaries are checked in and compiled into the local-only catalog; there is no asset sync or prebuild command.
+- `assetBaseUrl` controls generated image URLs only and never changes catalog data.
 
 ### Production Readiness
 - `npm run security:audit` - Run comprehensive security audit with vulnerability scanning
@@ -127,17 +127,18 @@ Each service corresponds to a major PUBG API endpoint:
 - `RateLimiter` - Token bucket rate limiting implementation
 - `Cache` - Memory-based caching with TTL and size limits
 - `Logger` - Debug logging with namespaces (`pubg-ts:*`)
-- `AssetManager` - Unified asset management system with zero-latency access to all PUBG assets
+- `AssetCatalog` - Local-only bundled asset lookup and generated image URLs
 - `SecurityManager` - Input validation, sanitization, and threat detection
 
-**Asset Management System (`src/utils/assets.ts`)**
-The unified AssetManager provides comprehensive access to all PUBG assets:
-- **Zero-latency performance**: Uses locally synced data by default (no network requests)
+**Asset Catalog (`src/utils/assets/catalog.ts`)**
+`AssetCatalog`, also available as `PubgClient.assets`, provides local access to bundled PUBG data:
+- **Local-only lookups**: Items, vehicles, maps, seasons, survival titles, and dictionaries are read synchronously from checked-in data
 - **Full TypeScript type safety**: All asset IDs are typed with union types for IntelliSense
 - **Enhanced search capabilities**: Fuzzy search, category filtering, and metadata enhancement
 - **Complete asset coverage**: Items, vehicles, maps, seasons, survival titles, and dictionaries
-- **Backward compatibility**: Maintains async methods for legacy code
-- **Auto-synced data**: Assets are synced from official PUBG repository via `scripts/sync-assets.ts`
+- **URL configuration**: `AssetCatalogConfig.assetBaseUrl` changes generated image URLs only
+- **Private derived caches**: Callers cannot clear catalog caches, and no facade singleton is exported
+- **No remote syncing**: Builds and catalog construction do not download or synchronize asset data
 
 **Type Definitions (`src/types/`)**
 - Comprehensive TypeScript types for all API responses
@@ -168,14 +169,9 @@ The unified AssetManager provides comprehensive access to all PUBG assets:
 - Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
 
-### Asset Synchronization
-The project includes a comprehensive asset synchronization system:
-
-**Sync Script (`scripts/sync-assets.ts`)**
-- Downloads 15+ asset types from the official PUBG repository
-- Generates TypeScript types automatically for type safety
-- Creates local JSON files for zero-latency access
-- Run with: `npm run sync-assets` (when script is added to package.json)
+### Bundled Asset Data
+`AssetCatalog` consumes the checked-in JSON under `src/assets/` and the checked-in types under
+`src/types/assets/`. The current package has no runtime fetch, sync command, or prebuild sync hook.
 
 **Generated Assets (`src/assets/`)**
 - `seasons.json` - All season data by platform
@@ -227,14 +223,9 @@ Runtime health, security, and performance tools:
 - Client-local runtime health snapshots without global monitors or background health timers
 - Security hardening with input validation and threat detection
 
-### Asset Synchronization
-The project includes a comprehensive asset synchronization system:
-
-**Sync Script (`scripts/sync-assets.ts`)**
-- Downloads 15+ asset types from the official PUBG repository
-- Generates TypeScript types automatically for type safety
-- Creates local JSON files for zero-latency access
-- Automatically runs before builds (`npm run prebuild`)
+### Asset Catalog Data
+Catalog lookups always use bundled local data. `assetBaseUrl` is only a prefix for generated image
+URLs; the catalog owns private derived caches and exposes neither a singleton nor cache clearing.
 
 **Generated Assets (`src/assets/`)**
 - `seasons.json` - All season data by platform
@@ -282,13 +273,13 @@ Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
 
 ### Before Making Changes
 1. **Run full test suite**: `npm test` - Ensure all 191 tests pass
-2. **Check build**: `npm run build` - Automatically syncs assets and compiles
+2. **Check build**: `npm run build` - Compile TypeScript and bundled asset data
 3. **Lint code**: `npm run lint` - Check for code quality issues
 
 ### When Adding New Features
 1. **Add security validation**: Use `SecurityManager` for any user input processing
 2. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
-3. **Update assets**: Run `npm run sync-assets` if working with PUBG asset data
+3. **Update assets intentionally**: Verify the data-generation source before changing checked-in asset files or types
 
 ### When Modifying Services
 - **Transport Integration**: Services use the client runtime through the `EndpointTransport` boundary
@@ -297,10 +288,10 @@ Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
 - **Rate Limiting**: Respect the client-local rate limiter across all services
 
 ### Working with Assets
-- **Local First**: Use `AssetManager` synchronous methods for zero-latency access
+- **Local Only**: Use `AssetCatalog` through the package root or `client.assets` for synchronous bundled-data lookups
 - **Type Safety**: All asset IDs have union types - use `ItemId`, `VehicleId`, `MapId`
 - **Fuzzy Search**: Built-in search capabilities via `fuse.js` integration
-- **Sync Required**: Run `npm run sync-assets` to update with latest PUBG data
+- **Configuration**: Use `assetBaseUrl` only to configure generated image URLs; derived caches remain private
 
 ### CLI Development
 The CLI tool (`src/cli/`) provides scaffolding and asset management:
@@ -311,7 +302,7 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 ### Performance Considerations
 - **Runtime Health**: Use synchronous `getHealth()` snapshots for request, cache, and rate-limit state
 - **Caching Strategy**: TTL-based with size limits; inspect `getHealth().responseCache` for redacted statistics
-- **Asset Performance**: Local assets preferred over network calls
+- **Asset Performance**: Catalog lookups use bundled local data without remote asset calls
 
 ### Security Guidelines
 - **Input Validation**: All user inputs must go through `SecurityManager`
@@ -323,7 +314,7 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - **Runtime Health**: Inspect each `PubgClient` through synchronous `getHealth()` snapshots
 - **Performance Testing**: Run `npm run perf:test` for load validation
 - **Security Validation**: Run `npm run security:check` before deployment
-- **Asset Sync**: Ensure assets are synced with `npm run sync-assets`
+- **Asset Data**: No deployment-time sync is required; the package ships its bundled catalog data
 
 ## Important File Locations
 
@@ -334,14 +325,13 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - `src/api/services/` - Individual API service implementations
 
 ### Utilities & Infrastructure
-- `src/utils/assets.ts` - AssetManager for zero-latency asset access
+- `src/utils/assets/catalog.ts` - Local-only `AssetCatalog` and `AssetCatalogConfig`
 - `src/utils/security.ts` - Input validation and threat detection
 - `src/utils/cache.ts` - Memory caching with hit rate tracking
 
 ### Production Tools
 - `scripts/performance-test.ts` - Load testing and memory profiling
 - `scripts/security-audit.ts` - Comprehensive security scanning
-- `scripts/sync-assets.ts` - Asset synchronization from PUBG repository
 
 ### Generated Code (Do Not Edit Manually)
 - `src/types/assets/` - Auto-generated TypeScript types for assets
