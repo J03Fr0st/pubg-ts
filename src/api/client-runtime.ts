@@ -95,32 +95,42 @@ const validateConfig = (config: PubgClientConfig): void => {
     );
   }
 
-  if (config.timeout && (typeof config.timeout !== 'number' || config.timeout <= 0)) {
+  if (
+    config.timeout !== undefined &&
+    (typeof config.timeout !== 'number' || !Number.isFinite(config.timeout) || config.timeout <= 0)
+  ) {
     throw new PubgConfigurationError(
-      'Timeout must be a positive number',
+      'Timeout must be a positive finite number',
       'timeout',
-      'positive number',
+      'positive finite number',
       config.timeout
     );
   }
 
   if (
-    config.retryAttempts &&
-    (typeof config.retryAttempts !== 'number' || config.retryAttempts < 0)
+    config.retryAttempts !== undefined &&
+    (typeof config.retryAttempts !== 'number' ||
+      !Number.isFinite(config.retryAttempts) ||
+      config.retryAttempts < 0)
   ) {
     throw new PubgConfigurationError(
-      'Retry attempts must be a non-negative number',
+      'Retry attempts must be a non-negative finite number',
       'retryAttempts',
-      'non-negative number',
+      'non-negative finite number',
       config.retryAttempts
     );
   }
 
-  if (config.retryDelay && (typeof config.retryDelay !== 'number' || config.retryDelay < 0)) {
+  if (
+    config.retryDelay !== undefined &&
+    (typeof config.retryDelay !== 'number' ||
+      !Number.isFinite(config.retryDelay) ||
+      config.retryDelay < 0)
+  ) {
     throw new PubgConfigurationError(
-      'Retry delay must be a non-negative number',
+      'Retry delay must be a non-negative finite number',
       'retryDelay',
-      'non-negative number',
+      'non-negative finite number',
       config.retryDelay
     );
   }
@@ -135,7 +145,7 @@ const createTransactionRunner = (
     ? undefined
     : axios.create({
         baseURL: config.baseUrl || 'https://api.pubg.com',
-        timeout: config.timeout || 10000,
+        timeout: config.timeout ?? 10000,
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
           Accept: 'application/vnd.api+json',

@@ -154,7 +154,7 @@ export class HttpTransactionRunner {
     const requestConfig = {
       ...config,
       method: 'get',
-      timeout: this.config.timeout || 10000,
+      timeout: this.config.timeout ?? 10000,
       url,
     };
 
@@ -200,7 +200,7 @@ export class HttpTransactionRunner {
   }
 
   private shouldRetry(error: any, attempt: number): boolean {
-    const retryAttempts = this.config.retryAttempts || 0;
+    const retryAttempts = this.config.retryAttempts ?? 0;
     const status = error.response?.status;
 
     return attempt <= retryAttempts && SERVER_RETRY_STATUSES.has(status);

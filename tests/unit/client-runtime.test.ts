@@ -384,6 +384,28 @@ describe('ClientRuntime construction', () => {
     );
   });
 
+  it.each([
+    0,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ])('rejects an invalid provided timeout: %p', (timeout) => {
+    expect(() => new ClientRuntime({ ...config, timeout })).toThrow(PubgConfigurationError);
+  });
+
+  it.each([
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ])('rejects non-finite retry attempts: %p', (retryAttempts) => {
+    expect(() => new ClientRuntime({ ...config, retryAttempts })).toThrow(PubgConfigurationError);
+  });
+
+  it.each([
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ])('rejects a non-finite retry delay: %p', (retryDelay) => {
+    expect(() => new ClientRuntime({ ...config, retryDelay })).toThrow(PubgConfigurationError);
+  });
+
   it('performs authenticated requests through the production Axios adapter', async () => {
     const request = jest.fn().mockResolvedValue(createResponse({ test: 'data' }));
     mockedAxios.create.mockReturnValue({ request } as unknown as AxiosInstance);
