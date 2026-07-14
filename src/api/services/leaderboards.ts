@@ -2,7 +2,7 @@ import type { LeaderboardQuery } from '../../types/api';
 import type { Shard } from '../../types/common';
 import type { LeaderboardResponse } from '../../types/leaderboard';
 import { appendPageParams, appendQuery, shardPath } from '../endpoint-query';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Leaderboards endpoint of the PUBG API.
@@ -11,10 +11,10 @@ import type { HttpClient } from '../http-client';
  * This service provides methods for retrieving leaderboard data.
  * It is accessible via the `pubg.leaderboards` property.
  */
-export class LeaderboardsService {
+export class Leaderboards {
   constructor(
-    private httpClient: HttpClient,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -40,6 +40,6 @@ export class LeaderboardsService {
       params
     );
 
-    return this.httpClient.get<LeaderboardResponse>(url);
+    return this.transport.get<LeaderboardResponse>(url);
   }
 }

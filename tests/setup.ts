@@ -20,16 +20,6 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-  // Clean up monitoring system if it exists
-  try {
-    const { monitoringSystem } = require('../src/utils/monitoring');
-    if (monitoringSystem && typeof monitoringSystem.cleanup === 'function') {
-      monitoringSystem.cleanup();
-    }
-  } catch (_error) {
-    // Ignore cleanup errors in tests
-  }
-
   // Wait for any pending promises/timers to complete
   await new Promise((resolve) => setTimeout(resolve, 50));
 });

@@ -1,22 +1,23 @@
 import 'dotenv/config';
-import { assetManager, PubgClient } from '../src/index';
+import { AssetCatalog, PubgClient } from '../src/index';
 
-async function assetExample() {
+function assetExample() {
   const client = new PubgClient({
     apiKey: process.env.PUBG_API_KEY || 'your-api-key-here',
     shard: 'pc-na',
   });
+  const assets = new AssetCatalog({ assetBaseUrl: 'https://cdn.example.com/pubg' });
 
   try {
     console.log('=== PUBG Asset Management Example ===\n');
 
     // 1. Get user-friendly item names
     console.log('1. Item Names:');
-    const itemNames = await Promise.all([
+    const itemNames = [
       client.assets.getItemName('Item_Weapon_AK47_C'),
       client.assets.getItemName('Item_Weapon_M416_C'),
       client.assets.getItemName('Item_Heal_FirstAid_C'),
-    ]);
+    ];
 
     console.log('  AK47 ID -> ', itemNames[0]);
     console.log('  M416 ID -> ', itemNames[1]);
@@ -25,7 +26,7 @@ async function assetExample() {
 
     // 2. Get detailed item information
     console.log('2. Detailed Item Info:');
-    const ak47Info = await client.assets.getItemInfo('Item_Weapon_AK47_C');
+    const ak47Info = client.assets.getItemInfo('Item_Weapon_AK47_C');
     if (ak47Info) {
       console.log('  AK47 Details:');
       console.log('    Name:', ak47Info.name);
@@ -37,10 +38,10 @@ async function assetExample() {
 
     // 3. Get vehicle information
     console.log('3. Vehicle Names:');
-    const vehicleNames = await Promise.all([
+    const vehicleNames = [
       client.assets.getVehicleName('BP_Motorbike_04_C'),
       client.assets.getVehicleName('BP_Pickup_06_C'),
-    ]);
+    ];
 
     console.log('  Motorbike ID -> ', vehicleNames[0]);
     console.log('  Pickup ID -> ', vehicleNames[1]);
@@ -59,7 +60,7 @@ async function assetExample() {
 
     // 5. Season information
     console.log('5. Season Information:');
-    const currentSeason = await client.assets.getCurrentSeason();
+    const currentSeason = client.assets.getCurrentSeason();
     if (currentSeason) {
       console.log('  Current Season:');
       console.log('    Name:', currentSeason.name);
@@ -74,14 +75,14 @@ async function assetExample() {
     console.log('6. Survival Titles:');
     const ratings = [1000, 1450, 1650, 1850];
     for (const rating of ratings) {
-      const title = await client.assets.getSurvivalTitle(rating);
+      const title = client.assets.getSurvivalTitle(rating);
       console.log(`  Rating ${rating} -> ${title?.title || 'No title'}`);
     }
     console.log();
 
-    // 7. Using the standalone asset manager
-    console.log('7. Standalone Asset Manager:');
-    const standaloneItemName = await assetManager.getItemName('Item_Weapon_SCAR-L_C');
+    // 7. Using a standalone asset catalog
+    console.log('7. Standalone Asset Catalog:');
+    const standaloneItemName = assets.getItemName('Item_Weapon_SCAR-L_C');
     console.log('  SCAR-L ID -> ', standaloneItemName);
     console.log();
 
@@ -89,7 +90,7 @@ async function assetExample() {
     console.log('8. Map Names:');
     const mapIds = ['Baltic', 'Desert', 'Savage', 'Tiger'];
     for (const mapId of mapIds) {
-      const mapName = await client.assets.getMapName(mapId);
+      const mapName = client.assets.getMapName(mapId);
       console.log(`  ${mapId} -> ${mapName}`);
     }
     console.log();
@@ -99,16 +100,15 @@ async function assetExample() {
     const unknownItems = ['Item_Weapon_Thompson_C', 'Item_Armor_Vest_05_C', 'BP_Van_02_C'];
 
     for (const item of unknownItems) {
-      const name = await client.assets.getItemName(item);
+      const name = client.assets.getItemName(item);
       console.log(`  ${item} -> ${name}`);
     }
     console.log();
 
-    // 10. Cache management
-    console.log('10. Cache Management:');
-    console.log('  Clearing asset cache...');
-    client.assets.clearCache();
-    console.log('  Cache cleared!');
+    // 10. Client response cache management
+    console.log('10. Response Cache Management:');
+    client.clearResponseCache();
+    console.log('  Client response cache cleared!');
     console.log();
 
     console.log('=== Asset Example Complete ===');
@@ -118,6 +118,6 @@ async function assetExample() {
 }
 
 // Example usage (uncomment to run):
-// assetExample().catch(console.error);
+// assetExample();
 
 export { assetExample };

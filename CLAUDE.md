@@ -78,9 +78,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run legacy:lint` - Lint with ESLint
 - `npm run legacy:lint:fix` - Fix ESLint issues
 
-### Asset Management
-- `npm run sync-assets` - Download and sync all PUBG assets from official repository
-- `npm run prebuild` - Automatically syncs assets before building (runs sync-assets)
+### Asset Catalog
+- Asset dictionaries are checked in and compiled into the local-only catalog; there is no asset sync or prebuild command.
+- `assetBaseUrl` controls generated image URLs only and never changes catalog data.
 
 ### Production Readiness
 - `npm run security:audit` - Run comprehensive security audit with vulnerability scanning
@@ -88,7 +88,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run security:fix` - Fix npm audit vulnerabilities automatically
 - `npm run perf:test` - Run performance testing and load validation
 - `npm run perf:profile` - Profile performance with Node.js profiler
-- `npm run health:check` - Check system health status including memory, connectivity, and event loop
 
 ### CLI Tool
 - `npx pubg-ts scaffold` - Create new PUBG TypeScript projects with templates
@@ -107,40 +106,39 @@ This is a TypeScript SDK for the PUBG API with a service-oriented architecture:
 **Main Client (`src/api/client.ts`)**
 - `PubgClient` - Main entry point that orchestrates all services
 - Provides unified access to all API endpoints through service instances
-- Handles configuration and provides utility methods for cache and rate limiting
+- Handles configuration and exposes client-local health and response-cache utilities
 
-**HTTP Layer (`src/api/http-client.ts`)**
-- `HttpClient` - Handles all HTTP communication with the PUBG API
-- Implements rate limiting (10 requests/minute default)
-- Provides automatic retries, caching, and error handling
-- Uses axios for HTTP requests with custom interceptors
+**Runtime Layer (`src/api/client-runtime.ts`, `src/api/http-transaction.ts`)**
+- `ClientRuntime` - Owns one client's cache, rate limiter, request deduplicator, and health state
+- `HttpTransactionRunner` - Handles retries, caching, error mapping, and authenticated/external requests
+- Uses axios for HTTP requests while keeping runtime state isolated per client
 
 **Service Layer (`src/api/services/`)**
 Each service corresponds to a major PUBG API endpoint:
 - `PlayersService` - Player data and statistics
-- `MatchesService` - Match details and history
+- `MatchesService` - Match details, history, and telemetry through `getTelemetry()`
 - `SeasonsService` - Season information
 - `LeaderboardsService` - Leaderboard data
 - `SamplesService` - Sample data for testing
-- `TelemetryService` - Match telemetry data
 
-**Utilities (`src/utils/`)**
+**Runtime & Utilities (`src/api/`, `src/utils/`)**
+- `ClientRuntime` - Client-local request composition with response caching, rate limiting, request deduplication, and health state
+- `PubgClient.getHealth()` - Synchronous, redacted request-health snapshot with response-cache and rate-limit state
 - `RateLimiter` - Token bucket rate limiting implementation
 - `Cache` - Memory-based caching with TTL and size limits
 - `Logger` - Debug logging with namespaces (`pubg-ts:*`)
-- `AssetManager` - Unified asset management system with zero-latency access to all PUBG assets
-- `MonitoringSystem` - Prometheus metrics collection and OpenTelemetry tracing
-- `HealthChecker` - System health monitoring with memory, connectivity, and event loop checks
+- `AssetCatalog` - Local-only bundled asset lookup and generated image URLs
 - `SecurityManager` - Input validation, sanitization, and threat detection
 
-**Asset Management System (`src/utils/assets.ts`)**
-The unified AssetManager provides comprehensive access to all PUBG assets:
-- **Zero-latency performance**: Uses locally synced data by default (no network requests)
+**Asset Catalog (`src/utils/assets/catalog.ts`)**
+`AssetCatalog`, also available as `PubgClient.assets`, provides local access to bundled PUBG data:
+- **Local-only lookups**: Items, vehicles, maps, seasons, survival titles, and dictionaries are read synchronously from checked-in data
 - **Full TypeScript type safety**: All asset IDs are typed with union types for IntelliSense
 - **Enhanced search capabilities**: Fuzzy search, category filtering, and metadata enhancement
 - **Complete asset coverage**: Items, vehicles, maps, seasons, survival titles, and dictionaries
-- **Backward compatibility**: Maintains async methods for legacy code
-- **Auto-synced data**: Assets are synced from official PUBG repository via `scripts/sync-assets.ts`
+- **URL configuration**: `AssetCatalogConfig.assetBaseUrl` changes generated image URLs only
+- **Private derived caches**: Callers cannot clear catalog caches, and no facade singleton is exported
+- **No remote syncing**: Builds and catalog construction do not download or synchronize asset data
 
 **Type Definitions (`src/types/`)**
 - Comprehensive TypeScript types for all API responses
@@ -153,8 +151,8 @@ The unified AssetManager provides comprehensive access to all PUBG assets:
 
 ### Key Design Patterns
 - **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive HttpClient and configuration
-- **Caching Layer**: Transparent caching with configurable TTL
+- **Dependency Injection**: Services receive an endpoint transport and configuration
+- **Caching Layer**: Transparent response caching within each client runtime
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
 - **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
@@ -171,14 +169,9 @@ The unified AssetManager provides comprehensive access to all PUBG assets:
 - Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
 
-### Asset Synchronization
-The project includes a comprehensive asset synchronization system:
-
-**Sync Script (`scripts/sync-assets.ts`)**
-- Downloads 15+ asset types from the official PUBG repository
-- Generates TypeScript types automatically for type safety
-- Creates local JSON files for zero-latency access
-- Run with: `npm run sync-assets` (when script is added to package.json)
+### Bundled Asset Data
+`AssetCatalog` consumes the checked-in JSON under `src/assets/` and the checked-in types under
+`src/types/assets/`. The current package has no runtime fetch, sync command, or prebuild sync hook.
 
 **Generated Assets (`src/assets/`)**
 - `seasons.json` - All season data by platform
@@ -198,21 +191,21 @@ Comprehensive command-line interface for development and project management:
 - **Asset Management**: Search, explore, and export PUBG assets with fuzzy search capabilities
 - **Development Setup**: Interactive configuration for API keys, testing, and linting
 
-**Production Features (`scripts/`, `src/utils/`)**
-Enterprise-ready monitoring, security, and performance tools:
+**Production Features (`scripts/`, `src/api/`, `src/utils/`)**
+Runtime health, security, and performance tools:
 - **Performance Testing**: Load testing with concurrent request validation and memory profiling
 - **Security Auditing**: Vulnerability scanning, dependency analysis, and code security validation
-- **Monitoring & Observability**: Prometheus metrics, OpenTelemetry tracing, and health checks
+- **Client Runtime Health**: Synchronous, redacted snapshots derived from each client's request outcomes, response cache, and rate limiter
 - **Input Security**: Validation, sanitization, and threat detection for all user inputs
 
 ### Key Design Patterns
 - **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive HttpClient and configuration
-- **Caching Layer**: Transparent caching with configurable TTL
+- **Dependency Injection**: Services receive an `EndpointTransport` backed by the client-local runtime
+- **Caching Layer**: Transparent response caching within each client runtime
 - **Rate Limiting**: Built-in rate limiting to respect API limits
 - **Error Mapping**: HTTP errors mapped to domain-specific error types
 - **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
-- **Monitoring Integration**: HTTP client automatically tracks metrics and distributed tracing
+- **Runtime Health**: Client-local request outcomes feed synchronous, redacted health snapshots
 - **Security Hardening**: All inputs validated and sanitized at entry points
 
 ### Testing Strategy
@@ -227,17 +220,12 @@ Enterprise-ready monitoring, security, and performance tools:
 - Jest for testing with TypeScript support
 - Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
-- Production monitoring with Prometheus and OpenTelemetry
+- Client-local runtime health snapshots without global monitors or background health timers
 - Security hardening with input validation and threat detection
 
-### Asset Synchronization
-The project includes a comprehensive asset synchronization system:
-
-**Sync Script (`scripts/sync-assets.ts`)**
-- Downloads 15+ asset types from the official PUBG repository
-- Generates TypeScript types automatically for type safety
-- Creates local JSON files for zero-latency access
-- Automatically runs before builds (`npm run prebuild`)
+### Asset Catalog Data
+Catalog lookups always use bundled local data. `assetBaseUrl` is only a prefix for generated image
+URLs; the catalog owns private derived caches and exposes neither a singleton nor cache clearing.
 
 **Generated Assets (`src/assets/`)**
 - `seasons.json` - All season data by platform
@@ -251,27 +239,14 @@ The project includes a comprehensive asset synchronization system:
 - `seasons.ts` - Season data interfaces and platform types
 - `enums.ts` - Game mode, damage type, and other enumerations
 
-### Production Monitoring
-The system includes comprehensive monitoring and observability:
+### Client Runtime Health
+Each `PubgClient` owns a `ClientRuntime`; request state is not shared across client instances.
 
-**Metrics Collection**
-- HTTP request/response timing and status codes
-- Cache hit/miss rates and performance
-- Rate limiting events and throttling
-- Memory usage and garbage collection
-- Event loop lag monitoring
-
-**Distributed Tracing**
-- OpenTelemetry integration with automatic span creation
-- Request correlation across service boundaries
-- Performance bottleneck identification
-- Detailed operation timing
-
-**Health Checks**
-- System resource monitoring (memory, CPU)
-- API connectivity validation
-- Event loop responsiveness
-- Custom health check support
+**Health Snapshot (`getHealth()`)**
+- Returns synchronously with redacted status, reason, transition time, and request counts
+- Includes response-cache size, capacity, hits, misses, and hit rate
+- Includes the last-known rate-limit remaining count, limit, and reset time
+- Reflects real request and telemetry outcomes without synthetic checks, background timers, or environment-specific monitoring variants
 
 ### Security Features
 Built-in security hardening and validation:
@@ -292,32 +267,31 @@ Built-in security hardening and validation:
 
 ### Debug Logging
 Enable debug logging with `DEBUG=pubg-ts:*` environment variable.
-Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`, `monitoring`, `security`.
+Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
 
 ## Development Workflow
 
 ### Before Making Changes
 1. **Run full test suite**: `npm test` - Ensure all 191 tests pass
-2. **Check build**: `npm run build` - Automatically syncs assets and compiles
+2. **Check build**: `npm run build` - Compile TypeScript and bundled asset data
 3. **Lint code**: `npm run lint` - Check for code quality issues
 
 ### When Adding New Features
-1. **Update monitoring**: Add metrics to `src/utils/monitoring.ts` for new operations
-2. **Add security validation**: Use `SecurityManager` for any user input processing
-3. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
-4. **Update assets**: Run `npm run sync-assets` if working with PUBG asset data
+1. **Add security validation**: Use `SecurityManager` for any user input processing
+2. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
+3. **Update assets intentionally**: Verify the data-generation source before changing checked-in asset files or types
 
 ### When Modifying Services
-- **HTTP Client Integration**: All services use the shared `HttpClient` with automatic monitoring
+- **Transport Integration**: Services use the client runtime through the `EndpointTransport` boundary
 - **Error Handling**: Throw appropriate error types from `src/errors/`
-- **Caching**: Use the built-in cache for expensive operations
-- **Rate Limiting**: Respect the shared rate limiter across all services
+- **Caching**: Use the client-local response cache for eligible requests
+- **Rate Limiting**: Respect the client-local rate limiter across all services
 
 ### Working with Assets
-- **Local First**: Use `AssetManager` synchronous methods for zero-latency access
+- **Local Only**: Use `AssetCatalog` through the package root or `client.assets` for synchronous bundled-data lookups
 - **Type Safety**: All asset IDs have union types - use `ItemId`, `VehicleId`, `MapId`
 - **Fuzzy Search**: Built-in search capabilities via `fuse.js` integration
-- **Sync Required**: Run `npm run sync-assets` to update with latest PUBG data
+- **Configuration**: Use `assetBaseUrl` only to configure generated image URLs; derived caches remain private
 
 ### CLI Development
 The CLI tool (`src/cli/`) provides scaffolding and asset management:
@@ -326,10 +300,9 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - **Binary**: Available as `npx pubg-ts` after build
 
 ### Performance Considerations
-- **Monitoring Built-in**: HTTP client automatically tracks all metrics
-- **Caching Strategy**: TTL-based with size limits, check stats with `getCacheStats()`
-- **Asset Performance**: Local assets preferred over network calls
-- **Memory Management**: Health checker monitors memory usage and event loop
+- **Runtime Health**: Use synchronous `getHealth()` snapshots for request, cache, and rate-limit state
+- **Caching Strategy**: TTL-based with size limits; inspect `getHealth().responseCache` for redacted statistics
+- **Asset Performance**: Catalog lookups use bundled local data without remote asset calls
 
 ### Security Guidelines
 - **Input Validation**: All user inputs must go through `SecurityManager`
@@ -338,29 +311,27 @@ The CLI tool (`src/cli/`) provides scaffolding and asset management:
 - **Audit Compliance**: Use `npm run security:audit` for comprehensive security analysis
 
 ### Production Deployment
-- **Health Monitoring**: Use `npm run health:check` to verify system status
+- **Runtime Health**: Inspect each `PubgClient` through synchronous `getHealth()` snapshots
 - **Performance Testing**: Run `npm run perf:test` for load validation
 - **Security Validation**: Run `npm run security:check` before deployment
-- **Asset Sync**: Ensure assets are synced with `npm run sync-assets`
+- **Asset Data**: No deployment-time sync is required; the package ships its bundled catalog data
 
 ## Important File Locations
 
 ### Core Architecture
 - `src/api/client.ts` - Main PubgClient entry point
-- `src/api/http-client.ts` - HTTP layer with monitoring integration
+- `src/api/client-runtime.ts` - Client-local runtime composition and health snapshots
+- `src/api/http-transaction.ts` - HTTP transaction, retry, cache, and error-mapping mechanics
 - `src/api/services/` - Individual API service implementations
 
 ### Utilities & Infrastructure
-- `src/utils/assets.ts` - AssetManager for zero-latency asset access
-- `src/utils/monitoring.ts` - Prometheus metrics and OpenTelemetry tracing
+- `src/utils/assets/catalog.ts` - Local-only `AssetCatalog` and `AssetCatalogConfig`
 - `src/utils/security.ts` - Input validation and threat detection
-- `src/utils/health-check.ts` - System health monitoring
 - `src/utils/cache.ts` - Memory caching with hit rate tracking
 
 ### Production Tools
 - `scripts/performance-test.ts` - Load testing and memory profiling
 - `scripts/security-audit.ts` - Comprehensive security scanning
-- `scripts/sync-assets.ts` - Asset synchronization from PUBG repository
 
 ### Generated Code (Do Not Edit Manually)
 - `src/types/assets/` - Auto-generated TypeScript types for assets

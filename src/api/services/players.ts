@@ -8,7 +8,7 @@ import type {
 } from '../../types';
 import type { Shard } from '../../types/common';
 import { appendArrayFilter, appendQuery, shardPath } from '../endpoint-query';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 const MAX_PLAYER_STATS_BATCH_SIZE = 10;
 
@@ -27,10 +27,10 @@ const assertValidPlayerIdBatch = (playerIds: string[]): void => {
  * This service provides methods for retrieving player data, including season and lifetime stats.
  * It is accessible via the `pubg.players` property.
  */
-export class PlayersService {
+export class Players {
   constructor(
-    private httpClient: HttpClient,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class PlayersService {
     appendArrayFilter(params, 'filter[playerNames]', query.playerNames);
     appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
 
-    return this.httpClient.get<PlayersResponse>(
+    return this.transport.get<PlayersResponse>(
       appendQuery(shardPath(this.shard, '/players'), params)
     );
   }
@@ -101,7 +101,7 @@ export class PlayersService {
     const url = shardPath(this.shard, `/players/${query.playerId}/seasons/${query.seasonId}`);
     const params = query.gameMode ? `?filter[gameMode]=${query.gameMode}` : '';
 
-    return this.httpClient.get<PlayerSeasonStatsResponse>(`${url}${params}`);
+    return this.transport.get<PlayerSeasonStatsResponse>(`${url}${params}`);
   }
 
   /**
@@ -126,7 +126,7 @@ export class PlayersService {
     const params = new URLSearchParams();
     appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
 
-    return this.httpClient.get<PlayerSeasonStatsResponse>(
+    return this.transport.get<PlayerSeasonStatsResponse>(
       appendQuery(
         shardPath(this.shard, `/seasons/${query.seasonId}/gameMode/${query.gameMode}/players`),
         params
@@ -147,7 +147,7 @@ export class PlayersService {
   async getPlayerLifetimeStats(playerId: string): Promise<PlayerSeasonStatsResponse> {
     const url = shardPath(this.shard, `/players/${playerId}/seasons/lifetime`);
 
-    return this.httpClient.get<PlayerSeasonStatsResponse>(url);
+    return this.transport.get<PlayerSeasonStatsResponse>(url);
   }
 
   /**
@@ -171,7 +171,7 @@ export class PlayersService {
     const params = new URLSearchParams();
     appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
 
-    return this.httpClient.get<PlayerSeasonStatsResponse>(
+    return this.transport.get<PlayerSeasonStatsResponse>(
       appendQuery(
         shardPath(this.shard, `/seasons/lifetime/gameMode/${query.gameMode}/players`),
         params

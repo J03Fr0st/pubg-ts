@@ -45,16 +45,14 @@ async function basicExample() {
       });
     }
 
-    // Check rate limit status
-    const rateLimitStatus = client.getRateLimitStatus();
+    // Inspect client-local request health
+    const health = client.getHealth();
     console.log('⏱️  Rate limit:', {
-      remaining: rateLimitStatus.remaining,
-      resetIn: `${Math.ceil((rateLimitStatus.resetTime - Date.now()) / 1000)}s`,
+      remaining: health.rateLimit.remaining,
+      resetAt: health.rateLimit.resetAt,
     });
 
-    // Check cache statistics
-    const cacheStats = client.getCacheStats();
-    console.log('💾 Cache stats:', cacheStats);
+    console.log('💾 Response cache stats:', health.responseCache);
   } catch (error) {
     console.error('❌ Error:', error);
   }

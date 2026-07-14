@@ -24,7 +24,7 @@ describe('J03Fr0st User Integration Tests', () => {
   afterEach(() => {
     // Clear any caches to prevent resource leaks
     if (client) {
-      client.clearCache();
+      client.clearResponseCache();
     }
   });
 
@@ -276,13 +276,10 @@ describe('J03Fr0st User Integration Tests', () => {
           (item) => item.type === 'asset' && item.attributes.name === 'telemetry'
         );
 
-        if (telemetryAsset?.attributes && 'URL' in telemetryAsset.attributes) {
-          const telemetryUrl = (telemetryAsset.attributes as any).URL;
-          console.log(`   Telemetry URL available: ${telemetryUrl.substring(0, 50)}...`);
-
+        if (telemetryAsset) {
           // Test telemetry data retrieval (first few events only)
           try {
-            const telemetryData = await client.telemetry.getTelemetryData(telemetryUrl);
+            const telemetryData = await client.matches.getTelemetry(matchId);
             console.log(`   Telemetry events: ${telemetryData.length}`);
 
             if (telemetryData.length > 0) {
@@ -307,8 +304,8 @@ describe('J03Fr0st User Integration Tests', () => {
       }
 
       // Clear cache first
-      client.clearCache();
-      const initialStats = client.getCacheStats();
+      client.clearResponseCache();
+      const initialStats = client.getHealth().responseCache;
       expect(initialStats.size).toBe(0);
 
       // First lookup (should cache)
@@ -316,7 +313,7 @@ describe('J03Fr0st User Integration Tests', () => {
       await client.players.getPlayerByName(testPlayerName);
       const duration1 = Date.now() - startTime1;
 
-      const afterFirstCall = client.getCacheStats();
+      const afterFirstCall = client.getHealth().responseCache;
       expect(afterFirstCall.size).toBeGreaterThan(0);
 
       // Second lookup (should use cache)
@@ -337,31 +334,28 @@ describe('J03Fr0st User Integration Tests', () => {
     });
 
     it('should demonstrate rate limiting', async () => {
-      const initialStatus = client.getRateLimitStatus();
+      const initialStatus = client.getHealth().rateLimit;
 
       // Initially, no requests have been made so remaining should be at max
       expect(initialStatus.remaining).toBeGreaterThan(0);
-      // Reset time is 0 when no requests have been made (this is correct behavior)
-      expect(initialStatus.resetTime).toBe(0);
+      expect(initialStatus.resetAt).toBeNull();
 
       console.log(`✅ Initial rate limiting status:`);
       console.log(`   Requests remaining: ${initialStatus.remaining}`);
-      console.log(
-        `   Reset time: ${initialStatus.resetTime === 0 ? 'No active window' : new Date(initialStatus.resetTime).toISOString()}`
-      );
+      console.log(`   Reset time: ${initialStatus.resetAt ?? 'No active window'}`);
 
       // Make a request to trigger rate limiting tracking
       if (process.env.PUBG_API_KEY && process.env.PUBG_API_KEY !== 'test-api-key') {
         try {
           await client.seasons.getSeasons();
 
-          const afterRequestStatus = client.getRateLimitStatus();
+          const afterRequestStatus = client.getHealth().rateLimit;
           expect(afterRequestStatus.remaining).toBeLessThan(initialStatus.remaining);
-          expect(afterRequestStatus.resetTime).toBeGreaterThan(Date.now());
+          expect(Date.parse(afterRequestStatus.resetAt ?? '')).toBeGreaterThan(Date.now());
 
           console.log(`✅ Rate limiting status after request:`);
           console.log(`   Requests remaining: ${afterRequestStatus.remaining}`);
-          console.log(`   Reset time: ${new Date(afterRequestStatus.resetTime).toISOString()}`);
+          console.log(`   Reset time: ${afterRequestStatus.resetAt}`);
         } catch (error) {
           // If API request fails, that's okay - just test the status logic
           console.log(

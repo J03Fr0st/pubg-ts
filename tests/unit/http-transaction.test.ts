@@ -4,12 +4,12 @@ import {
   PubgAuthenticationError,
   PubgCacheError,
   PubgNetworkError,
+  PubgNotFoundError,
   PubgRateLimitError,
   PubgValidationError,
 } from '../../src/errors';
 import type { PubgClientConfig } from '../../src/types/api';
 import { MemoryCache } from '../../src/utils/cache';
-import type { ObservabilitySpan, RuntimeObservability } from '../../src/utils/observability';
 import { RateLimiter } from '../../src/utils/rate-limiter';
 import { RequestDeduplicator } from '../../src/utils/request';
 
@@ -26,66 +26,40 @@ const createResponse = <T>(
   statusText: String(status),
 });
 
-const createFakeObservability = () => {
-  const span: jest.Mocked<ObservabilitySpan> = {
-    end: jest.fn(),
-    recordException: jest.fn(),
-    setStatus: jest.fn(),
-  };
-
-  const observability: jest.Mocked<RuntimeObservability> = {
-    cleanup: jest.fn(),
-    getHealth: jest.fn(),
-    getMetrics: jest.fn(),
-    recordError: jest.fn(),
-    recordRequestMetrics: jest.fn(),
-    startSpan: jest.fn().mockReturnValue(span),
-    shutdown: jest.fn(),
-    updateCacheMetrics: jest.fn(),
-    updateConnectionMetrics: jest.fn(),
-    updateRateLimitMetrics: jest.fn(),
-  };
-
-  return { observability, span };
-};
+const createError = (status?: number, code?: string) => ({
+  code,
+  config: { method: 'get', url: '/players' },
+  message: status ? `Request failed with ${status}` : 'lookup failed',
+  ...(status
+    ? {
+        response: {
+          data: { errors: [{ detail: `Request failed with ${status}` }] },
+          headers: status === 429 ? { 'retry-after': '120' } : {},
+          status,
+        },
+      }
+    : {}),
+});
 
 const createRunner = (
   request: jest.Mock<Promise<AxiosResponse>, [AxiosRequestConfig]>,
-  overrides: Partial<PubgClientConfig> = {}
+  overrides: Partial<PubgClientConfig> = {},
+  dependencies: { cache?: MemoryCache; externalGet?: jest.Mock } = {}
 ) => {
-  const dependencies = createDependencies(request, overrides);
-  const runner = new HttpTransactionRunner(dependencies);
-
-  return { ...dependencies, runner };
-};
-
-const createDependencies = (
-  request: jest.Mock<Promise<AxiosResponse>, [AxiosRequestConfig]>,
-  overrides: Partial<PubgClientConfig> = {}
-) => {
-  const { observability, span } = createFakeObservability();
-  const rateLimiter = new RateLimiter(100, 60000);
+  const rateLimiter = new RateLimiter(100, 60_000);
   const waitForSlot = jest.spyOn(rateLimiter, 'waitForSlot');
-
-  const config: PubgClientConfig = {
-    apiKey: 'test-api-key',
-    retryAttempts: 0,
-    retryDelay: 0,
-    shard: 'pc-na',
-    timeout: 5000,
-    ...overrides,
-  };
-
-  return {
-    cache: new MemoryCache(),
-    config,
+  const recordOutcome = jest.fn();
+  const runner = new HttpTransactionRunner({
+    cache: dependencies.cache ?? new MemoryCache(),
+    config: { retryAttempts: 0, retryDelay: 0, timeout: 5000, ...overrides },
     deduplicator: new RequestDeduplicator(),
-    observability,
+    externalGet: dependencies.externalGet,
     rateLimiter,
+    recordOutcome,
     request,
-    span,
-    waitForSlot,
-  };
+  });
+
+  return { recordOutcome, runner, waitForSlot };
 };
 
 describe('HttpTransactionRunner', () => {
@@ -94,18 +68,19 @@ describe('HttpTransactionRunner', () => {
     jest.clearAllMocks();
   });
 
-  it('caches successful GET responses by URL and params', async () => {
+  it('caches successful GET responses and records the network success then cache hit', async () => {
     const request = jest.fn().mockResolvedValue(createResponse({ value: 'cached' }));
-    const { runner } = createRunner(request);
+    const { recordOutcome, runner } = createRunner(request);
     const config = { params: { playerNames: 'one' } };
 
     await expect(runner.get('/players', config)).resolves.toEqual({ value: 'cached' });
     await expect(runner.get('/players', config)).resolves.toEqual({ value: 'cached' });
 
     expect(request).toHaveBeenCalledTimes(1);
-    expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ method: 'get', url: '/players' })
-    );
+    expect(recordOutcome.mock.calls).toEqual([
+      [{ kind: 'request_succeeded' }],
+      [{ kind: 'cache_hit' }],
+    ]);
   });
 
   it('bypasses cache when useCache is false', async () => {
@@ -113,27 +88,27 @@ describe('HttpTransactionRunner', () => {
       .fn()
       .mockResolvedValueOnce(createResponse({ value: 'first' }))
       .mockResolvedValueOnce(createResponse({ value: 'second' }));
-    const { runner } = createRunner(request);
+    const { recordOutcome, runner } = createRunner(request);
 
     await expect(runner.get('/players', { useCache: false })).resolves.toEqual({ value: 'first' });
     await expect(runner.get('/players', { useCache: false })).resolves.toEqual({ value: 'second' });
 
     expect(request).toHaveBeenCalledTimes(2);
+    expect(recordOutcome).toHaveBeenCalledTimes(2);
   });
 
   it('deduplicates concurrent GET misses for the same cache key', async () => {
     let resolveRequest: (response: AxiosResponse) => void = () => {};
     const request: jest.Mock<Promise<AxiosResponse>, [AxiosRequestConfig]> = jest.fn(
-      (_config) =>
+      (_config: AxiosRequestConfig) =>
         new Promise<AxiosResponse>((resolve) => {
           resolveRequest = resolve;
         })
     );
-    const { runner } = createRunner(request);
+    const { recordOutcome, runner } = createRunner(request);
 
-    const first = runner.get('/players', { params: { playerNames: 'one' } });
-    const second = runner.get('/players', { params: { playerNames: 'one' } });
-
+    const first = runner.get('/players');
+    const second = runner.get('/players');
     await new Promise((resolve) => setImmediate(resolve));
     resolveRequest(createResponse({ value: 'shared' }));
 
@@ -142,129 +117,79 @@ describe('HttpTransactionRunner', () => {
       { value: 'shared' },
     ]);
     expect(request).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
   });
 
-  it('retries configured server errors with exponential backoff', async () => {
+  it('records only the final successful outcome after a retry', async () => {
     const request = jest
       .fn()
-      .mockRejectedValueOnce({
-        config: { method: 'get', url: '/players' },
-        message: 'Bad gateway',
-        response: { data: { errors: [{ detail: 'Bad gateway' }] }, status: 502 },
-      })
+      .mockRejectedValueOnce(createError(502))
       .mockResolvedValueOnce(createResponse({ value: 'retried' }));
-    const { runner } = createRunner(request, { retryAttempts: 2, retryDelay: 0 });
+    const { recordOutcome, runner, waitForSlot } = createRunner(request, {
+      retryAttempts: 2,
+      retryDelay: 0,
+    });
 
     await expect(runner.get('/players', { useCache: false })).resolves.toEqual({
       value: 'retried',
     });
 
     expect(request).toHaveBeenCalledTimes(2);
+    expect(waitForSlot).toHaveBeenCalledTimes(2);
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'request_succeeded' });
   });
 
-  it('preserves server error context after configured retries are exhausted', async () => {
-    const request = jest.fn().mockRejectedValue({
-      config: { method: 'get', url: '/players' },
-      message: 'Bad gateway',
-      response: { data: { errors: [{ detail: 'Bad gateway' }] }, status: 502 },
+  it('preserves error context and records one server failure after retries are exhausted', async () => {
+    const request = jest.fn().mockRejectedValue(createError(502));
+    const { recordOutcome, runner } = createRunner(request, {
+      retryAttempts: 2,
+      retryDelay: 0,
     });
-    const { runner } = createRunner(request, { retryAttempts: 2, retryDelay: 0 });
 
     await expect(runner.get('/players', { useCache: false })).rejects.toMatchObject({
       context: { metadata: { method: 'get', statusCode: 502, url: '/players' } },
       networkOperation: 'request',
     });
     expect(request).toHaveBeenCalledTimes(3);
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'server_failed', statusCode: 502 });
   });
 
-  it('maps response errors and records observability failure events', async () => {
-    const error = {
-      config: { method: 'get', url: '/players' },
-      message: 'Invalid request',
-      response: { data: { errors: [{ detail: 'Invalid request' }] }, status: 400 },
-    };
-    const request = jest.fn().mockRejectedValue(error);
-    const { observability, runner, span } = createRunner(request);
+  it.each([
+    [401, PubgAuthenticationError, { kind: 'authentication_failed', statusCode: 401 }],
+    [400, PubgValidationError, { kind: 'request_rejected', statusCode: 400 }],
+    [404, PubgNotFoundError, { kind: 'request_rejected', statusCode: 404 }],
+    [429, PubgRateLimitError, { kind: 'rate_limited', statusCode: 429 }],
+  ])('maps final HTTP %i errors and records their logical outcome', async (status, ErrorType, outcome) => {
+    const request = jest.fn().mockRejectedValue(createError(status as number));
+    const { recordOutcome, runner } = createRunner(request);
 
-    await expect(runner.get('/players', { useCache: false })).rejects.toThrow(PubgValidationError);
+    await expect(runner.get('/players', { useCache: false })).rejects.toBeInstanceOf(ErrorType);
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).toHaveBeenCalledWith(outcome);
+  });
 
-    expect(observability.recordRequestMetrics).toHaveBeenCalledWith(
-      expect.objectContaining({
-        endpoint: '/players',
-        error: true,
-        method: 'GET',
-        statusCode: 400,
-      })
+  it('maps network failures and records one network outcome', async () => {
+    const request = jest.fn().mockRejectedValue(createError(undefined, 'ENOTFOUND'));
+    const { recordOutcome, runner } = createRunner(request);
+
+    await expect(runner.get('/players', { useCache: false })).rejects.toThrow(PubgNetworkError);
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'network_failed' });
+  });
+
+  it('maps external network failures without recording a transaction outcome', async () => {
+    const externalGet = jest.fn().mockRejectedValue(createError(undefined, 'ETIMEDOUT'));
+    const { recordOutcome, runner } = createRunner(jest.fn(), {}, { externalGet });
+
+    await expect(runner.getExternal('https://telemetry.test/match')).rejects.toMatchObject({
+      networkOperation: 'timeout',
+    });
+    expect(externalGet).toHaveBeenCalledWith(
+      'https://telemetry.test/match',
+      expect.objectContaining({ method: 'get', timeout: 5000, url: 'https://telemetry.test/match' })
     );
-    expect(observability.recordError).toHaveBeenCalledWith(error, {
-      endpoint: '/players',
-      method: 'get',
-      statusCode: 400,
-    });
-    expect(span.recordException).toHaveBeenCalledWith(error);
-    expect(span.setStatus).toHaveBeenCalledWith({ code: 2, message: 'Invalid request' });
-    expect(span.end).toHaveBeenCalledTimes(1);
-  });
-
-  it('maps authentication, rate limit, and network failures', async () => {
-    const authRequest = jest.fn().mockRejectedValue({
-      config: { method: 'get', url: '/players' },
-      message: 'Unauthorized',
-      response: { data: { errors: [{ detail: 'Unauthorized' }] }, status: 401 },
-    });
-    const rateLimitRequest = jest.fn().mockRejectedValue({
-      config: { method: 'get', url: '/players' },
-      message: 'Too many requests',
-      response: {
-        data: { errors: [{ detail: 'Too many requests' }] },
-        headers: { 'retry-after': '120' },
-        status: 429,
-      },
-    });
-    const networkRequest = jest.fn().mockRejectedValue({
-      code: 'ENOTFOUND',
-      config: { method: 'get', url: '/players' },
-      message: 'lookup failed',
-    });
-
-    await expect(
-      createRunner(authRequest).runner.get('/players', { useCache: false })
-    ).rejects.toThrow(PubgAuthenticationError);
-    await expect(
-      createRunner(rateLimitRequest).runner.get('/players', { useCache: false })
-    ).rejects.toThrow(PubgRateLimitError);
-    await expect(
-      createRunner(networkRequest).runner.get('/players', { useCache: false })
-    ).rejects.toThrow(PubgNetworkError);
-  });
-
-  it('updates rate-limit metrics and records successful request metrics', async () => {
-    const request = jest
-      .fn()
-      .mockResolvedValue(
-        createResponse({ value: 'ok' }, 200, undefined, { 'x-ratelimit-remaining': '7' })
-      );
-    const { observability, runner, span, waitForSlot } = createRunner(request);
-
-    await expect(runner.get('/players', { useCache: false })).resolves.toEqual({ value: 'ok' });
-
-    expect(waitForSlot).toHaveBeenCalledTimes(1);
-    expect(observability.startSpan).toHaveBeenCalledWith('http_request', {
-      endpoint: '/players',
-      method: 'GET',
-      url: '/players',
-    });
-    expect(observability.recordRequestMetrics).toHaveBeenCalledWith(
-      expect.objectContaining({
-        endpoint: '/players',
-        error: false,
-        method: 'GET',
-        statusCode: 200,
-      })
-    );
-    expect(observability.updateRateLimitMetrics).toHaveBeenCalledWith(7);
-    expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
-    expect(span.end).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).not.toHaveBeenCalled();
   });
 
   it('throws cache get failures and ignores cache set failures', async () => {
@@ -272,11 +197,7 @@ describe('HttpTransactionRunner', () => {
     jest.spyOn(getFailureCache, 'get').mockImplementation(() => {
       throw new Error('get failed');
     });
-    const getFailureRunner = new HttpTransactionRunner({
-      ...createDependencies(jest.fn()),
-      cache: getFailureCache,
-    });
-
+    const getFailureRunner = createRunner(jest.fn(), {}, { cache: getFailureCache }).runner;
     await expect(getFailureRunner.get('/players')).rejects.toThrow(PubgCacheError);
 
     const setFailureCache = new MemoryCache();
@@ -284,12 +205,7 @@ describe('HttpTransactionRunner', () => {
       throw new Error('set failed');
     });
     const request = jest.fn().mockResolvedValue(createResponse({ value: 'ok' }));
-    const setFailureRunner = new HttpTransactionRunner({
-      ...createDependencies(request),
-      cache: setFailureCache,
-      request,
-    });
-
+    const setFailureRunner = createRunner(request, {}, { cache: setFailureCache }).runner;
     await expect(setFailureRunner.get('/players')).resolves.toEqual({ value: 'ok' });
   });
 });

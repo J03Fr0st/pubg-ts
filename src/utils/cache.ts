@@ -156,12 +156,6 @@ export class MemoryCache {
   }
 }
 
-// Global cache instance
-export const globalCache = new MemoryCache({
-  ttl: 5 * 60 * 1000, // 5 minutes
-  maxSize: 1000,
-});
-
 // Cache key generators
 export const createCacheKey = (prefix: string, ...parts: (string | number)[]): string => {
   return `${prefix}:${parts.join(':')}`;

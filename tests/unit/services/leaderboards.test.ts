@@ -1,23 +1,18 @@
-import type { HttpClient } from '../../../src/api/http-client';
-import { LeaderboardsService } from '../../../src/api/services/leaderboards';
+import type { EndpointTransport } from '../../../src/api/endpoint-transport';
+import { Leaderboards } from '../../../src/api/services/leaderboards';
 import type { LeaderboardResponse } from '../../../src/types';
 
-jest.mock('../../../src/api/http-client');
-
-describe('LeaderboardsService', () => {
-  let leaderboardsService: LeaderboardsService;
-  let mockHttpClient: jest.Mocked<HttpClient>;
+describe('Leaderboards', () => {
+  let leaderboards: Leaderboards;
+  let transport: jest.Mocked<EndpointTransport>;
 
   beforeEach(() => {
-    mockHttpClient = {
+    transport = {
       get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      getRateLimitStatus: jest.fn(),
-    } as any;
+      fetchTelemetry: jest.fn(),
+    };
 
-    leaderboardsService = new LeaderboardsService(mockHttpClient, 'pc-na');
+    leaderboards = new Leaderboards(transport, 'pc-na');
   });
 
   afterEach(() => {
@@ -43,29 +38,29 @@ describe('LeaderboardsService', () => {
         ],
       };
 
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue(mockResponse);
 
-      const result = await leaderboardsService.getLeaderboard({
+      const result = await leaderboards.getLeaderboard({
         seasonId: 'season-1',
         gameMode: 'squad',
       });
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith('/shards/pc-na/leaderboards/season-1/squad');
+      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/leaderboards/season-1/squad');
       expect(result).toEqual(mockResponse);
     });
 
     it('should get leaderboard with pagination', async () => {
       const mockResponse: LeaderboardResponse = { data: [] };
-      mockHttpClient.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue(mockResponse);
 
-      await leaderboardsService.getLeaderboard({
+      await leaderboards.getLeaderboard({
         seasonId: 'season-1',
         gameMode: 'squad',
         pageSize: 10,
         offset: 20,
       });
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
+      expect(transport.get).toHaveBeenCalledWith(
         '/shards/pc-na/leaderboards/season-1/squad?page%5Blimit%5D=10&page%5Boffset%5D=20'
       );
     });

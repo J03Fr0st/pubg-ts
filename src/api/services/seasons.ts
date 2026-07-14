@@ -1,6 +1,6 @@
 import type { SeasonsResponse } from '../../types';
 import type { Shard } from '../../types/common';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Seasons endpoint of the PUBG API.
@@ -9,10 +9,10 @@ import type { HttpClient } from '../http-client';
  * This service provides methods for retrieving season data.
  * It is accessible via the `pubg.seasons` property.
  */
-export class SeasonsService {
+export class Seasons {
   constructor(
-    private httpClient: HttpClient,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -26,7 +26,7 @@ export class SeasonsService {
    */
   async getSeasons(): Promise<SeasonsResponse> {
     const url = `/shards/${this.shard}/seasons`;
-    return this.httpClient.get<SeasonsResponse>(url);
+    return this.transport.get<SeasonsResponse>(url);
   }
 
   /**

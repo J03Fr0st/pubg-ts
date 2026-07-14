@@ -50,12 +50,14 @@ describe('API Integration Tests', () => {
 
   describe('Rate Limiting', () => {
     it('should track rate limit status', () => {
-      const status = client.getRateLimitStatus();
+      const status = client.getHealth().rateLimit;
 
       expect(status).toHaveProperty('remaining');
-      expect(status).toHaveProperty('resetTime');
+      expect(status).toHaveProperty('limit');
+      expect(status).toHaveProperty('resetAt');
       expect(typeof status.remaining).toBe('number');
-      expect(typeof status.resetTime).toBe('number');
+      expect(typeof status.limit).toBe('number');
+      expect(status.resetAt).toBeNull();
     });
   });
 });

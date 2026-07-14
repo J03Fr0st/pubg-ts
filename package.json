@@ -6,10 +6,12 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "MIGRATION.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
+    "clean": "node scripts/clean.js",
     "generate:types": "openapi-typescript ./api-documentation-content/swagger/openapi.yml --output ./src/types/pubg-api.d.ts",
     "generate:docs": "typedoc --out docs/api src/index.ts",
     "dev": "ts-node src/index.ts",
@@ -44,11 +46,6 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  },
-  "browser": {
-    "./dist/utils/monitoring-node.js": "./dist/utils/monitoring.js",
-    "./dist/utils/health-check-node.js": "./dist/utils/health-check.js",
-    "./dist/utils/observability-node.js": "./dist/utils/observability.js"
   },
   "repository": {
     "type": "git",

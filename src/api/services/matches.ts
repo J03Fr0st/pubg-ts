@@ -1,4 +1,5 @@
-import type { MatchesResponse, MatchQuery, MatchResponse } from '../../types';
+import { PubgNotFoundError, PubgValidationError } from '../../errors';
+import type { Asset, MatchesResponse, MatchQuery, MatchResponse, TelemetryData } from '../../types';
 import type { Shard } from '../../types/common';
 import {
   appendArrayFilter,
@@ -7,7 +8,7 @@ import {
   appendValue,
   shardPath,
 } from '../endpoint-query';
-import type { HttpClient } from '../http-client';
+import type { EndpointTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Matches endpoint of the PUBG API.
@@ -16,10 +17,10 @@ import type { HttpClient } from '../http-client';
  * This service provides methods for retrieving match data.
  * It is accessible via the `pubg.matches` property.
  */
-export class MatchesService {
+export class Matches {
   constructor(
-    private httpClient: HttpClient,
-    private shard: Shard
+    private readonly transport: EndpointTransport,
+    private readonly shard: Shard
   ) {}
 
   /**
@@ -34,7 +35,27 @@ export class MatchesService {
    */
   async getMatch(matchId: string): Promise<MatchResponse> {
     const url = shardPath(this.shard, `/matches/${matchId}`);
-    return this.httpClient.get<MatchResponse>(url);
+    return this.transport.get<MatchResponse>(url);
+  }
+
+  /**
+   * Get the telemetry data for a match.
+   *
+   * @param matchId - The ID of the match whose telemetry to retrieve.
+   * @returns A promise that resolves with the match telemetry events.
+   * @throws {@link PubgNotFoundError} When the match has no telemetry asset.
+   * @throws {@link PubgValidationError} When the match has multiple or invalid telemetry assets.
+   * @example
+   * ```ts
+   * const telemetry = await pubg.matches.getTelemetry(
+   *   '01234567-89ab-cdef-0123-456789abcdef'
+   * );
+   * ```
+   */
+  async getTelemetry(matchId: string): Promise<TelemetryData> {
+    const match = await this.getMatch(matchId);
+    const telemetryUrl = this.getTelemetryUrl(matchId, match);
+    return this.transport.fetchTelemetry<TelemetryData>(telemetryUrl);
   }
 
   /**
@@ -66,8 +87,40 @@ export class MatchesService {
       appendArrayFilter(params, 'filter[gameMode]', query.filter.gameMode);
     }
 
-    return this.httpClient.get<MatchesResponse>(
+    return this.transport.get<MatchesResponse>(
       appendQuery(shardPath(this.shard, '/matches'), params)
     );
+  }
+
+  private getTelemetryUrl(matchId: string, match: MatchResponse): string {
+    const candidates = (match.included ?? []).filter(
+      (entry): entry is Asset => entry.type === 'asset' && entry.attributes?.name === 'telemetry'
+    );
+
+    if (candidates.length === 0) {
+      throw new PubgNotFoundError(`No telemetry asset found for match ${matchId}`);
+    }
+
+    if (candidates.length !== 1) {
+      throw new PubgValidationError(`Expected one telemetry asset for match ${matchId}`);
+    }
+
+    const url = candidates[0].attributes?.URL;
+    if (typeof url !== 'string') {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    let protocol: string;
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    if (protocol !== 'https:') {
+      throw new PubgValidationError(`Invalid telemetry asset URL for match ${matchId}`);
+    }
+
+    return url;
   }
 }

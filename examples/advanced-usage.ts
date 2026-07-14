@@ -68,9 +68,7 @@ async function advancedExample() {
 
       if (telemetryAsset) {
         console.log('📡 Getting telemetry data...');
-        const telemetryData = await client.telemetry.getTelemetryData(
-          telemetryAsset.attributes.URL
-        );
+        const telemetryData = await client.matches.getTelemetry(firstMatch.id);
 
         console.log(`✅ Telemetry events: ${telemetryData.length}`);
 
@@ -130,8 +128,8 @@ async function rateLimitExample() {
   console.log(`✅ Successful requests: ${successful}`);
   console.log(`⏳ Rate limited requests: ${rateLimited}`);
 
-  const status = client.getRateLimitStatus();
-  console.log('📊 Current rate limit status:', status);
+  const health = client.getHealth();
+  console.log('📊 Current rate limit status:', health.rateLimit);
 }
 
 if (require.main === module) {

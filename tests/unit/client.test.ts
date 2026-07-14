@@ -1,49 +1,53 @@
 import { PubgClient } from '../../src/api/client';
+import { Leaderboards } from '../../src/api/services/leaderboards';
+import { Matches } from '../../src/api/services/matches';
+import { Players } from '../../src/api/services/players';
+import { Samples } from '../../src/api/services/samples';
+import { Seasons } from '../../src/api/services/seasons';
 import type { PubgClientConfig } from '../../src/types/api';
 
-jest.mock('../../src/api/http-client');
-
 describe('PubgClient', () => {
-  let client: PubgClient;
-  let config: PubgClientConfig;
+  const config: PubgClientConfig = {
+    apiKey: 'test-api-key',
+    shard: 'pc-na',
+  };
 
-  beforeEach(() => {
-    config = {
-      apiKey: 'test-api-key',
-      shard: 'pc-na',
-    };
+  it('initializes all endpoint services and assets', () => {
+    const client = new PubgClient(config);
 
-    client = new PubgClient(config);
+    expect(client.players).toBeInstanceOf(Players);
+    expect(client.matches).toBeInstanceOf(Matches);
+    expect(client.seasons).toBeInstanceOf(Seasons);
+    expect(client.leaderboards).toBeInstanceOf(Leaderboards);
+    expect(client.samples).toBeInstanceOf(Samples);
+    expect(client.assets).toBeDefined();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('uses the default PUBG asset URL when assetBaseUrl is omitted', () => {
+    const client = new PubgClient({ apiKey: 'x', shard: 'steam' });
+
+    expect(client.assets.getWeaponAssetUrl('Item_Weapon_AK47_C')).toBe(
+      'https://raw.githubusercontent.com/pubg/api-assets/master/assets/weapons/icons/Weapon_AK47.png'
+    );
   });
 
-  describe('constructor', () => {
-    it('should initialize all services', () => {
-      expect(client.players).toBeDefined();
-      expect(client.matches).toBeDefined();
-      expect(client.seasons).toBeDefined();
-      expect(client.leaderboards).toBeDefined();
-      expect(client.samples).toBeDefined();
-      expect(client.telemetry).toBeDefined();
+  it('exposes a synchronous redacted health snapshot', () => {
+    const client = new PubgClient(config);
+
+    expect(client.getHealth()).toEqual({
+      status: 'unknown',
+      reason: 'not_observed',
+      transitionedAt: null,
+      requests: { attempted: 0, succeeded: 0, failed: 0 },
+      responseCache: { size: 0, maxSize: 1000, hits: 0, misses: 0, hitRate: 0 },
+      rateLimit: { remaining: 10, limit: 10, resetAt: null },
     });
   });
 
-  describe('getRateLimitStatus', () => {
-    it('should return rate limit status', () => {
-      // Mock the HttpClient's getRateLimitStatus method
-      const mockStatus = { remaining: 10, resetTime: Date.now() + 60000 };
+  it('clears its response cache without exposing runtime internals', () => {
+    const client = new PubgClient(config);
 
-      // Access the private httpClient through any casting
-      (client as any).httpClient.getRateLimitStatus = jest.fn().mockReturnValue(mockStatus);
-
-      const status = client.getRateLimitStatus();
-
-      expect(status).toHaveProperty('remaining');
-      expect(status).toHaveProperty('resetTime');
-      expect(status.remaining).toBe(10);
-    });
+    expect(() => client.clearResponseCache()).not.toThrow();
+    expect(client.getHealth().responseCache.size).toBe(0);
   });
 });
