@@ -56,6 +56,8 @@ jobs:
       - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
         run: |
+          set -o pipefail
+
           node --input-type=module <<'NODE' | gh release create "v${RELEASE_VERSION}" \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
