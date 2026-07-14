@@ -32,6 +32,17 @@ function runNpm(npmExecPath: string, args: string[]): string {
   }
 }
 
+function parseNpmJson<T>(output: string): T {
+  const jsonStart = output.indexOf('[');
+  const jsonEnd = output.lastIndexOf(']');
+
+  if (jsonStart === -1 || jsonEnd < jsonStart) {
+    throw new Error(`npm did not produce a JSON array:\n${output}`);
+  }
+
+  return JSON.parse(output.slice(jsonStart, jsonEnd + 1)) as T;
+}
+
 describe('v2 release artifacts', () => {
   it('keeps the browser harness truthful and executable', () => {
     expect(browserHarness).not.toMatch(
@@ -66,7 +77,7 @@ describe('v2 release artifacts', () => {
     expect(existsSync(staleArtifact)).toBe(false);
 
     const output = runNpm(npmExecPath, ['pack', '--dry-run', '--json', '--ignore-scripts']);
-    const [pack] = JSON.parse(output) as Array<{ files: Array<{ path: string }> }>;
+    const [pack] = parseNpmJson<Array<{ files: Array<{ path: string }> }>>(output);
     const files = new Set(pack.files.map(({ path }) => path.split('\\').join('/')));
 
     for (const requiredArtifact of ['MIGRATION.md', 'dist/index.js', 'dist/index.d.ts']) {
