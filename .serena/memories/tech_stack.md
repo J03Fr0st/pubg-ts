@@ -1,12 +1,14 @@
 # Tech Stack
 
-- Runtime/package: Node.js >=18, npm >=8. Lockfile is `package-lock.json`; use npm commands unless user requests otherwise.
-- Language: TypeScript 5.9, `strict: true`, CommonJS modules, target ES2020, output `dist/`, declarations/source maps enabled.
-- HTTP: axios behind a client-local `ClientRuntime`; services use its `EndpointTransport` boundary, while `HttpTransactionRunner` owns retry, response-cache, deduplication, rate-limit, and error-mapping mechanics. Match telemetry uses the runtime's unauthenticated external transport path.
-- Tests: Jest 30 with ts-jest, `testEnvironment: node`, setup in `tests/setup.ts`, test timeout 20s, `forceExit: true`.
-- ESM CLI deps (`chalk`, `inquirer`, `ora`) are mapped to local mocks in Jest even though no `src/cli` tree exists in current checkout.
-- Formatting/linting: Biome 2.3.6. Formatter uses 2 spaces, LF, line width 100, single quotes in JS/TS, trailing commas `es5`, semicolons always. Biome linter recommended rules; explicit `any` and non-null assertions are allowed.
-- Legacy ESLint scripts remain but Biome is canonical for normal work.
-- Git hooks: Lefthook pre-commit runs `npx biome check --write {staged_files}` and related Jest tests for staged TS/JS files.
-- Docs/release: TypeDoc via `npm run generate:docs`; Changesets commands exist for versioning/publish.
-- Asset data is checked in and consumed by the local-only `AssetCatalog`; current `package.json` has no asset sync or prebuild hook. Other security, perf, health, CLI, and scripts claims in older guidance still require verification against the actual tree.
+- Runtime/package floor: Node.js >=18 and npm >=8. Use `package-lock.json` with `npm ci` for reproducible verification; CI tests Node 18, 20, 22, and 24, while maintenance and release jobs run Node 24.
+- Language: TypeScript 5.9 in strict mode, CommonJS modules, ES2020 target, Node module resolution, JSON imports, declarations, declaration maps, and source maps.
+- HTTP/runtime: axios powers authenticated PUBG requests and a separate authentication-stripping telemetry adapter. `ClientRuntime` composes `HttpTransactionRunner`, `MemoryCache`, `RateLimiter`, `RequestDeduplicator`, and `ClientHealthState` per client.
+- Assets: bundled JSON dictionaries/enums plus Fuse.js-backed local search. Builds do not fetch or synchronize asset data.
+- Validation/errors: validator utilities and typed `Pubg*Error` classes. Public error metadata must remain redacted; telemetry URLs and credentials must not leak through errors or health snapshots.
+- Tests: Jest 30 with ts-jest, Node environment, `tests/setup.ts`, 20-second timeout, forced exit, and local mocks for ESM-only CLI packages. Unit and integration suites have separate npm scripts.
+- Quality: Biome 2.3.6 is canonical. Formatting uses 2 spaces, LF, 100 columns, single quotes for JavaScript/TypeScript, ES5 trailing commas, and semicolons. Legacy ESLint scripts remain but are not CI gates.
+- Hooks: Lefthook formats/checks staged TS/JS/JSON with Biome and runs related Jest tests for staged TS/JS. `--no-errors-on-unmatched` keeps config/docs-only commits valid.
+- Documentation: TypeDoc generates API docs from `src/index.ts`; `CONTEXT.md`, `MIGRATION.md`, README, ADRs, designs, and specs are maintained source documents.
+- Release: Changesets versions and publishes the npm package. On a successful publish, `.github/workflows/release.yml` uses `gh release create` with the matching `CHANGELOG.md` section and generated comparison notes.
+- CI: `.github/workflows/ci.yml` runs lint, build, coverage, Codecov upload, `npm audit --audit-level=moderate`, and a full Biome check.
+- Serena: project name `pubg-ts`, TypeScript LSP backend, workspace root `.`, tracked project configuration/memories, and ignored `.serena/cache/` plus `.serena/logs/`.
