@@ -1,5 +1,11 @@
 # @j03fr0st/pubg-ts
 
+## 2.0.0
+
+### Major Changes
+
+- dd4eea5: Replace shared runtime state and shallow compatibility facades with client-local request state, synchronous Client Health, domain-named endpoint modules, Match Telemetry under Matches, and one local-only Asset Catalog. See MIGRATION.md for breaking changes.
+
 ## 1.1.0
 
 ### Minor Changes
