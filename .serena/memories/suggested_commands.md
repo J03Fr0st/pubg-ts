@@ -1,20 +1,33 @@
 # Suggested Commands
 
-- Install deps: `npm install`.
-- Build/package types: `npm run build`.
-- Run all tests: `npm test`.
-- Run unit tests only: `npm run test:unit`.
-- Run integration tests only: `npm run test:integration`. Treat as potentially external/API-dependent; inspect test env needs before assuming it is offline-safe.
-- Watch tests: `npm run test:watch`.
-- Coverage: `npm run test:coverage`.
-- Lint: `npm run lint`.
-- Format write: `npm run format`.
-- Combined Biome check: `npm run check`; write fixes with `npm run check:fix`.
-- Generate API docs: `npm run generate:docs`.
-- Generate OpenAPI types: `npm run generate:types`; expects `./api-documentation-content/swagger/openapi.yml` to exist.
-- Development entrypoint: `npm run dev`; it runs `ts-node src/index.ts`, which is a library export file, not a CLI app.
-- Prepare git hooks: `npm run prepare`.
-- Release flow scripts: `npm run changeset`, `npm run changeset:version`, `npm run changeset:publish`, `npm run release`.
-- Windows repo inspection: prefer `rg --files`, `rg "pattern"`, `Get-ChildItem`, `Get-Content`, and `Select-String`; paths are under `D:\Source\pubg-ts`.
-- Before staging in this repo, check dirty state with `git status --short --branch --untracked-files=all`; current onboarding created/uses `.serena/` files and the checkout may already have unrelated untracked files.
-- Do not run doc-mentioned commands that are absent from `package.json` (`sync-assets`, `security:*`, `perf:*`, `health:check`) without first verifying they were added.
+## Repository
+
+- Reproducible install: `npm ci`.
+- Build declarations/package output: `npm run build`.
+- Full test suite: `npm test`; coverage: `npm run test:coverage`.
+- Unit tests: `npm run test:unit`; integration tests: `npm run test:integration` (may require `PUBG_API_KEY` and external access).
+- Focus one test: `npx jest tests/unit/<file>.test.ts --runInBand`.
+- Lint: `npm run lint`; full non-writing Biome validation: `npm run check`.
+- Scoped fixes: `npm run lint:fix`; broad format/check writes: `npm run format` or `npm run check:fix` only when intended.
+- Dependency audit matching CI: `npm audit --audit-level=moderate`.
+- Inspect publish contents: `npm pack --dry-run --json`.
+- Generate TypeDoc output: `npm run generate:docs`.
+- Generate OpenAPI types only after confirming `api-documentation-content/swagger/openapi.yml` exists: `npm run generate:types`.
+- Changesets: `npm run changeset`, `npm run changeset:version`, and `npm run changeset:publish`.
+
+## Serena
+
+- Current CLI: `uvx --from git+https://github.com/oraios/serena serena --version`.
+- Refresh symbol index: `uvx --from git+https://github.com/oraios/serena serena project index .`.
+- Validate tools/LSP: `uvx --from git+https://github.com/oraios/serena serena project health-check .`.
+- Validate memory references: `uvx --from git+https://github.com/oraios/serena serena memories check .`.
+- Ensure memory layout: `uvx --from git+https://github.com/oraios/serena serena memories initialize .`.
+- On Windows, set `PYTHONUTF8=1` before Serena health/memory commands to avoid cp1252 failures when the CLI prints status symbols.
+
+## Git and inspection
+
+- Start/end with `git status --short --branch --untracked-files=all`.
+- Inspect tracked Serena docs with `git ls-files .serena` and ignored cache/logs with `git check-ignore -v .serena/cache .serena/logs`.
+- Use `rg --files`, `rg "pattern"`, `Get-Content`, and `Get-ChildItem` for Windows inspection.
+- Stage explicit paths, not the whole worktree. Run `git diff --cached --check` and inspect the staged diff before committing.
+- Hooks install through `npm run prepare`; do not bypass them unless the user explicitly directs it.
