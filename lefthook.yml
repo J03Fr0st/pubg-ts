@@ -3,7 +3,7 @@ pre-commit:
     biome-check:
       glob: "*.{ts,js,json}"
       exclude: ".claude/settings.local.json"
-      run: npx biome check --write {staged_files}
+      run: npx biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
     related-tests:
       glob: "*.{ts,js}"

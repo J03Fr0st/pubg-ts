@@ -19,14 +19,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20.x'
+          node-version: '24.x'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
@@ -47,6 +47,7 @@ jobs:
           version: npm run changeset:version
           title: 'chore: version packages'
           commit: 'chore: version packages'
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -54,11 +55,37 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ fromJson(steps.changesets.outputs.publishedPackages)[0].version }}
-          name: Release v${{ fromJson(steps.changesets.outputs.publishedPackages)[0].version }}
-          body: ${{ fromJson(steps.changesets.outputs.publishedPackages)[0].changelog }}
-          generate_release_notes: true
+        run: |
+          node --input-type=module <<'NODE' | gh release create "v${RELEASE_VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Release v${RELEASE_VERSION}" \
+            --notes-file - \
+            --generate-notes
+          import { readFileSync } from 'node:fs';
+
+          const lines = readFileSync('CHANGELOG.md', 'utf8').split(/\r?\n/);
+          const heading = `## ${process.env.RELEASE_VERSION}`;
+          const start = lines.indexOf(heading);
+
+          if (start === -1) {
+            throw new Error(`Missing ${heading} section in CHANGELOG.md`);
+          }
+
+          const nextHeading = lines.findIndex(
+            (line, index) => index > start && line.startsWith('## '),
+          );
+          const notes = lines
+            .slice(start + 1, nextHeading === -1 ? undefined : nextHeading)
+            .join('\n')
+            .trim();
+
+          if (!notes) {
+            throw new Error(`Empty ${heading} section in CHANGELOG.md`);
+          }
+
+          process.stdout.write(`${notes}\n`);
+          NODE
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          RELEASE_VERSION: ${{ fromJson(steps.changesets.outputs.publishedPackages)[0].version }}
