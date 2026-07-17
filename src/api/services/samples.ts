@@ -1,5 +1,6 @@
 import type { MatchesResponse, SamplesQuery } from '../../types';
 import type { Shard } from '../../types/common';
+import { endpointTarget } from '../endpoint-query';
 import type { EndpointTransport } from '../endpoint-transport';
 
 /**
@@ -30,19 +31,11 @@ export class Samples {
    * ```
    */
   async getSamples(query: SamplesQuery = {}): Promise<MatchesResponse> {
-    const params = new URLSearchParams();
-
-    if (query.createdAt?.start) {
-      params.append('filter[createdAt-start]', query.createdAt.start);
-    }
-
-    if (query.createdAt?.end) {
-      params.append('filter[createdAt-end]', query.createdAt.end);
-    }
-
-    const queryString = params.toString();
-    const url = `/shards/${this.shard}/samples${queryString ? `?${queryString}` : ''}`;
-
-    return this.transport.get<MatchesResponse>(url);
+    return this.transport.get<MatchesResponse>(
+      endpointTarget(this.shard, ['samples'], {
+        'filter[createdAt-start]': query.createdAt?.start,
+        'filter[createdAt-end]': query.createdAt?.end,
+      })
+    );
   }
 }

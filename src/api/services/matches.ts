@@ -1,14 +1,8 @@
 import { PubgNotFoundError, PubgValidationError } from '../../errors';
 import type { Asset, MatchesResponse, MatchQuery, MatchResponse, TelemetryData } from '../../types';
 import type { Shard } from '../../types/common';
-import {
-  appendArrayFilter,
-  appendPageParams,
-  appendQuery,
-  appendValue,
-  shardPath,
-} from '../endpoint-query';
-import type { EndpointTransport } from '../endpoint-transport';
+import { endpointTarget } from '../endpoint-query';
+import type { MatchTransport } from '../endpoint-transport';
 
 /**
  * Service for interacting with the Matches endpoint of the PUBG API.
@@ -19,7 +13,7 @@ import type { EndpointTransport } from '../endpoint-transport';
  */
 export class Matches {
   constructor(
-    private readonly transport: EndpointTransport,
+    private readonly transport: MatchTransport,
     private readonly shard: Shard
   ) {}
 
@@ -34,8 +28,7 @@ export class Matches {
    * ```
    */
   async getMatch(matchId: string): Promise<MatchResponse> {
-    const url = shardPath(this.shard, `/matches/${matchId}`);
-    return this.transport.get<MatchResponse>(url);
+    return this.transport.get<MatchResponse>(endpointTarget(this.shard, ['matches', matchId]));
   }
 
   /**
@@ -75,20 +68,16 @@ export class Matches {
    * ```
    */
   async getMatches(query: MatchQuery = {}): Promise<MatchesResponse> {
-    const params = new URLSearchParams();
-
-    appendPageParams(params, query);
-    appendValue(params, 'sort', query.sort);
-
-    if (query.filter) {
-      appendValue(params, 'filter[createdAt-start]', query.filter.createdAt?.start);
-      appendValue(params, 'filter[createdAt-end]', query.filter.createdAt?.end);
-      appendArrayFilter(params, 'filter[playerIds]', query.filter.playerIds);
-      appendArrayFilter(params, 'filter[gameMode]', query.filter.gameMode);
-    }
-
     return this.transport.get<MatchesResponse>(
-      appendQuery(shardPath(this.shard, '/matches'), params)
+      endpointTarget(this.shard, ['matches'], {
+        'page[limit]': query.pageSize,
+        'page[offset]': query.offset,
+        sort: query.sort,
+        'filter[createdAt-start]': query.filter?.createdAt?.start,
+        'filter[createdAt-end]': query.filter?.createdAt?.end,
+        'filter[playerIds]': query.filter?.playerIds,
+        'filter[gameMode]': query.filter?.gameMode,
+      })
     );
   }
 

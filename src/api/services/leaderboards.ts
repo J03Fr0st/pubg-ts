@@ -1,7 +1,7 @@
 import type { LeaderboardQuery } from '../../types/api';
 import type { Shard } from '../../types/common';
 import type { LeaderboardResponse } from '../../types/leaderboard';
-import { appendPageParams, appendQuery, shardPath } from '../endpoint-query';
+import { endpointTarget } from '../endpoint-query';
 import type { EndpointTransport } from '../endpoint-transport';
 
 /**
@@ -31,14 +31,10 @@ export class Leaderboards {
    * ```
    */
   async getLeaderboard(query: LeaderboardQuery): Promise<LeaderboardResponse> {
-    const params = new URLSearchParams();
-
-    appendPageParams(params, query);
-
-    const url = appendQuery(
-      shardPath(this.shard, `/leaderboards/${query.seasonId}/${query.gameMode}`),
-      params
-    );
+    const url = endpointTarget(this.shard, ['leaderboards', query.seasonId, query.gameMode], {
+      'page[limit]': query.pageSize,
+      'page[offset]': query.offset,
+    });
 
     return this.transport.get<LeaderboardResponse>(url);
   }

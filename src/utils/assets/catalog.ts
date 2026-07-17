@@ -7,7 +7,7 @@ import vehicleIdData from '../../assets/dictionaries/vehicle-id.json';
 import seasonsData from '../../assets/seasons.json';
 import survivalTitlesData from '../../assets/survival-titles.json';
 import { PubgAssetError, PubgConfigurationError } from '../../errors';
-import type { Platform } from '../../types/assets/seasons';
+import type { Platform, SeasonData } from '../../types/assets/seasons';
 import {
   buildAssetUrl,
   categorizeItem,
@@ -61,6 +61,17 @@ export interface SurvivalTitleInfo {
   description?: string;
 }
 
+interface SurvivalTitleData {
+  title: number;
+  levels: Array<{
+    level: number;
+    survivalPoints: string;
+    demotion: boolean;
+  }>;
+}
+
+type StableSeasonInfo = Omit<EnhancedSeasonInfo, 'isActive'>;
+
 const DEFAULT_CONFIG: Required<AssetCatalogConfig> = {
   assetBaseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
 };
@@ -69,12 +80,14 @@ const VALID_PLATFORMS: Platform[] = ['PC', 'XBOX', 'PS4', 'Stadia'];
 const ITEM_IDS = Object.keys(itemIdData);
 const VEHICLE_IDS = Object.keys(vehicleIdData);
 const MAP_ENTRIES = Object.entries(mapNameData as Record<string, string>);
+const SEASONS_BY_PLATFORM: Record<Platform, SeasonData[]> = seasonsData;
+const SURVIVAL_TITLES: Record<string, SurvivalTitleData> = survivalTitlesData;
 
 export class AssetCatalog {
   private readonly config: Required<AssetCatalogConfig>;
   private readonly itemCache: Map<string, EnhancedItemInfo> = new Map();
   private readonly vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
-  private readonly seasonCache: Map<string, EnhancedSeasonInfo[]> = new Map();
+  private readonly seasonCache: Map<Platform, StableSeasonInfo[]> = new Map();
   private readonly itemSearchIndex: ItemSearchIndex<EnhancedItemInfo>;
 
   constructor(config: AssetCatalogConfig = {}) {
@@ -190,23 +203,25 @@ export class AssetCatalog {
       );
     }
 
-    if (this.seasonCache.has(platform)) {
-      return this.seasonCache.get(platform)!;
+    let stableSeasons = this.seasonCache.get(platform);
+
+    if (!stableSeasons) {
+      stableSeasons = SEASONS_BY_PLATFORM[platform].map((season) => ({
+        id: season.id,
+        platform,
+        name: humanizeSeasonId(season.id),
+        startDate: season.attributes.startDate,
+        endDate: season.attributes.endDate,
+        isOffseason: season.attributes.endDate === '00-00-0000',
+      }));
+      this.seasonCache.set(platform, stableSeasons);
     }
 
-    const platformSeasons = (seasonsData as any)[platform] || [];
-    const enhancedSeasons: EnhancedSeasonInfo[] = platformSeasons.map((season: any) => ({
-      id: season.id,
-      platform,
-      name: humanizeSeasonId(season.id),
-      startDate: season.attributes.startDate,
-      endDate: season.attributes.endDate,
-      isActive: isSeasonActive(season.attributes.startDate, season.attributes.endDate),
-      isOffseason: season.attributes.endDate === '00-00-0000',
+    const now = new Date();
+    return stableSeasons.map((season) => ({
+      ...season,
+      isActive: isSeasonActive(season.startDate, season.endDate, now),
     }));
-
-    this.seasonCache.set(platform, enhancedSeasons);
-    return enhancedSeasons;
   }
 
   getCurrentSeason(platform: Platform = 'PC'): EnhancedSeasonInfo | null {
@@ -233,18 +248,15 @@ export class AssetCatalog {
       );
     }
 
-    for (const [titleName, titleData] of Object.entries(survivalTitlesData as any)) {
-      if (typeof titleData === 'object' && titleData !== null && (titleData as any).levels) {
-        const levels = (titleData as any).levels;
-        for (const levelInfo of levels) {
-          if (isRatingInRange(rating, levelInfo.survivalPoints)) {
-            return {
-              title: titleName,
-              level: levelInfo.level,
-              pointsRequired: levelInfo.survivalPoints,
-              description: `${titleName} Level ${levelInfo.level}`,
-            };
-          }
+    for (const [titleName, titleData] of Object.entries(SURVIVAL_TITLES)) {
+      for (const levelInfo of titleData.levels) {
+        if (isRatingInRange(rating, levelInfo.survivalPoints)) {
+          return {
+            title: titleName,
+            level: levelInfo.level,
+            pointsRequired: levelInfo.survivalPoints,
+            description: `${titleName} Level ${levelInfo.level}`,
+          };
         }
       }
     }

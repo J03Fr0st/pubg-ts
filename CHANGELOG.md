@@ -1,5 +1,11 @@
 # @j03fr0st/pubg-ts
 
+## 2.0.1
+
+### Patch Changes
+
+- Deepen endpoint target construction, request failure handling, Match Telemetry isolation, and time-dependent Asset Catalog season state.
+
 ## 2.0.0
 
 ### Major Changes

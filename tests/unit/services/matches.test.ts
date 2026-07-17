@@ -1,4 +1,4 @@
-import type { EndpointTransport } from '../../../src/api/endpoint-transport';
+import type { MatchTransport } from '../../../src/api/endpoint-transport';
 import { Matches } from '../../../src/api/services/matches';
 import { PubgNotFoundError, PubgValidationError } from '../../../src/errors';
 import type { Asset, MatchesResponse, MatchResponse, TelemetryData } from '../../../src/types';
@@ -44,7 +44,7 @@ const createTelemetryAsset = (id: string, URL: string): Asset => ({
 
 describe('Matches', () => {
   let matches: Matches;
-  let transport: jest.Mocked<EndpointTransport>;
+  let transport: jest.Mocked<MatchTransport>;
 
   beforeEach(() => {
     transport = {
@@ -69,6 +69,16 @@ describe('Matches', () => {
 
       expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/matches/match-1');
       expect(result).toEqual(mockResponse);
+    });
+
+    it('encodes reserved characters in match IDs as one path segment', async () => {
+      transport.get.mockResolvedValue(createMatchResponse());
+
+      await matches.getMatch('match/one?source=test');
+
+      expect(transport.get).toHaveBeenCalledWith(
+        '/shards/pc-na/matches/match%2Fone%3Fsource%3Dtest'
+      );
     });
   });
 

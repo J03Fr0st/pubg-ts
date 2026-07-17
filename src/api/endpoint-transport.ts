@@ -10,5 +10,9 @@ export type CacheRequestConfig = AxiosRequestConfig & { useCache?: boolean };
  */
 export interface EndpointTransport {
   get<T>(url: string, config?: CacheRequestConfig): Promise<T>;
+}
+
+/** Request seam used only by Matches, which owns Match Telemetry discovery. */
+export interface MatchTransport extends EndpointTransport {
   fetchTelemetry<T>(url: string): Promise<T>;
 }

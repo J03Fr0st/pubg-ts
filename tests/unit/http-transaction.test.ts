@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { HttpTransactionRunner } from '../../src/api/http-transaction';
 import {
+  PubgApiError,
   PubgAuthenticationError,
   PubgCacheError,
   PubgNetworkError,
@@ -53,7 +54,7 @@ const createRunner = (
     cache: dependencies.cache ?? new MemoryCache(),
     config: { retryAttempts: 0, retryDelay: 0, timeout: 5000, ...overrides },
     deduplicator: new RequestDeduplicator(),
-    externalGet: dependencies.externalGet,
+    externalGet: dependencies.externalGet ?? jest.fn(),
     rateLimiter,
     recordOutcome,
     request,
@@ -178,7 +179,59 @@ describe('HttpTransactionRunner', () => {
     expect(recordOutcome).toHaveBeenCalledWith({ kind: 'network_failed' });
   });
 
-  it('maps external network failures without recording a transaction outcome', async () => {
+  it('maps non-Error adapter rejections without bypassing outcome recording', async () => {
+    const request = jest.fn().mockRejectedValue(null);
+    const { recordOutcome, runner } = createRunner(request);
+
+    await expect(runner.get('/players', { useCache: false })).rejects.toThrow(PubgNetworkError);
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'network_failed' });
+  });
+
+  it('does not retain authenticated request credentials on public network errors', async () => {
+    const requestError = Object.assign(new Error('lookup failed'), {
+      code: 'ENOTFOUND',
+      config: {
+        headers: { Authorization: 'Bearer test-api-key' },
+        method: 'get',
+        url: '/players',
+      },
+    });
+    const runner = createRunner(jest.fn().mockRejectedValue(requestError)).runner;
+
+    const error = await runner.get('/players', { useCache: false }).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(PubgNetworkError);
+    expect((error as PubgNetworkError).originalError).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain('test-api-key');
+  });
+
+  it('does not retain authenticated request credentials on public server errors', async () => {
+    const requestError = {
+      ...createError(503),
+      config: {
+        headers: { Authorization: 'Bearer test-api-key' },
+        method: 'get',
+        url: '/players',
+      },
+    };
+    const runner = createRunner(jest.fn().mockRejectedValue(requestError)).runner;
+
+    const error = await runner.get('/players', { useCache: false }).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(PubgNetworkError);
+    expect((error as PubgNetworkError).originalError).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain('test-api-key');
+  });
+
+  it('records other client HTTP failures as rejected requests', async () => {
+    const request = jest.fn().mockRejectedValue(createError(403));
+    const { recordOutcome, runner } = createRunner(request);
+
+    await expect(runner.get('/players', { useCache: false })).rejects.toBeInstanceOf(PubgApiError);
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'request_rejected', statusCode: 403 });
+  });
+
+  it('maps external network failures and records their outcome', async () => {
     const externalGet = jest.fn().mockRejectedValue(createError(undefined, 'ETIMEDOUT'));
     const { recordOutcome, runner } = createRunner(jest.fn(), {}, { externalGet });
 
@@ -189,7 +242,7 @@ describe('HttpTransactionRunner', () => {
       'https://telemetry.test/match',
       expect.objectContaining({ method: 'get', timeout: 5000, url: 'https://telemetry.test/match' })
     );
-    expect(recordOutcome).not.toHaveBeenCalled();
+    expect(recordOutcome).toHaveBeenCalledWith({ kind: 'network_failed' });
   });
 
   it('throws cache get failures and ignores cache set failures', async () => {
