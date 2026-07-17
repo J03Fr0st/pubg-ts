@@ -9,7 +9,6 @@ describe('Samples', () => {
   beforeEach(() => {
     transport = {
       get: jest.fn(),
-      fetchTelemetry: jest.fn(),
     };
 
     samples = new Samples(transport, 'pc-na');

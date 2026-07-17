@@ -17,7 +17,7 @@ export type RequestOutcome =
   | { kind: 'rate_limited'; statusCode: 429 }
   | { kind: 'network_failed' }
   | { kind: 'server_failed'; statusCode: number }
-  | { kind: 'request_rejected'; statusCode: 400 | 404 }
+  | { kind: 'request_rejected'; statusCode: number }
   | { kind: 'cache_hit' }
   | { kind: 'telemetry_succeeded' };
 

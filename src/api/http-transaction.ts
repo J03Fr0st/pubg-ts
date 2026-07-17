@@ -26,7 +26,7 @@ type ExternalGetFunction = <T>(
 /** Dependencies required by the internal HTTP transaction runner. */
 export interface HttpTransactionRunnerDependencies {
   request: RequestFunction;
-  externalGet?: ExternalGetFunction;
+  externalGet: ExternalGetFunction;
   cache: MemoryCache;
   rateLimiter: RateLimiter;
   deduplicator: RequestDeduplicator;
@@ -39,6 +39,30 @@ const GET_CACHE_TTL_MS = 5 * 60 * 1000;
 const EXTERNAL_TELEMETRY_ENDPOINT = 'external_telemetry';
 const EXTERNAL_TELEMETRY_ERROR_MESSAGE = 'External telemetry request failed';
 
+type RequestFailure =
+  | {
+      kind: 'authentication' | 'not_found' | 'validation';
+      outcome: RequestOutcome;
+      statusCode: number;
+    }
+  | {
+      kind: 'rate_limited';
+      outcome: RequestOutcome;
+      retryAfter: number;
+      statusCode: 429;
+    }
+  | { kind: 'server'; outcome: RequestOutcome; statusCode: number }
+  | { kind: 'api'; outcome: RequestOutcome; statusCode?: number }
+  | {
+      kind: 'network';
+      errorCode?: string;
+      networkOperation: PubgNetworkError['networkOperation'];
+      outcome: RequestOutcome;
+    };
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+
 /**
  * Internal request transaction runner for a client-local runtime.
  *
@@ -46,7 +70,7 @@ const EXTERNAL_TELEMETRY_ERROR_MESSAGE = 'External telemetry request failed';
  */
 export class HttpTransactionRunner {
   private request: RequestFunction;
-  private externalGet?: ExternalGetFunction;
+  private externalGet: ExternalGetFunction;
   private cache: MemoryCache;
   private rateLimiter: RateLimiter;
   private deduplicator: RequestDeduplicator;
@@ -147,10 +171,6 @@ export class HttpTransactionRunner {
   }
 
   async getExternal<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    if (!this.externalGet) {
-      throw new PubgNetworkError('External GET request function is not configured', 'request');
-    }
-
     const requestConfig = {
       ...config,
       method: 'get',
@@ -160,9 +180,12 @@ export class HttpTransactionRunner {
 
     try {
       const response = await this.externalGet<T>(url, requestConfig);
+      this.recordOutcome({ kind: 'telemetry_succeeded' });
       return response.data;
     } catch (error) {
-      throw this.mapExternalError(error);
+      const failure = this.interpretFailure(error);
+      this.recordOutcome(failure.outcome);
+      throw this.mapExternalError(error, failure);
     }
   }
 
@@ -177,33 +200,80 @@ export class HttpTransactionRunner {
       this.recordOutcome({ kind: 'request_succeeded' });
       return response;
     } catch (error) {
-      if (this.shouldRetry(error, attempt)) {
+      const failure = this.interpretFailure(error);
+
+      if (this.shouldRetry(failure, attempt)) {
         await this.waitForRetry(attempt);
         return await this.execute<T>(this.getRetryConfig(error, requestConfig), attempt + 1);
       }
 
-      this.recordOutcome(this.outcomeForError(error));
-      throw this.mapError(error, requestConfig);
+      this.recordOutcome(failure.outcome);
+      throw this.mapError(error, requestConfig, failure);
     }
   }
 
-  private outcomeForError(error: any): RequestOutcome {
-    const status = error.response?.status;
+  private interpretFailure(error: unknown): RequestFailure {
+    const errorRecord = asRecord(error);
+    const response = asRecord(errorRecord.response);
+    const status = typeof response.status === 'number' ? response.status : undefined;
 
-    if (status === 401) return { kind: 'authentication_failed', statusCode: 401 };
-    if (status === 429) return { kind: 'rate_limited', statusCode: 429 };
-    if (status === 400 || status === 404) return { kind: 'request_rejected', statusCode: status };
+    if (status === 401) {
+      return {
+        kind: 'authentication',
+        outcome: { kind: 'authentication_failed', statusCode: 401 },
+        statusCode: 401,
+      };
+    }
+    if (status === 400 || status === 404) {
+      return {
+        kind: status === 400 ? 'validation' : 'not_found',
+        outcome: { kind: 'request_rejected', statusCode: status },
+        statusCode: status,
+      };
+    }
+    if (status === 429) {
+      const headers = asRecord(response.headers);
+      const parsedRetryAfter = Number.parseInt(String(headers['retry-after'] ?? '60'), 10);
+      return {
+        kind: 'rate_limited',
+        outcome: { kind: 'rate_limited', statusCode: 429 },
+        retryAfter:
+          Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 60,
+        statusCode: 429,
+      };
+    }
     if (typeof status === 'number' && status >= 500) {
-      return { kind: 'server_failed', statusCode: status };
+      return {
+        kind: SERVER_RETRY_STATUSES.has(status) ? 'server' : 'api',
+        outcome: { kind: 'server_failed', statusCode: status },
+        statusCode: status,
+      };
     }
-    return { kind: 'network_failed' };
+
+    if (Object.keys(response).length === 0) {
+      const errorCode = typeof errorRecord.code === 'string' ? errorRecord.code : undefined;
+      return {
+        errorCode,
+        kind: 'network',
+        networkOperation: this.networkOperationFor(errorCode),
+        outcome: { kind: 'network_failed' },
+      };
+    }
+
+    return {
+      kind: 'api',
+      outcome:
+        typeof status === 'number' && status >= 400 && status < 500
+          ? { kind: 'request_rejected', statusCode: status }
+          : { kind: 'network_failed' },
+      statusCode: status,
+    };
   }
 
-  private shouldRetry(error: any, attempt: number): boolean {
+  private shouldRetry(failure: RequestFailure, attempt: number): boolean {
     const retryAttempts = this.config.retryAttempts ?? 0;
-    const status = error.response?.status;
 
-    return attempt <= retryAttempts && SERVER_RETRY_STATUSES.has(status);
+    return attempt <= retryAttempts && failure.kind === 'server';
   }
 
   private async waitForRetry(attempt: number): Promise<void> {
@@ -211,106 +281,110 @@ export class HttpTransactionRunner {
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
-  private getRetryConfig(error: any, fallbackConfig: AxiosRequestConfig): AxiosRequestConfig {
-    return error.config || fallbackConfig;
+  private getRetryConfig(error: unknown, fallbackConfig: AxiosRequestConfig): AxiosRequestConfig {
+    const errorConfig = asRecord(error).config;
+    return typeof errorConfig === 'object' && errorConfig !== null
+      ? (errorConfig as AxiosRequestConfig)
+      : fallbackConfig;
   }
 
-  private mapError(error: any, fallbackConfig: AxiosRequestConfig): PubgApiError {
-    const status = error.response?.status;
-    const message = error.response?.data?.errors?.[0]?.detail || error.message;
-    const errorConfig = error.config || fallbackConfig;
-    const url = errorConfig?.url || 'unknown';
+  private mapError(
+    error: unknown,
+    fallbackConfig: AxiosRequestConfig,
+    failure: RequestFailure
+  ): PubgApiError {
+    const errorRecord = asRecord(error);
+    const response = asRecord(errorRecord.response);
+    const responseData = asRecord(response.data);
+    const responseErrors = Array.isArray(responseData.errors) ? responseData.errors : [];
+    const firstResponseError = asRecord(responseErrors[0]);
+    const message =
+      typeof firstResponseError.detail === 'string'
+        ? firstResponseError.detail
+        : error instanceof Error
+          ? error.message
+          : 'Request failed';
+    const errorConfig = this.getRetryConfig(error, fallbackConfig);
+    const url = errorConfig.url || 'unknown';
 
-    if (!error.response) {
-      return this.mapNetworkError(error, url);
-    }
-
-    switch (status) {
-      case 401:
+    switch (failure.kind) {
+      case 'authentication':
         return new PubgAuthenticationError(message, {
           operation: 'http_request',
           metadata: { url, method: errorConfig?.method },
         });
-      case 404:
+      case 'not_found':
         return new PubgNotFoundError(message, {
           operation: 'http_request',
           metadata: { url, method: errorConfig?.method },
         });
-      case 400:
+      case 'validation':
         return new PubgValidationError(message, {
           operation: 'http_request',
           metadata: { url, method: errorConfig?.method },
         });
-      case 429: {
-        const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60', 10);
-        return new PubgRateLimitError(message, retryAfter, {
+      case 'rate_limited':
+        return new PubgRateLimitError(message, failure.retryAfter, {
           operation: 'http_request',
-          metadata: { url, method: errorConfig?.method, retryAfter },
+          metadata: { url, method: errorConfig?.method, retryAfter: failure.retryAfter },
         });
-      }
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        return new PubgNetworkError(`Server error: ${message}`, 'request', error, {
+      case 'server':
+        return new PubgNetworkError(`Server error: ${message}`, 'request', undefined, {
           operation: 'http_request',
-          metadata: { url, method: errorConfig?.method, statusCode: status },
+          metadata: { url, method: errorConfig?.method, statusCode: failure.statusCode },
         });
+      case 'network':
+        return this.mapNetworkError(url, failure);
       default:
-        return new PubgApiError(message, status, error.response?.data, {
+        return new PubgApiError(message, failure.statusCode, response.data, {
           operation: 'http_request',
           metadata: { url, method: errorConfig?.method },
         });
     }
   }
 
-  private mapExternalError(error: any): PubgApiError {
-    const status = error.response?.status;
+  private mapExternalError(_error: unknown, failure: RequestFailure): PubgApiError {
     const metadata = { endpoint: EXTERNAL_TELEMETRY_ENDPOINT, method: 'get' };
     const context = { operation: EXTERNAL_TELEMETRY_ENDPOINT, metadata };
 
-    if (!error.response) {
-      return new PubgNetworkError(
-        EXTERNAL_TELEMETRY_ERROR_MESSAGE,
-        this.externalNetworkOperationFor(error.code),
-        undefined,
-        {
-          ...context,
-          metadata: { ...metadata, errorCode: error.code },
-        }
-      );
-    }
-
-    switch (status) {
-      case 401:
+    switch (failure.kind) {
+      case 'authentication':
         return new PubgAuthenticationError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
-      case 404:
+      case 'not_found':
         return new PubgNotFoundError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
-      case 400:
+      case 'validation':
         return new PubgValidationError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, context);
-      case 429: {
-        const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '60', 10);
-        return new PubgRateLimitError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, retryAfter, {
+      case 'rate_limited':
+        return new PubgRateLimitError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, failure.retryAfter, {
           ...context,
-          metadata: { ...metadata, retryAfter },
+          metadata: { ...metadata, retryAfter: failure.retryAfter },
         });
-      }
-      case 500:
-      case 502:
-      case 503:
-      case 504:
+      case 'server':
         return new PubgNetworkError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, 'request', undefined, {
           ...context,
-          metadata: { ...metadata, statusCode: status },
+          metadata: { ...metadata, statusCode: failure.statusCode },
         });
+      case 'network':
+        return new PubgNetworkError(
+          EXTERNAL_TELEMETRY_ERROR_MESSAGE,
+          failure.networkOperation,
+          undefined,
+          {
+            ...context,
+            metadata: { ...metadata, errorCode: failure.errorCode },
+          }
+        );
       default:
-        return new PubgApiError(EXTERNAL_TELEMETRY_ERROR_MESSAGE, status, undefined, context);
+        return new PubgApiError(
+          EXTERNAL_TELEMETRY_ERROR_MESSAGE,
+          failure.statusCode,
+          undefined,
+          context
+        );
     }
   }
 
-  private externalNetworkOperationFor(
-    code: string | undefined
-  ): PubgNetworkError['networkOperation'] {
+  private networkOperationFor(code: string | undefined): PubgNetworkError['networkOperation'] {
     switch (code) {
       case 'ECONNREFUSED':
       case 'ECONNRESET':
@@ -329,44 +403,29 @@ export class HttpTransactionRunner {
     }
   }
 
-  private mapNetworkError(error: any, url: string): PubgNetworkError {
-    const code = error.code;
-    const message = error.message;
+  private mapNetworkError(
+    url: string,
+    failure: Extract<RequestFailure, { kind: 'network' }>
+  ): PubgNetworkError {
+    const messages: Record<PubgNetworkError['networkOperation'], string> = {
+      connect: 'Connection failed',
+      dns: 'DNS lookup failed',
+      request: 'Request failed',
+      ssl: 'SSL certificate error',
+      timeout: 'Request timeout',
+      unknown: 'Network error',
+    };
+    const metadata: Record<string, unknown> = { url, errorCode: failure.errorCode };
+    if (failure.networkOperation === 'timeout') metadata.timeout = this.config.timeout;
 
-    switch (code) {
-      case 'ECONNREFUSED':
-        return new PubgNetworkError(`Connection refused: ${message}`, 'connect', error, {
-          operation: 'network_connect',
-          metadata: { url, errorCode: code },
-        });
-      case 'ENOTFOUND':
-      case 'EAI_AGAIN':
-        return new PubgNetworkError(`DNS lookup failed: ${message}`, 'dns', error, {
-          operation: 'network_dns',
-          metadata: { url, errorCode: code },
-        });
-      case 'ECONNRESET':
-      case 'ECONNABORTED':
-        return new PubgNetworkError(`Connection reset: ${message}`, 'connect', error, {
-          operation: 'network_connect',
-          metadata: { url, errorCode: code },
-        });
-      case 'ETIMEDOUT':
-        return new PubgNetworkError(`Request timeout: ${message}`, 'timeout', error, {
-          operation: 'network_timeout',
-          metadata: { url, errorCode: code, timeout: this.config.timeout },
-        });
-      case 'CERT_HAS_EXPIRED':
-      case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
-        return new PubgNetworkError(`SSL certificate error: ${message}`, 'ssl', error, {
-          operation: 'network_ssl',
-          metadata: { url, errorCode: code },
-        });
-      default:
-        return new PubgNetworkError(`Network error: ${message}`, 'unknown', error, {
-          operation: 'network_unknown',
-          metadata: { url, errorCode: code },
-        });
-    }
+    return new PubgNetworkError(
+      messages[failure.networkOperation],
+      failure.networkOperation,
+      undefined,
+      {
+        operation: `network_${failure.networkOperation}`,
+        metadata,
+      }
+    );
   }
 }

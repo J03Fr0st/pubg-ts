@@ -112,10 +112,9 @@ export function parseDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
-export function isSeasonActive(startDate: string, endDate: string): boolean {
+export function isSeasonActive(startDate: string, endDate: string, now: Date): boolean {
   if (endDate === '00-00-0000') return true;
 
-  const now = new Date();
   const start = parseDate(startDate);
   const end = parseDate(endDate);
 

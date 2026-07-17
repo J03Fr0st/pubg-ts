@@ -1,5 +1,6 @@
 import type { SeasonsResponse } from '../../types';
 import type { Shard } from '../../types/common';
+import { endpointTarget } from '../endpoint-query';
 import type { EndpointTransport } from '../endpoint-transport';
 
 /**
@@ -25,8 +26,7 @@ export class Seasons {
    * ```
    */
   async getSeasons(): Promise<SeasonsResponse> {
-    const url = `/shards/${this.shard}/seasons`;
-    return this.transport.get<SeasonsResponse>(url);
+    return this.transport.get<SeasonsResponse>(endpointTarget(this.shard, ['seasons']));
   }
 
   /**

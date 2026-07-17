@@ -1,56 +1,43 @@
-import {
-  appendArrayFilter,
-  appendPageParams,
-  appendQuery,
-  appendValue,
-  shardPath,
-} from '../../src/api/endpoint-query';
+import { endpointTarget } from '../../src/api/endpoint-query';
 
-describe('endpoint query helpers', () => {
-  it('builds shard paths without hiding endpoint paths', () => {
-    expect(shardPath('pc-na', '/players')).toBe('/shards/pc-na/players');
-    expect(shardPath('steam', '/matches/match-1')).toBe('/shards/steam/matches/match-1');
-  });
-
-  it('appends URLSearchParams queries only when parameters exist', () => {
-    const params = new URLSearchParams();
-
-    expect(appendQuery('/shards/pc-na/players', params)).toBe('/shards/pc-na/players');
-
-    params.append('filter[playerNames]', 'TestPlayer');
-
-    expect(appendQuery('/shards/pc-na/players', params)).toBe(
-      '/shards/pc-na/players?filter%5BplayerNames%5D=TestPlayer'
+describe('endpointTarget', () => {
+  it('builds a shard target from encoded path segments', () => {
+    expect(endpointTarget('pc-na', ['players'])).toBe('/shards/pc-na/players');
+    expect(endpointTarget('steam', ['matches', 'match/one?source=test'])).toBe(
+      '/shards/steam/matches/match%2Fone%3Fsource%3Dtest'
     );
   });
 
-  it('appends comma-joined array filters in call order', () => {
-    const params = new URLSearchParams();
-
-    appendArrayFilter(params, 'filter[playerIds]', ['player-1', 'player-2']);
-    appendArrayFilter(params, 'filter[gameMode]', ['squad', 'duo']);
-    appendArrayFilter(params, 'filter[playerNames]');
-
-    expect(params.toString()).toBe(
-      'filter%5BplayerIds%5D=player-1%2Cplayer-2&filter%5BgameMode%5D=squad%2Cduo'
+  it('keeps an untrusted runtime shard within one path segment', () => {
+    expect(endpointTarget('steam/../matches' as any, ['players'])).toBe(
+      '/shards/steam%2F..%2Fmatches/players'
     );
   });
 
-  it('appends page parameters using existing truthy value rules', () => {
-    const params = new URLSearchParams();
-
-    appendPageParams(params, { pageSize: 10, offset: 20 });
-    appendPageParams(params, { pageSize: 0, offset: 0 });
-
-    expect(params.toString()).toBe('page%5Blimit%5D=10&page%5Boffset%5D=20');
+  it('serializes scalar, numeric, and array query values in call order', () => {
+    expect(
+      endpointTarget('pc-na', ['matches'], {
+        'page[limit]': 10,
+        sort: '-createdAt',
+        'filter[playerIds]': ['player-1', 'player-2'],
+      })
+    ).toBe(
+      '/shards/pc-na/matches?page%5Blimit%5D=10&sort=-createdAt&filter%5BplayerIds%5D=player-1%2Cplayer-2'
+    );
   });
 
-  it('appends scalar values only when present', () => {
-    const params = new URLSearchParams();
+  it('omits absent and zero-valued query parameters', () => {
+    expect(
+      endpointTarget('pc-na', ['matches'], {
+        'page[limit]': 0,
+        'page[offset]': undefined,
+      })
+    ).toBe('/shards/pc-na/matches');
+  });
 
-    appendValue(params, 'sort', '-createdAt');
-    appendValue(params, 'filter[createdAt-start]');
-
-    expect(params.toString()).toBe('sort=-createdAt');
+  it('preserves empty array filters as empty query values', () => {
+    expect(endpointTarget('pc-na', ['players'], { 'filter[playerIds]': [] })).toBe(
+      '/shards/pc-na/players?filter%5BplayerIds%5D='
+    );
   });
 });

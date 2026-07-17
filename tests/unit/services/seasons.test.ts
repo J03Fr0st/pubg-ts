@@ -9,7 +9,6 @@ describe('Seasons', () => {
   beforeEach(() => {
     transport = {
       get: jest.fn(),
-      fetchTelemetry: jest.fn(),
     };
 
     seasons = new Seasons(transport, 'pc-na');

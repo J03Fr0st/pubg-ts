@@ -7,7 +7,7 @@ import type {
   SeasonStatsQuery,
 } from '../../types';
 import type { Shard } from '../../types/common';
-import { appendArrayFilter, appendQuery, shardPath } from '../endpoint-query';
+import { endpointTarget } from '../endpoint-query';
 import type { EndpointTransport } from '../endpoint-transport';
 
 const MAX_PLAYER_STATS_BATCH_SIZE = 10;
@@ -46,13 +46,11 @@ export class Players {
    * ```
    */
   async getPlayers(query: PlayerQuery): Promise<PlayersResponse> {
-    const params = new URLSearchParams();
-
-    appendArrayFilter(params, 'filter[playerNames]', query.playerNames);
-    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
-
     return this.transport.get<PlayersResponse>(
-      appendQuery(shardPath(this.shard, '/players'), params)
+      endpointTarget(this.shard, ['players'], {
+        'filter[playerNames]': query.playerNames,
+        'filter[playerIds]': query.playerIds,
+      })
     );
   }
 
@@ -98,10 +96,11 @@ export class Players {
    * ```
    */
   async getPlayerSeasonStats(query: SeasonStatsQuery): Promise<PlayerSeasonStatsResponse> {
-    const url = shardPath(this.shard, `/players/${query.playerId}/seasons/${query.seasonId}`);
-    const params = query.gameMode ? `?filter[gameMode]=${query.gameMode}` : '';
-
-    return this.transport.get<PlayerSeasonStatsResponse>(`${url}${params}`);
+    return this.transport.get<PlayerSeasonStatsResponse>(
+      endpointTarget(this.shard, ['players', query.playerId, 'seasons', query.seasonId], {
+        'filter[gameMode]': query.gameMode,
+      })
+    );
   }
 
   /**
@@ -123,13 +122,11 @@ export class Players {
   ): Promise<PlayerSeasonStatsResponse> {
     assertValidPlayerIdBatch(query.playerIds);
 
-    const params = new URLSearchParams();
-    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
-
     return this.transport.get<PlayerSeasonStatsResponse>(
-      appendQuery(
-        shardPath(this.shard, `/seasons/${query.seasonId}/gameMode/${query.gameMode}/players`),
-        params
+      endpointTarget(
+        this.shard,
+        ['seasons', query.seasonId, 'gameMode', query.gameMode, 'players'],
+        { 'filter[playerIds]': query.playerIds }
       )
     );
   }
@@ -145,9 +142,9 @@ export class Players {
    * ```
    */
   async getPlayerLifetimeStats(playerId: string): Promise<PlayerSeasonStatsResponse> {
-    const url = shardPath(this.shard, `/players/${playerId}/seasons/lifetime`);
-
-    return this.transport.get<PlayerSeasonStatsResponse>(url);
+    return this.transport.get<PlayerSeasonStatsResponse>(
+      endpointTarget(this.shard, ['players', playerId, 'seasons', 'lifetime'])
+    );
   }
 
   /**
@@ -168,14 +165,10 @@ export class Players {
   ): Promise<PlayerSeasonStatsResponse> {
     assertValidPlayerIdBatch(query.playerIds);
 
-    const params = new URLSearchParams();
-    appendArrayFilter(params, 'filter[playerIds]', query.playerIds);
-
     return this.transport.get<PlayerSeasonStatsResponse>(
-      appendQuery(
-        shardPath(this.shard, `/seasons/lifetime/gameMode/${query.gameMode}/players`),
-        params
-      )
+      endpointTarget(this.shard, ['seasons', 'lifetime', 'gameMode', query.gameMode, 'players'], {
+        'filter[playerIds]': query.playerIds,
+      })
     );
   }
 }

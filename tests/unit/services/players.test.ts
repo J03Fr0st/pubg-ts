@@ -9,7 +9,6 @@ describe('Players', () => {
   beforeEach(() => {
     transport = {
       get: jest.fn(),
-      fetchTelemetry: jest.fn(),
     };
 
     players = new Players(transport, 'pc-na');
@@ -168,7 +167,7 @@ describe('Players', () => {
       });
 
       expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/players/player-1/seasons/season-1?filter[gameMode]=squad'
+        '/shards/pc-na/players/player-1/seasons/season-1?filter%5BgameMode%5D=squad'
       );
     });
   });

@@ -6,8 +6,11 @@ import axios, { type AxiosAdapter, AxiosHeaders, type InternalAxiosRequestConfig
 import { ClientRuntime } from '../../src/api/client-runtime';
 
 describe('ClientRuntime production telemetry adapter', () => {
-  it('removes a global Authorization default from the final adapter request', async () => {
-    const originalAuthorization = axios.defaults.headers.common.Authorization;
+  it('allows only telemetry response headers through the final adapter request', async () => {
+    const credentialHeaders = ['Authorization', 'Cookie', 'Proxy-Authorization', 'X-API-Key'];
+    const originalHeaders = Object.fromEntries(
+      credentialHeaders.map((name) => [name, axios.defaults.headers.common[name]])
+    );
     const originalAdapter = axios.defaults.adapter;
     const finalAdapter = jest.fn(async (config: InternalAxiosRequestConfig) => ({
       config,
@@ -18,7 +21,9 @@ describe('ClientRuntime production telemetry adapter', () => {
     }));
 
     try {
-      axios.defaults.headers.common.Authorization = 'Bearer global-secret';
+      for (const name of credentialHeaders) {
+        axios.defaults.headers.common[name] = `${name} global-secret`;
+      }
       axios.defaults.adapter = finalAdapter as AxiosAdapter;
       const runtime = new ClientRuntime({ apiKey: 'pubg-key', shard: 'steam' });
 
@@ -26,12 +31,19 @@ describe('ClientRuntime production telemetry adapter', () => {
 
       expect(finalAdapter).toHaveBeenCalledTimes(1);
       const finalConfig = finalAdapter.mock.calls[0][0];
-      expect(AxiosHeaders.from(finalConfig.headers).has('Authorization')).toBe(false);
+      const headers = AxiosHeaders.from(finalConfig.headers);
+      expect(headers.get('Accept')).toBe('application/json');
+      for (const name of credentialHeaders) {
+        expect(headers.has(name)).toBe(false);
+      }
     } finally {
-      if (originalAuthorization === undefined) {
-        delete axios.defaults.headers.common.Authorization;
-      } else {
-        axios.defaults.headers.common.Authorization = originalAuthorization;
+      for (const name of credentialHeaders) {
+        const original = originalHeaders[name];
+        if (original === undefined) {
+          delete axios.defaults.headers.common[name];
+        } else {
+          axios.defaults.headers.common[name] = original;
+        }
       }
       axios.defaults.adapter = originalAdapter;
     }

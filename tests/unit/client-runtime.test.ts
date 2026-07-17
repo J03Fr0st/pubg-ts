@@ -384,6 +384,12 @@ describe('ClientRuntime construction', () => {
     );
   });
 
+  it('rejects shards outside the canonical PUBG shard set', () => {
+    expect(() => new ClientRuntime({ ...config, shard: 'steam/../matches' as any })).toThrow(
+      PubgConfigurationError
+    );
+  });
+
   it.each([
     0,
     Number.NaN,

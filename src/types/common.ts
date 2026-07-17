@@ -35,33 +35,7 @@ export interface ResourceComplete<T, R> extends ResourceWithAttributes<T> {
 
 export type Platform = 'steam' | 'kakao' | 'xbox' | 'psn' | 'stadia' | 'console';
 
-export type Shard =
-  | 'steam'
-  | 'pc-as'
-  | 'pc-eu'
-  | 'pc-jp'
-  | 'pc-kakao'
-  | 'pc-krjp'
-  | 'pc-na'
-  | 'pc-oc'
-  | 'pc-ru'
-  | 'pc-sa'
-  | 'pc-sea'
-  | 'pc-tournament'
-  | 'xbox-as'
-  | 'xbox-eu'
-  | 'xbox-na'
-  | 'xbox-oc'
-  | 'xbox-sa'
-  | 'psn-as'
-  | 'psn-eu'
-  | 'psn-na'
-  | 'psn-oc'
-  | 'stadia-as'
-  | 'stadia-eu'
-  | 'stadia-na'
-  | 'stadia-oc'
-  | 'console';
+export type { Shard } from './shards';
 
 export type GameMode =
   | 'solo'

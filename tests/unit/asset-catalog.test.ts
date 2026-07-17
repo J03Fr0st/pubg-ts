@@ -8,6 +8,10 @@ describe('AssetCatalog', () => {
     catalog = new AssetCatalog();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   describe('items', () => {
     it('uses local dictionary names and item category policy', () => {
       const item = catalog.getItemInfo('Item_Weapon_AK47_C');
@@ -100,6 +104,25 @@ describe('AssetCatalog', () => {
         isActive: expect.any(Boolean),
         isOffseason: false,
       });
+    });
+
+    it('recomputes season activity when a long-lived catalog crosses a season end', () => {
+      jest.useFakeTimers().setSystemTime(new Date(2018, 0, 1));
+      const longLivedCatalog = new AssetCatalog();
+
+      expect(
+        longLivedCatalog
+          .getSeasonsByPlatform('PC')
+          .find((season) => season.id === 'division.bro.official.2018-01')?.isActive
+      ).toBe(true);
+
+      jest.setSystemTime(new Date(2018, 1, 1));
+
+      expect(
+        longLivedCatalog
+          .getSeasonsByPlatform('PC')
+          .find((season) => season.id === 'division.bro.official.2018-01')?.isActive
+      ).toBe(false);
     });
 
     it('keeps platform validation in the catalog', () => {

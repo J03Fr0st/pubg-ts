@@ -9,7 +9,6 @@ describe('Leaderboards', () => {
   beforeEach(() => {
     transport = {
       get: jest.fn(),
-      fetchTelemetry: jest.fn(),
     };
 
     leaderboards = new Leaderboards(transport, 'pc-na');

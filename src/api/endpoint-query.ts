@@ -1,39 +1,23 @@
 import type { Shard } from '../types/common';
 
-interface PageQuery {
-  pageSize?: number;
-  offset?: number;
-}
+type EndpointQueryValue = string | number | readonly string[] | undefined;
 
-export const shardPath = (shard: Shard, path: string): string => `/shards/${shard}${path}`;
+/** Builds an encoded PUBG endpoint target from path segments and query values. */
+export const endpointTarget = (
+  shard: Shard,
+  pathSegments: readonly string[],
+  query: Readonly<Record<string, EndpointQueryValue>> = {}
+): string => {
+  const path = `/shards/${encodeURIComponent(shard)}/${pathSegments
+    .map(encodeURIComponent)
+    .join('/')}`;
+  const params = new URLSearchParams();
 
-export const appendQuery = (path: string, params: URLSearchParams): string => {
-  const query = params.toString();
-  return query ? `${path}?${query}` : path;
-};
-
-export const appendArrayFilter = (
-  params: URLSearchParams,
-  key: string,
-  values?: string[]
-): void => {
-  if (values) {
-    params.append(key, values.join(','));
-  }
-};
-
-export const appendPageParams = (params: URLSearchParams, query: PageQuery): void => {
-  if (query.pageSize) {
-    params.append('page[limit]', query.pageSize.toString());
+  for (const [key, value] of Object.entries(query)) {
+    if (!value) continue;
+    params.append(key, Array.isArray(value) ? value.join(',') : String(value));
   }
 
-  if (query.offset) {
-    params.append('page[offset]', query.offset.toString());
-  }
-};
-
-export const appendValue = (params: URLSearchParams, key: string, value?: string): void => {
-  if (value) {
-    params.append(key, value);
-  }
+  const queryString = params.toString();
+  return queryString ? `${path}?${queryString}` : path;
 };

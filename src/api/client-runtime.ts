@@ -5,14 +5,15 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from 'axios';
-import { PubgApiError, PubgConfigurationError, PubgNetworkError } from '../errors';
+import { PubgConfigurationError } from '../errors';
 import type { PubgClientConfig } from '../types/api';
+import { SHARDS } from '../types/shards';
 import { MemoryCache } from '../utils/cache';
 import { logger } from '../utils/logger';
 import { RateLimiter } from '../utils/rate-limiter';
 import { RequestDeduplicator } from '../utils/request';
 import { type ClientHealth, ClientHealthState, type RequestOutcome } from './client-health';
-import type { CacheRequestConfig, EndpointTransport } from './endpoint-transport';
+import type { CacheRequestConfig, MatchTransport } from './endpoint-transport';
 import { HttpTransactionRunner } from './http-transaction';
 
 type RuntimeRequestFunction = (config: AxiosRequestConfig) => Promise<AxiosResponse>;
@@ -34,12 +35,13 @@ interface TransactionRuntimeDependencies {
   recordOutcome: (outcome: RequestOutcome) => void;
 }
 
+const VALID_SHARDS = new Set<string>(SHARDS);
+
 const createTelemetryAdapter = (): AxiosAdapter => {
   const adapter = axios.getAdapter(axios.defaults.adapter);
 
   return (config) => {
-    const headers = AxiosHeaders.from(config.headers);
-    headers.delete('Authorization');
+    const headers = new AxiosHeaders({ Accept: 'application/json' });
     const telemetryConfig = { ...config, headers };
     delete telemetryConfig.auth;
     return adapter(telemetryConfig);
@@ -55,27 +57,6 @@ const createProductionTelemetryGet = (): RuntimeExternalGetFunction => {
   };
 };
 
-const telemetryOutcomeFor = (error: unknown): RequestOutcome => {
-  const contextStatus =
-    error instanceof PubgNetworkError ? error.context.metadata?.statusCode : undefined;
-  const statusCode =
-    typeof contextStatus === 'number'
-      ? contextStatus
-      : error instanceof PubgApiError
-        ? error.statusCode
-        : undefined;
-
-  if (statusCode === 401) return { kind: 'authentication_failed', statusCode: 401 };
-  if (statusCode === 429) return { kind: 'rate_limited', statusCode: 429 };
-  if (statusCode === 400 || statusCode === 404) {
-    return { kind: 'request_rejected', statusCode };
-  }
-  if (typeof statusCode === 'number' && statusCode >= 500) {
-    return { kind: 'server_failed', statusCode };
-  }
-  return { kind: 'network_failed' };
-};
-
 const validateConfig = (config: PubgClientConfig): void => {
   if (!config.apiKey || typeof config.apiKey !== 'string') {
     throw new PubgConfigurationError(
@@ -86,11 +67,11 @@ const validateConfig = (config: PubgClientConfig): void => {
     );
   }
 
-  if (!config.shard || typeof config.shard !== 'string') {
+  if (!config.shard || typeof config.shard !== 'string' || !VALID_SHARDS.has(config.shard)) {
     throw new PubgConfigurationError(
-      'Shard is required and must be a valid string',
+      'Shard is required and must be a supported PUBG shard',
       'shard',
-      'string',
+      'Shard',
       config.shard
     );
   }
@@ -166,7 +147,7 @@ const createTransactionRunner = (
  *
  * @internal
  */
-export class ClientRuntime implements EndpointTransport {
+export class ClientRuntime implements MatchTransport {
   private readonly cache: MemoryCache;
   private readonly rateLimiter: RateLimiter;
   private readonly health: ClientHealthState;
@@ -218,17 +199,10 @@ export class ClientRuntime implements EndpointTransport {
   }
 
   /** Fetches external telemetry without authenticated headers or response caching. */
-  async fetchTelemetry<T>(url: string): Promise<T> {
-    try {
-      const data = await this.transactions.getExternal<T>(url, {
-        headers: { Accept: 'application/json' },
-      });
-      this.health.record({ kind: 'telemetry_succeeded' });
-      return data;
-    } catch (error) {
-      this.health.record(telemetryOutcomeFor(error));
-      throw error;
-    }
+  fetchTelemetry<T>(url: string): Promise<T> {
+    return this.transactions.getExternal<T>(url, {
+      headers: { Accept: 'application/json' },
+    });
   }
 
   /** Returns a synchronous, redacted health snapshot for this client runtime. */
