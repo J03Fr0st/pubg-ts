@@ -171,6 +171,24 @@ describe('HttpTransactionRunner', () => {
     expect(recordOutcome).toHaveBeenCalledWith(outcome);
   });
 
+  it('uses the default retry delay when Retry-After is not numeric', async () => {
+    const request = jest.fn().mockRejectedValue({
+      config: { method: 'get', url: '/players' },
+      message: 'Rate limited',
+      response: {
+        data: { errors: [{ detail: 'Rate limited' }] },
+        headers: { 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' },
+        status: 429,
+      },
+    });
+    const runner = createRunner(request).runner;
+
+    const error = await runner.get('/players', { useCache: false }).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(PubgRateLimitError);
+    expect((error as PubgRateLimitError).retryAfter).toBe(60);
+  });
+
   it('maps network failures and records one network outcome', async () => {
     const request = jest.fn().mockRejectedValue(createError(undefined, 'ENOTFOUND'));
     const { recordOutcome, runner } = createRunner(request);

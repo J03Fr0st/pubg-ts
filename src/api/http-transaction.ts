@@ -233,10 +233,12 @@ export class HttpTransactionRunner {
     }
     if (status === 429) {
       const headers = asRecord(response.headers);
+      const parsedRetryAfter = Number.parseInt(String(headers['retry-after'] ?? '60'), 10);
       return {
         kind: 'rate_limited',
         outcome: { kind: 'rate_limited', statusCode: 429 },
-        retryAfter: parseInt(String(headers['retry-after'] ?? '60'), 10),
+        retryAfter:
+          Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0 ? parsedRetryAfter : 60,
         statusCode: 429,
       };
     }
