@@ -1,21 +1,14 @@
-import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { Samples } from '../../../src/api/services/samples';
 import type { MatchesResponse } from '../../../src/types';
+import { createTransportFake, requestedTarget } from './transport-fake';
 
 describe('Samples', () => {
   let samples: Samples;
-  let transport: jest.Mocked<EndpointTransport>;
+  let transport: ReturnType<typeof createTransportFake>;
 
   beforeEach(() => {
-    transport = {
-      get: jest.fn(),
-    };
-
+    transport = createTransportFake();
     samples = new Samples(transport, 'pc-na');
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   describe('getSamples', () => {
@@ -25,13 +18,15 @@ describe('Samples', () => {
 
       const result = await samples.getSamples();
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/samples');
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'samples'],
+        query: {},
+      });
       expect(result).toEqual(mockResponse);
     });
 
     it('should get samples with date filters', async () => {
-      const mockResponse: MatchesResponse = { data: [] };
-      transport.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue({ data: [] });
 
       await samples.getSamples({
         createdAt: {
@@ -40,9 +35,10 @@ describe('Samples', () => {
         },
       });
 
-      expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/samples?filter%5BcreatedAt-start%5D=2023-01-01T00%3A00%3A00Z&filter%5BcreatedAt-end%5D=2023-01-31T23%3A59%3A59Z'
-      );
+      expect(requestedTarget(transport).query).toEqual({
+        'filter[createdAt-start]': '2023-01-01T00:00:00Z',
+        'filter[createdAt-end]': '2023-01-31T23:59:59Z',
+      });
     });
   });
 });

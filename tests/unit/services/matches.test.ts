@@ -1,7 +1,7 @@
-import type { MatchTransport } from '../../../src/api/endpoint-transport';
 import { Matches } from '../../../src/api/services/matches';
 import { PubgNotFoundError, PubgValidationError } from '../../../src/errors';
 import type { Asset, MatchesResponse, MatchResponse, TelemetryData } from '../../../src/types';
+import { createMatchTransportFake, requestedTarget } from './transport-fake';
 
 const createMatchResponse = (included: MatchResponse['included'] = []): MatchResponse => ({
   data: {
@@ -44,19 +44,11 @@ const createTelemetryAsset = (id: string, URL: string): Asset => ({
 
 describe('Matches', () => {
   let matches: Matches;
-  let transport: jest.Mocked<MatchTransport>;
+  let transport: ReturnType<typeof createMatchTransportFake>;
 
   beforeEach(() => {
-    transport = {
-      get: jest.fn(),
-      fetchTelemetry: jest.fn(),
-    };
-
+    transport = createMatchTransportFake();
     matches = new Matches(transport, 'pc-na');
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   describe('getMatch', () => {
@@ -67,18 +59,24 @@ describe('Matches', () => {
 
       const result = await matches.getMatch('match-1');
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/matches/match-1');
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'matches', 'match-1'],
+        query: {},
+      });
       expect(result).toEqual(mockResponse);
     });
 
-    it('encodes reserved characters in match IDs as one path segment', async () => {
+    it('keeps reserved characters in match IDs within one path segment', async () => {
       transport.get.mockResolvedValue(createMatchResponse());
 
       await matches.getMatch('match/one?source=test');
 
-      expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/matches/match%2Fone%3Fsource%3Dtest'
-      );
+      expect(requestedTarget(transport).segments).toEqual([
+        'shards',
+        'pc-na',
+        'matches',
+        'match/one?source=test',
+      ]);
     });
   });
 
@@ -99,7 +97,12 @@ describe('Matches', () => {
 
       await expect(matches.getTelemetry('match-1')).resolves.toEqual(telemetry);
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/matches/match-1');
+      expect(requestedTarget(transport).segments).toEqual([
+        'shards',
+        'pc-na',
+        'matches',
+        'match-1',
+      ]);
       expect(transport.fetchTelemetry).toHaveBeenCalledTimes(1);
       expect(transport.fetchTelemetry.mock.calls[0]).toEqual([telemetryUrl]);
     });
@@ -164,38 +167,39 @@ describe('Matches', () => {
 
       const result = await matches.getMatches();
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/matches');
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'matches'],
+        query: {},
+      });
       expect(result).toEqual(mockResponse);
     });
 
     it('should get matches with pagination', async () => {
-      const mockResponse: MatchesResponse = { data: [] };
-      transport.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue({ data: [] });
 
       await matches.getMatches({
         pageSize: 10,
         offset: 20,
       });
 
-      expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/matches?page%5Blimit%5D=10&page%5Boffset%5D=20'
-      );
+      expect(requestedTarget(transport).query).toEqual({
+        'page[limit]': '10',
+        'page[offset]': '20',
+      });
     });
 
     it('should get matches with sort parameter', async () => {
-      const mockResponse: MatchesResponse = { data: [] };
-      transport.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue({ data: [] });
 
       await matches.getMatches({
         sort: '-createdAt',
       });
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/matches?sort=-createdAt');
+      expect(requestedTarget(transport).query).toEqual({ sort: '-createdAt' });
     });
 
     it('should get matches with filters', async () => {
-      const mockResponse: MatchesResponse = { data: [] };
-      transport.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue({ data: [] });
 
       await matches.getMatches({
         filter: {
@@ -208,9 +212,12 @@ describe('Matches', () => {
         },
       });
 
-      expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/matches?filter%5BcreatedAt-start%5D=2023-01-01T00%3A00%3A00Z&filter%5BcreatedAt-end%5D=2023-01-31T23%3A59%3A59Z&filter%5BplayerIds%5D=player-1%2Cplayer-2&filter%5BgameMode%5D=squad%2Cduo'
-      );
+      expect(requestedTarget(transport).query).toEqual({
+        'filter[createdAt-start]': '2023-01-01T00:00:00Z',
+        'filter[createdAt-end]': '2023-01-31T23:59:59Z',
+        'filter[playerIds]': 'player-1,player-2',
+        'filter[gameMode]': 'squad,duo',
+      });
     });
   });
 });

@@ -16,6 +16,7 @@ import {
   humanizeMapId,
   humanizeSeasonId,
   humanizeVehicleId,
+  isOffseasonEndDate,
   isRatingInRange,
   isSeasonActive,
   subcategorizeItem,
@@ -50,6 +51,7 @@ export interface EnhancedSeasonInfo {
   name: string;
   startDate: string;
   endDate: string;
+  /** Season Activity: whether the season is running at the moment it was read. */
   isActive: boolean;
   isOffseason: boolean;
 }
@@ -72,21 +74,68 @@ interface SurvivalTitleData {
 
 type StableSeasonInfo = Omit<EnhancedSeasonInfo, 'isActive'>;
 
+/** Everything one dictionary-backed lookup needs; items and vehicles differ only in these fields. */
+interface AssetLookup<T> {
+  readonly assetType: 'item' | 'vehicle';
+  readonly dictionary: Record<string, string>;
+  readonly cache: Map<string, T>;
+  readonly enrich: (id: string, name: string) => T;
+}
+
 const DEFAULT_CONFIG: Required<AssetCatalogConfig> = {
   assetBaseUrl: 'https://raw.githubusercontent.com/pubg/api-assets/master',
 };
 
-const VALID_PLATFORMS: Platform[] = ['PC', 'XBOX', 'PS4', 'Stadia'];
-const ITEM_IDS = Object.keys(itemIdData);
-const VEHICLE_IDS = Object.keys(vehicleIdData);
-const MAP_ENTRIES = Object.entries(mapNameData as Record<string, string>);
+const ITEM_NAMES: Record<string, string> = itemIdData;
+const VEHICLE_NAMES: Record<string, string> = vehicleIdData;
+const MAP_NAMES: Record<string, string> = mapNameData;
+const DAMAGE_CAUSER_NAMES: Record<string, string> = damageCauserNameData;
+const DAMAGE_TYPE_CATEGORIES: Record<string, string> = damageTypeCategoryData;
+const GAME_MODE_NAMES: Record<string, string> = gameModeData;
 const SEASONS_BY_PLATFORM: Record<Platform, SeasonData[]> = seasonsData;
 const SURVIVAL_TITLES: Record<string, SurvivalTitleData> = survivalTitlesData;
 
+const ITEM_IDS = Object.keys(ITEM_NAMES);
+const VEHICLE_IDS = Object.keys(VEHICLE_NAMES);
+const MAP_ENTRIES = Object.entries(MAP_NAMES);
+const VALID_PLATFORMS = Object.keys(SEASONS_BY_PLATFORM) as Platform[];
+
+/**
+ * Local-only catalog of the PUBG asset data bundled with the SDK.
+ *
+ * `getItemInfo` and `getVehicleInfo` reject empty or non-string IDs with {@link PubgAssetError}
+ * and return `null` for unknown IDs. Season lookups reject unsupported platforms with
+ * {@link PubgConfigurationError}; `getActiveSeason` returns `null` when no season is active.
+ * `getSurvivalTitle` rejects invalid ratings with {@link PubgAssetError} and returns `null` when
+ * no title matches. Name lookups expect strings and do not validate malformed inputs; unknown
+ * names fall back to a humanized or original identifier. Catalog reads never perform I/O.
+ */
 export class AssetCatalog {
   private readonly config: Required<AssetCatalogConfig>;
-  private readonly itemCache: Map<string, EnhancedItemInfo> = new Map();
-  private readonly vehicleCache: Map<string, EnhancedVehicleInfo> = new Map();
+  private readonly itemLookup: AssetLookup<EnhancedItemInfo> = {
+    assetType: 'item',
+    dictionary: ITEM_NAMES,
+    cache: new Map(),
+    enrich: (id, name) => ({
+      id,
+      name,
+      category: categorizeItem(id),
+      subcategory: subcategorizeItem(id),
+      description: name,
+    }),
+  };
+  private readonly vehicleLookup: AssetLookup<EnhancedVehicleInfo> = {
+    assetType: 'vehicle',
+    dictionary: VEHICLE_NAMES,
+    cache: new Map(),
+    enrich: (id, name) => ({
+      id,
+      name,
+      type: categorizeVehicle(id),
+      category: 'vehicle',
+      description: name,
+    }),
+  };
   private readonly seasonCache: Map<Platform, StableSeasonInfo[]> = new Map();
   private readonly itemSearchIndex: ItemSearchIndex<EnhancedItemInfo>;
 
@@ -100,36 +149,11 @@ export class AssetCatalog {
   }
 
   getItemName(itemId: string): string {
-    return (itemIdData as Record<string, string>)[itemId] || humanizeItemId(itemId);
+    return ITEM_NAMES[itemId] || humanizeItemId(itemId);
   }
 
   getItemInfo(itemId: string): EnhancedItemInfo | null {
-    if (!itemId || typeof itemId !== 'string') {
-      throw new PubgAssetError('Invalid item ID provided', itemId || 'undefined', 'item', {
-        operation: 'get_item_info',
-        metadata: { providedId: itemId },
-      });
-    }
-
-    if (this.itemCache.has(itemId)) {
-      return this.itemCache.get(itemId)!;
-    }
-
-    const name = this.getItemName(itemId);
-    if (name === humanizeItemId(itemId) && !(itemId in itemIdData)) {
-      return null;
-    }
-
-    const info: EnhancedItemInfo = {
-      id: itemId,
-      name,
-      category: categorizeItem(itemId),
-      subcategory: subcategorizeItem(itemId),
-      description: name,
-    };
-
-    this.itemCache.set(itemId, info);
-    return info;
+    return this.lookup(itemId, this.itemLookup);
   }
 
   getItemsByCategory(category: string): EnhancedItemInfo[] {
@@ -150,40 +174,15 @@ export class AssetCatalog {
   }
 
   getVehicleName(vehicleId: string): string {
-    return (vehicleIdData as Record<string, string>)[vehicleId] || humanizeVehicleId(vehicleId);
+    return VEHICLE_NAMES[vehicleId] || humanizeVehicleId(vehicleId);
   }
 
   getVehicleInfo(vehicleId: string): EnhancedVehicleInfo | null {
-    if (!vehicleId || typeof vehicleId !== 'string') {
-      throw new PubgAssetError('Invalid vehicle ID provided', vehicleId || 'undefined', 'vehicle', {
-        operation: 'get_vehicle_info',
-        metadata: { providedId: vehicleId },
-      });
-    }
-
-    if (this.vehicleCache.has(vehicleId)) {
-      return this.vehicleCache.get(vehicleId)!;
-    }
-
-    const name = this.getVehicleName(vehicleId);
-    if (name === humanizeVehicleId(vehicleId) && !(vehicleId in vehicleIdData)) {
-      return null;
-    }
-
-    const info: EnhancedVehicleInfo = {
-      id: vehicleId,
-      name,
-      type: categorizeVehicle(vehicleId),
-      category: 'vehicle',
-      description: name,
-    };
-
-    this.vehicleCache.set(vehicleId, info);
-    return info;
+    return this.lookup(vehicleId, this.vehicleLookup);
   }
 
   getMapName(mapId: string): string {
-    return (mapNameData as Record<string, string>)[mapId] || humanizeMapId(mapId);
+    return MAP_NAMES[mapId] || humanizeMapId(mapId);
   }
 
   getAllMaps(): Array<{ id: string; name: string }> {
@@ -212,7 +211,7 @@ export class AssetCatalog {
         name: humanizeSeasonId(season.id),
         startDate: season.attributes.startDate,
         endDate: season.attributes.endDate,
-        isOffseason: season.attributes.endDate === '00-00-0000',
+        isOffseason: isOffseasonEndDate(season.attributes.endDate),
       }));
       this.seasonCache.set(platform, stableSeasons);
     }
@@ -224,7 +223,12 @@ export class AssetCatalog {
     }));
   }
 
-  getCurrentSeason(platform: Platform = 'PC'): EnhancedSeasonInfo | null {
+  /**
+   * Returns the bundled season whose Season Activity is current for the platform, or `null`
+   * when no bundled season covers today. This reads local dates; `client.seasons.getCurrentSeason()`
+   * asks PUBG instead.
+   */
+  getActiveSeason(platform: Platform = 'PC'): EnhancedSeasonInfo | null {
     if (!platform || typeof platform !== 'string') {
       throw new PubgConfigurationError(
         'Invalid platform provided',
@@ -265,15 +269,15 @@ export class AssetCatalog {
   }
 
   getDamageCauserName(causerId: string): string {
-    return (damageCauserNameData as Record<string, string>)[causerId] || causerId;
+    return DAMAGE_CAUSER_NAMES[causerId] || causerId;
   }
 
   getDamageTypeCategory(damageType: string): string {
-    return (damageTypeCategoryData as Record<string, string>)[damageType] || damageType;
+    return DAMAGE_TYPE_CATEGORIES[damageType] || damageType;
   }
 
   getGameModeName(gameModeId: string): string {
-    return (gameModeData as Record<string, string>)[gameModeId] || gameModeId;
+    return GAME_MODE_NAMES[gameModeId] || gameModeId;
   }
 
   getAssetUrl(category: string, itemId: string, type: 'icon' | 'image' = 'icon'): string {
@@ -314,5 +318,31 @@ export class AssetCatalog {
       totalMaps: MAP_ENTRIES.length,
       categoryCounts,
     };
+  }
+
+  private lookup<T>(
+    id: string,
+    { assetType, dictionary, cache, enrich }: AssetLookup<T>
+  ): T | null {
+    if (!id || typeof id !== 'string') {
+      throw new PubgAssetError(`Invalid ${assetType} ID provided`, id || 'undefined', assetType, {
+        operation: `get_${assetType}_info`,
+        metadata: { providedId: id },
+      });
+    }
+
+    const cached = cache.get(id);
+    if (cached) {
+      return cached;
+    }
+
+    const name = dictionary[id];
+    if (name === undefined) {
+      return null;
+    }
+
+    const info = enrich(id, name);
+    cache.set(id, info);
+    return info;
   }
 }

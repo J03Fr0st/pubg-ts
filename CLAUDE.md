@@ -79,20 +79,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run legacy:lint:fix` - Fix ESLint issues
 
 ### Asset Catalog
-- Asset dictionaries are checked in and compiled into the local-only catalog; there is no asset sync or prebuild command.
+- The checked-in JSON under `src/assets/` is the only source of Asset Catalog data; there is no asset sync or prebuild command.
+- `npm run generate:asset-types` - Regenerate the identifier types under `src/types/assets/` from that JSON. Run it after editing any bundled JSON.
 - `assetBaseUrl` controls generated image URLs only and never changes catalog data.
-
-### Production Readiness
-- `npm run security:audit` - Run comprehensive security audit with vulnerability scanning
-- `npm run security:check` - Run both npm audit and custom security checks
-- `npm run security:fix` - Fix npm audit vulnerabilities automatically
-- `npm run perf:test` - Run performance testing and load validation
-- `npm run perf:profile` - Profile performance with Node.js profiler
-
-### CLI Tool
-- `npx pubg-ts scaffold` - Create new PUBG TypeScript projects with templates
-- `npx pubg-ts assets` - Manage and explore PUBG assets (search, export, info)
-- `npx pubg-ts setup` - Setup development environment and configuration
 
 ### Documentation
 - `npm run generate:docs` - Generate TypeDoc API documentation
@@ -100,146 +89,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Architecture
 
+### Domain Language
+`CONTEXT.md` defines the domain terms (Client Health, Asset Catalog, Match Telemetry, Endpoint Target, Request Outcome, Season Activity, Request Runtime). Use them in code, tests, and docs. `docs/adr/` records architecture decisions; do not re-litigate them without a new ADR.
+
 ### Core Structure
-This is a TypeScript SDK for the PUBG API with a service-oriented architecture:
+This is a TypeScript SDK for the PUBG API.
 
 **Main Client (`src/api/client.ts`)**
-- `PubgClient` - Main entry point that orchestrates all services
-- Provides unified access to all API endpoints through service instances
-- Handles configuration and exposes client-local health and response-cache utilities
+- `PubgClient` - Entry point that composes the endpoint modules, the Asset Catalog, and one client-local Request Runtime
+- Exposes `getHealth()` (synchronous, redacted Client Health) and `clearResponseCache()`
 
-**Runtime Layer (`src/api/client-runtime.ts`, `src/api/http-transaction.ts`)**
-- `ClientRuntime` - Owns one client's cache, rate limiter, request deduplicator, and health state
-- `HttpTransactionRunner` - Handles retries, caching, error mapping, and authenticated/external requests
-- Uses axios for HTTP requests while keeping runtime state isolated per client
+**Request Runtime (`src/api/runtime/`)**
+- `client-runtime.ts` - `ClientRuntime`: the one module that owns a client's response cache, rate limiter, request deduplication, retry policy, and Client Health. It implements the internal `EndpointTransport`/`MatchTransport` seam. Every optional `PubgClientConfig` default is resolved once, at construction.
+- `request-failure.ts` - Pure interpretation of a failed adapter call into a `RequestFailure` (drives retry, Client Health, and error mapping from one decode) plus the error mappers. Telemetry errors never echo the request URL.
+- `cache.ts`, `rate-limiter.ts`, `request-deduplicator.ts`, `logger.ts` - The runtime's collaborators; nothing outside the runtime imports them
+- No request state lives outside a `ClientRuntime` instance; two clients never share a cache or limiter
 
-**Service Layer (`src/api/services/`)**
-Each service corresponds to a major PUBG API endpoint:
-- `PlayersService` - Player data and statistics
-- `MatchesService` - Match details, history, and telemetry through `getTelemetry()`
-- `SeasonsService` - Season information
-- `LeaderboardsService` - Leaderboard data
-- `SamplesService` - Sample data for testing
+**Endpoint Target and transport seam (`src/api/`)**
+- `endpoint-query.ts` - `endpointTarget()` builds a branded `EndpointTarget` (shard-scoped, fully encoded path and query; identifiers stay single path segments). `describeEndpointTarget()` decodes one for verification in tests.
+- `endpoint-transport.ts` - `EndpointTransport.get(target)` and `MatchTransport.fetchTelemetry(url)`. Only `Matches` sees the wider seam. Production adapter: `ClientRuntime`; test adapter: a five-line fake. Not exported from the package root.
+- `client-health.ts` - `ClientHealthState` reducer: `record(outcome)` + `snapshot()`; the public `ClientHealth` types
 
-**Runtime & Utilities (`src/api/`, `src/utils/`)**
-- `ClientRuntime` - Client-local request composition with response caching, rate limiting, request deduplication, and health state
-- `PubgClient.getHealth()` - Synchronous, redacted request-health snapshot with response-cache and rate-limit state
-- `RateLimiter` - Token bucket rate limiting implementation
-- `Cache` - Memory-based caching with TTL and size limits
-- `Logger` - Debug logging with namespaces (`pubg-ts:*`)
-- `AssetCatalog` - Local-only bundled asset lookup and generated image URLs
-- `SecurityManager` - Input validation, sanitization, and threat detection
+**Endpoint modules (`src/api/services/`)**
+- `Players`, `Matches`, `Seasons`, `Leaderboards`, `Samples` - one class per PUBG endpoint family, each depending only on the transport seam and `endpointTarget`
+- `Matches.getTelemetry()` owns Match Telemetry discovery: exactly one HTTPS asset, fetched without PUBG credentials or caching
+- Explicit domain failures use typed `Pubg*Error` classes from `src/errors/`; use those classes when adding validation. Malformed inputs outside the validated cases can still produce native JavaScript errors.
 
-**Asset Catalog (`src/utils/assets/catalog.ts`)**
-`AssetCatalog`, also available as `PubgClient.assets`, provides local access to bundled PUBG data:
-- **Local-only lookups**: Items, vehicles, maps, seasons, survival titles, and dictionaries are read synchronously from checked-in data
-- **Full TypeScript type safety**: All asset IDs are typed with union types for IntelliSense
-- **Enhanced search capabilities**: Fuzzy search, category filtering, and metadata enhancement
-- **Complete asset coverage**: Items, vehicles, maps, seasons, survival titles, and dictionaries
-- **URL configuration**: `AssetCatalogConfig.assetBaseUrl` changes generated image URLs only
-- **Private derived caches**: Callers cannot clear catalog caches, and no facade singleton is exported
-- **No remote syncing**: Builds and catalog construction do not download or synchronize asset data
+**Asset Catalog (`src/utils/assets/`)**
+- `catalog.ts` - `AssetCatalog`, also available as `PubgClient.assets`. Synchronous, local-only lookups over the bundled JSON; named lookup methods are the intended interface (decided in v2)
+- `normalization.ts` - Category, humanization, date, and Season Activity policy. `isOffseasonEndDate()` is the single interpretation of the `'00-00-0000'` open-ended season sentinel
+- `search.ts` - Fuse.js item search index
+- Failure contract: item/vehicle info lookups validate IDs, season lookups validate platforms, and survival-title lookup validates ratings, using `PubgAssetError`/`PubgConfigurationError`. Item/vehicle info, active-season, and survival-title lookups return `null` when no result matches. Name lookups expect strings without validating malformed inputs and use humanized or original identifiers as fallbacks.
+- `getActiveSeason()` reads Season Activity from bundled dates; `client.seasons.getCurrentSeason()` asks PUBG. They are different questions
 
 **Type Definitions (`src/types/`)**
-- Comprehensive TypeScript types for all API responses
-- Organized by domain (players, matches, seasons, etc.)
-- Includes common types and API configuration interfaces
+- PUBG response types organized by domain (players, matches, seasons, leaderboard, telemetry, common)
+- `src/types/assets/` is generated — see Bundled Asset Data below
 
 **Error Handling (`src/errors/`)**
-- Custom error classes for different API error scenarios
-- `PubgApiError`, `PubgRateLimitError`, `PubgAuthenticationError`, etc.
+- One hierarchy rooted at `PubgApiError`: `PubgRateLimitError`, `PubgAuthenticationError`, `PubgNotFoundError`, `PubgValidationError`, `PubgCacheError`, `PubgAssetError`, `PubgConfigurationError`, `PubgNetworkError`
 
 ### Key Design Patterns
-- **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive an endpoint transport and configuration
-- **Caching Layer**: Transparent response caching within each client runtime
-- **Rate Limiting**: Built-in rate limiting to respect API limits
-- **Error Mapping**: HTTP errors mapped to domain-specific error types
-- **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
+- **Deep modules behind narrow seams**: endpoint modules see only `EndpointTransport`; callers see only `PubgClient` and `AssetCatalog`
+- **One interpretation per failure**: `interpretFailure()` decodes a rejection once; retry, Client Health, and error mapping all consume that `RequestFailure`
+- **One logical request**: retries take rate-limit slots but record a single outcome, so counters and Client Health never flap
+- **Redaction by construction**: telemetry requests strip every header and Basic auth at the adapter; public errors never carry the original error or telemetry URL
+- **Bundled data, generated types**: JSON is the truth; `src/types/assets/` is derived from it
 
 ### Testing Strategy
-- **Unit Tests**: Individual service and utility testing
-- **Integration Tests**: End-to-end API testing with mocked responses
-- **Mocking**: Axios mocked in `tests/__mocks__/axios.ts`
+- **The interface is the test surface**: endpoint modules are tested through a transport fake (`tests/unit/services/transport-fake.ts`) and assert decoded Endpoint Targets, not encoded strings
+- **Runtime**: `tests/unit/runtime/client-runtime.test.ts` is the single harness for cache, dedup, retry, error mapping, Client Health, redaction, and the production adapters (real localhost servers, no axios module mocking)
+- **Mocking**: `tests/__mocks__/axios.ts` is auto-applied to every test; files that need the real adapter start with `jest.unmock('axios')`
 - **Setup**: Common test setup in `tests/setup.ts`
+- **Integration**: `tests/integration/` runs only with `PUBG_API_KEY` set
 
 ### Configuration
 - Uses Biome for linting and formatting (replaces ESLint/Prettier)
 - Jest for testing with TypeScript support
 - Lefthook for pre-commit hooks (Biome check + related tests)
 - Target: ES2020, Node.js 18+
+- Runtime dependencies: `axios`, `debug`, `fuse.js` — nothing else ships to consumers
 
 ### Bundled Asset Data
-`AssetCatalog` consumes the checked-in JSON under `src/assets/` and the checked-in types under
-`src/types/assets/`. The current package has no runtime fetch, sync command, or prebuild sync hook.
+`AssetCatalog` reads the checked-in JSON under `src/assets/`. The package has no runtime fetch, sync command, or prebuild sync hook.
 
-**Generated Assets (`src/assets/`)**
+**Bundled Data (`src/assets/`, the source of truth)**
 - `seasons.json` - All season data by platform
 - `survival-titles.json` - Survival title and rating information
-- `dictionaries/` - Asset name mappings and categorizations
+- `dictionaries/` - Item, vehicle, map, game-mode, and damage name mappings
+- `enums/` - Telemetry enumerations
 
-**Generated Types (`src/types/assets/`)**
-- `items.ts` - All item IDs as union types with dictionaries
-- `vehicles.ts` - All vehicle IDs as union types with dictionaries
-- `maps.ts` - All map IDs as union types with dictionaries
-- `seasons.ts` - Season data interfaces and platform types
-- `enums.ts` - Game mode, damage type, and other enumerations
+**Generated Types (`src/types/assets/`, do not edit by hand)**
+- Produced by `scripts/generate-asset-types.js` (`npm run generate:asset-types`)
+- `items.ts` (`ItemId`), `vehicles.ts` (`VehicleId`), `maps.ts` (`MapId`, `MapName`), `seasons.ts` (season interfaces, `Platform`), `enums.ts` (telemetry enum unions)
 
-**CLI Tool (`src/cli/`)**
-Comprehensive command-line interface for development and project management:
-- **Scaffolding**: Create new PUBG TypeScript projects with multiple templates (basic, advanced, bot)
-- **Asset Management**: Search, explore, and export PUBG assets with fuzzy search capabilities
-- **Development Setup**: Interactive configuration for API keys, testing, and linting
-
-**Production Features (`scripts/`, `src/api/`, `src/utils/`)**
-Runtime health, security, and performance tools:
-- **Performance Testing**: Load testing with concurrent request validation and memory profiling
-- **Security Auditing**: Vulnerability scanning, dependency analysis, and code security validation
-- **Client Runtime Health**: Synchronous, redacted snapshots derived from each client's request outcomes, response cache, and rate limiter
-- **Input Security**: Validation, sanitization, and threat detection for all user inputs
-
-### Key Design Patterns
-- **Service Pattern**: Each API domain has its own service class
-- **Dependency Injection**: Services receive an `EndpointTransport` backed by the client-local runtime
-- **Caching Layer**: Transparent response caching within each client runtime
-- **Rate Limiting**: Built-in rate limiting to respect API limits
-- **Error Mapping**: HTTP errors mapped to domain-specific error types
-- **Asset Management**: User-friendly transformation of technical IDs to human-readable names and metadata
-- **Runtime Health**: Client-local request outcomes feed synchronous, redacted health snapshots
-- **Security Hardening**: All inputs validated and sanitized at entry points
-
-### Testing Strategy
-- **Unit Tests**: Individual service and utility testing (191 total tests)
-- **Integration Tests**: End-to-end API testing with mocked responses
-- **Mocking**: Axios mocked in `tests/__mocks__/axios.ts`
-- **Setup**: Common test setup in `tests/setup.ts`
-- **Coverage**: Comprehensive test coverage with detailed reporting
-
-### Configuration
-- Uses Biome for linting and formatting (replaces ESLint/Prettier)
-- Jest for testing with TypeScript support
-- Lefthook for pre-commit hooks (Biome check + related tests)
-- Target: ES2020, Node.js 18+
-- Client-local runtime health snapshots without global monitors or background health timers
-- Security hardening with input validation and threat detection
-
-### Asset Catalog Data
-Catalog lookups always use bundled local data. `assetBaseUrl` is only a prefix for generated image
-URLs; the catalog owns private derived caches and exposes neither a singleton nor cache clearing.
-
-**Generated Assets (`src/assets/`)**
-- `seasons.json` - All season data by platform
-- `survival-titles.json` - Survival title and rating information
-- `dictionaries/` - Asset name mappings and categorizations
-
-**Generated Types (`src/types/assets/`)**
-- `items.ts` - All item IDs as union types with dictionaries
-- `vehicles.ts` - All vehicle IDs as union types with dictionaries
-- `maps.ts` - All map IDs as union types with dictionaries
-- `seasons.ts` - Season data interfaces and platform types
-- `enums.ts` - Game mode, damage type, and other enumerations
-
-### Client Runtime Health
+### Client Health
 Each `PubgClient` owns a `ClientRuntime`; request state is not shared across client instances.
 
 **Health Snapshot (`getHealth()`)**
@@ -248,44 +172,26 @@ Each `PubgClient` owns a `ClientRuntime`; request state is not shared across cli
 - Includes the last-known rate-limit remaining count, limit, and reset time
 - Reflects real request and telemetry outcomes without synthetic checks, background timers, or environment-specific monitoring variants
 
-### Security Features
-Built-in security hardening and validation:
-
-**Input Validation**
-- Player name validation with security checks
-- API parameter sanitization
-- SQL injection prevention
-- XSS attack detection
-- Command injection protection
-
-**Security Auditing**
-- NPM vulnerability scanning
-- Dependency security analysis
-- License compliance checking
-- Code security pattern detection
-- Configuration validation
-
 ### Debug Logging
 Enable debug logging with `DEBUG=pubg-ts:*` environment variable.
-Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
+Available namespaces: `http`, `cache`, `client`.
 
 ## Development Workflow
 
 ### Before Making Changes
-1. **Run full test suite**: `npm test` - Ensure all 191 tests pass
-2. **Check build**: `npm run build` - Compile TypeScript and bundled asset data
-3. **Lint code**: `npm run lint` - Check for code quality issues
+1. **Run full test suite**: `npm test`
+2. **Check build**: `npm run build`
+3. **Lint code**: `npm run check`
 
 ### When Adding New Features
-1. **Add security validation**: Use `SecurityManager` for any user input processing
-2. **Write tests**: Maintain test coverage - add unit tests in `tests/unit/`
-3. **Update assets intentionally**: Verify the data-generation source before changing checked-in asset files or types
+1. **Write tests**: Maintain coverage - add unit tests in `tests/unit/`, mirroring the source path
+2. **Update assets intentionally**: Edit the JSON under `src/assets/`, then run `npm run generate:asset-types`; never hand-edit `src/types/assets/`
+3. **Record decisions**: Add domain terms to `CONTEXT.md` and architecture decisions to `docs/adr/`
 
-### When Modifying Services
-- **Transport Integration**: Services use the client runtime through the `EndpointTransport` boundary
-- **Error Handling**: Throw appropriate error types from `src/errors/`
-- **Caching**: Use the client-local response cache for eligible requests
-- **Rate Limiting**: Respect the client-local rate limiter across all services
+### When Modifying Endpoint Modules
+- **Transport**: Depend on `EndpointTransport` (or `MatchTransport` for Matches) and build targets with `endpointTarget`
+- **Error Handling**: Throw typed errors from `src/errors/`; document them with `@throws`
+- **Caching and rate limiting**: Handled inside `ClientRuntime`; endpoint modules never touch them
 
 ### Working with Assets
 - **Local Only**: Use `AssetCatalog` through the package root or `client.assets` for synchronous bundled-data lookups
@@ -293,51 +199,33 @@ Available namespaces: `http`, `cache`, `rate-limit`, `client`, `error`.
 - **Fuzzy Search**: Built-in search capabilities via `fuse.js` integration
 - **Configuration**: Use `assetBaseUrl` only to configure generated image URLs; derived caches remain private
 
-### CLI Development
-The CLI tool (`src/cli/`) provides scaffolding and asset management:
-- **Commands**: Located in `src/cli/commands/` (scaffold, assets, setup)
-- **Templates**: Project templates for different use cases (basic, advanced, bot)
-- **Binary**: Available as `npx pubg-ts` after build
-
-### Performance Considerations
-- **Runtime Health**: Use synchronous `getHealth()` snapshots for request, cache, and rate-limit state
-- **Caching Strategy**: TTL-based with size limits; inspect `getHealth().responseCache` for redacted statistics
-- **Asset Performance**: Catalog lookups use bundled local data without remote asset calls
-
 ### Security Guidelines
-- **Input Validation**: All user inputs must go through `SecurityManager`
-- **API Key Protection**: Never log or expose API keys in error messages
-- **Dependency Security**: Run `npm run security:check` before releases
-- **Audit Compliance**: Use `npm run security:audit` for comprehensive security analysis
-
-### Production Deployment
-- **Runtime Health**: Inspect each `PubgClient` through synchronous `getHealth()` snapshots
-- **Performance Testing**: Run `npm run perf:test` for load validation
-- **Security Validation**: Run `npm run security:check` before deployment
-- **Asset Data**: No deployment-time sync is required; the package ships its bundled catalog data
+- **API Key Protection**: Never log or expose API keys in error messages; public errors must not carry the original adapter error
+- **Telemetry**: External telemetry requests must never inherit the authenticated Axios instance or global Axios defaults
+- **Dependency Security**: Run `npm audit` before releases
 
 ## Important File Locations
 
 ### Core Architecture
-- `src/api/client.ts` - Main PubgClient entry point
-- `src/api/client-runtime.ts` - Client-local runtime composition and health snapshots
-- `src/api/http-transaction.ts` - HTTP transaction, retry, cache, and error-mapping mechanics
-- `src/api/services/` - Individual API service implementations
+- `src/api/client.ts` - Main `PubgClient` entry point
+- `src/api/runtime/client-runtime.ts` - Client-local Request Runtime and health snapshots
+- `src/api/runtime/request-failure.ts` - Failure interpretation and error mapping
+- `src/api/endpoint-query.ts` - Endpoint Target construction and decoding
+- `src/api/endpoint-transport.ts` - Internal transport seam
+- `src/api/services/` - Endpoint modules
 
-### Utilities & Infrastructure
+### Asset Catalog
 - `src/utils/assets/catalog.ts` - Local-only `AssetCatalog` and `AssetCatalogConfig`
-- `src/utils/security.ts` - Input validation and threat detection
-- `src/utils/cache.ts` - Memory caching with hit rate tracking
+- `src/utils/assets/normalization.ts` - Category, humanization, and Season Activity policy
 
-### Production Tools
-- `scripts/performance-test.ts` - Load testing and memory profiling
-- `scripts/security-audit.ts` - Comprehensive security scanning
+### Scripts
+- `scripts/generate-asset-types.js` - Regenerates `src/types/assets/` from `src/assets/`
+- `scripts/clean.js` - Removes `dist/` before a build
 
 ### Generated Code (Do Not Edit Manually)
-- `src/types/assets/` - Auto-generated TypeScript types for assets
-- `src/assets/` - Auto-generated JSON files with PUBG asset data
+- `src/types/assets/` - Generated from `src/assets/` by `scripts/generate-asset-types.js`
 
 ### Testing
-- `tests/unit/` - Unit tests for individual components
+- `tests/unit/` - Unit tests mirroring `src/` (`runtime/`, `services/`)
 - `tests/integration/` - End-to-end API testing
 - `tests/__mocks__/` - Mock implementations for testing

@@ -1,5 +1,5 @@
 import { PubgAssetError, PubgConfigurationError } from '../../src/errors';
-import { AssetCatalog, type AssetCatalogConfig } from '../../src/utils/assets/catalog';
+import { AssetCatalog } from '../../src/utils/assets/catalog';
 
 describe('AssetCatalog', () => {
   let catalog: AssetCatalog;
@@ -127,7 +127,25 @@ describe('AssetCatalog', () => {
 
     it('keeps platform validation in the catalog', () => {
       expect(() => catalog.getSeasonsByPlatform('INVALID' as any)).toThrow(PubgConfigurationError);
-      expect(() => catalog.getCurrentSeason(null as any)).toThrow(PubgConfigurationError);
+      expect(() => catalog.getActiveSeason(null as any)).toThrow(PubgConfigurationError);
+    });
+
+    it('resolves the active season from Season Activity at read time', () => {
+      jest.useFakeTimers().setSystemTime(new Date(2018, 0, 15));
+
+      expect(new AssetCatalog().getActiveSeason('PC')).toMatchObject({
+        id: 'division.bro.official.2018-01',
+        isActive: true,
+        isOffseason: false,
+      });
+
+      jest.setSystemTime(new Date(2030, 0, 1));
+
+      expect(new AssetCatalog().getActiveSeason('PC')).toMatchObject({
+        id: 'division.bro.official.pc-2018-19',
+        isActive: true,
+        isOffseason: true,
+      });
     });
 
     it('matches survival titles by rating range', () => {
@@ -186,14 +204,3 @@ describe('AssetCatalog', () => {
     });
   });
 });
-
-const validConfig: AssetCatalogConfig = { assetBaseUrl: 'https://cdn.example.test/pubg' };
-void validConfig;
-
-// @ts-expect-error v2 has no remote catalog version
-const versionConfig: AssetCatalogConfig = { version: 'latest' };
-// @ts-expect-error v2 derived caches are not caller-configurable
-const cacheConfig: AssetCatalogConfig = { cacheAssets: false };
-// @ts-expect-error v2 catalog data is always local
-const localDataConfig: AssetCatalogConfig = { useLocalData: false };
-void [versionConfig, cacheConfig, localDataConfig];

@@ -1,3 +1,4 @@
+import { PubgValidationError } from '../../errors';
 import type {
   PlayerLifetimeStatsBatchQuery,
   PlayerQuery,
@@ -14,8 +15,12 @@ const MAX_PLAYER_STATS_BATCH_SIZE = 10;
 
 const assertValidPlayerIdBatch = (playerIds: string[]): void => {
   if (playerIds.length === 0 || playerIds.length > MAX_PLAYER_STATS_BATCH_SIZE) {
-    throw new RangeError(
-      `playerIds must contain between 1 and ${MAX_PLAYER_STATS_BATCH_SIZE} player IDs`
+    throw new PubgValidationError(
+      `playerIds must contain between 1 and ${MAX_PLAYER_STATS_BATCH_SIZE} player IDs`,
+      {
+        operation: 'player_batch_validation',
+        metadata: { providedCount: playerIds.length, maxBatchSize: MAX_PLAYER_STATS_BATCH_SIZE },
+      }
     );
   }
 };
@@ -108,6 +113,7 @@ export class Players {
    *
    * @param query - The season, game mode, and player IDs to retrieve stats for.
    * @returns A promise that resolves with the players' season stats.
+   * @throws {@link PubgValidationError} When `playerIds` is empty or holds more than 10 IDs.
    * @example
    * ```ts
    * const seasonStats = await pubg.players.getPlayerSeasonStatsBatch({
@@ -152,6 +158,7 @@ export class Players {
    *
    * @param query - The game mode and player IDs to retrieve lifetime stats for.
    * @returns A promise that resolves with the players' lifetime stats.
+   * @throws {@link PubgValidationError} When `playerIds` is empty or holds more than 10 IDs.
    * @example
    * ```ts
    * const lifetimeStats = await pubg.players.getPlayerLifetimeStatsBatch({

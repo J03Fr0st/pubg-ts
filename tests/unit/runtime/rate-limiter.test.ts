@@ -1,4 +1,4 @@
-import { RateLimiter } from '../../src/utils/rate-limiter';
+import { RateLimiter } from '../../../src/api/runtime/rate-limiter';
 
 describe('RateLimiter', () => {
   let rateLimiter: RateLimiter;

@@ -1,109 +1,62 @@
-import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { Seasons } from '../../../src/api/services/seasons';
+import { PubgNotFoundError } from '../../../src/errors';
 import type { SeasonsResponse } from '../../../src/types';
+import { createTransportFake, requestedTarget } from './transport-fake';
+
+const season = (id: string, isCurrentSeason: boolean): SeasonsResponse['data'][number] => ({
+  type: 'season',
+  id,
+  attributes: { isCurrentSeason, isOffseason: false },
+  relationships: {},
+});
 
 describe('Seasons', () => {
   let seasons: Seasons;
-  let transport: jest.Mocked<EndpointTransport>;
+  let transport: ReturnType<typeof createTransportFake>;
 
   beforeEach(() => {
-    transport = {
-      get: jest.fn(),
-    };
-
+    transport = createTransportFake();
     seasons = new Seasons(transport, 'pc-na');
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   describe('getSeasons', () => {
     it('should get all seasons', async () => {
       const mockResponse: SeasonsResponse = {
-        data: [
-          {
-            type: 'season',
-            id: 'season-1',
-            attributes: {
-              isCurrentSeason: false,
-              isOffseason: false,
-            },
-            relationships: {},
-          },
-          {
-            type: 'season',
-            id: 'season-2',
-            attributes: {
-              isCurrentSeason: true,
-              isOffseason: false,
-            },
-            relationships: {},
-          },
-        ],
+        data: [season('season-1', false), season('season-2', true)],
       };
-
       transport.get.mockResolvedValue(mockResponse);
 
       const result = await seasons.getSeasons();
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'seasons'],
+        query: {},
+      });
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('getCurrentSeason', () => {
-    it('should get current season', async () => {
-      const mockResponse: SeasonsResponse = {
-        data: [
-          {
-            type: 'season',
-            id: 'season-1',
-            attributes: {
-              isCurrentSeason: false,
-              isOffseason: false,
-            },
-            relationships: {},
-          },
-          {
-            type: 'season',
-            id: 'season-2',
-            attributes: {
-              isCurrentSeason: true,
-              isOffseason: false,
-            },
-            relationships: {},
-          },
-        ],
-      };
-
-      transport.get.mockResolvedValue(mockResponse);
+    it('should return only the season PUBG flags as current', async () => {
+      transport.get.mockResolvedValue({
+        data: [season('season-1', false), season('season-2', true)],
+      });
 
       const result = await seasons.getCurrentSeason();
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/seasons');
+      expect(requestedTarget(transport).segments).toEqual(['shards', 'pc-na', 'seasons']);
       expect(result.data).toHaveLength(1);
       expect(result.data[0].attributes.isCurrentSeason).toBe(true);
     });
 
-    it('should throw error if no current season found', async () => {
-      const mockResponse: SeasonsResponse = {
-        data: [
-          {
-            type: 'season',
-            id: 'season-1',
-            attributes: {
-              isCurrentSeason: false,
-              isOffseason: false,
-            },
-            relationships: {},
-          },
-        ],
-      };
+    it('should reject with a typed not-found error when PUBG reports no current season', async () => {
+      transport.get.mockResolvedValue({ data: [season('season-1', false)] });
 
-      transport.get.mockResolvedValue(mockResponse);
+      const error = await seasons.getCurrentSeason().catch((caught: unknown) => caught);
 
-      await expect(seasons.getCurrentSeason()).rejects.toThrow('No current season found');
+      expect(error).toBeInstanceOf(PubgNotFoundError);
+      expect((error as PubgNotFoundError).message).toBe('No current season found');
+      expect((error as PubgNotFoundError).context.metadata).toMatchObject({ shard: 'pc-na' });
     });
   });
 });

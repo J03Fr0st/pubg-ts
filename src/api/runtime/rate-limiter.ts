@@ -1,3 +1,4 @@
+/** Sliding-window rate limiter: at most `maxRequests` starts per `windowMs`. */
 export class RateLimiter {
   private requests: number[] = [];
   private maxRequests: number;
@@ -8,6 +9,7 @@ export class RateLimiter {
     this.windowMs = windowMs;
   }
 
+  /** Resolves once a request may start, waiting for the window to free a slot if needed. */
   async waitForSlot(): Promise<void> {
     const now = Date.now();
 
@@ -37,10 +39,10 @@ export class RateLimiter {
     return this.maxRequests;
   }
 
+  /** Epoch milliseconds when the oldest in-window request expires, or 0 when the window is empty. */
   getResetTime(): number {
     if (this.requests.length === 0) return 0;
 
-    const _now = Date.now();
     const oldestRequest = Math.min(...this.requests);
     return oldestRequest + this.windowMs;
   }

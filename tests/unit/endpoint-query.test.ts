@@ -1,4 +1,4 @@
-import { endpointTarget } from '../../src/api/endpoint-query';
+import { describeEndpointTarget, endpointTarget } from '../../src/api/endpoint-query';
 
 describe('endpointTarget', () => {
   it('builds a shard target from encoded path segments', () => {
@@ -39,5 +39,32 @@ describe('endpointTarget', () => {
     expect(endpointTarget('pc-na', ['players'], { 'filter[playerIds]': [] })).toBe(
       '/shards/pc-na/players?filter%5BplayerIds%5D='
     );
+  });
+});
+
+describe('describeEndpointTarget', () => {
+  it('decodes the segments and query values a target carries', () => {
+    const target = endpointTarget('pc-na', ['matches', 'match/one?source=test'], {
+      'page[limit]': 10,
+      'filter[playerIds]': ['player-1', 'player-2'],
+    });
+
+    expect(describeEndpointTarget(target)).toEqual({
+      segments: ['shards', 'pc-na', 'matches', 'match/one?source=test'],
+      query: { 'page[limit]': '10', 'filter[playerIds]': 'player-1,player-2' },
+    });
+  });
+
+  it('describes a target without a query as an empty query', () => {
+    expect(describeEndpointTarget(endpointTarget('steam', ['players']))).toEqual({
+      segments: ['shards', 'steam', 'players'],
+      query: {},
+    });
+  });
+
+  it('round-trips the untrusted shard as a single segment', () => {
+    expect(
+      describeEndpointTarget(endpointTarget('steam/../matches' as any, ['players'])).segments
+    ).toEqual(['shards', 'steam/../matches', 'players']);
   });
 });

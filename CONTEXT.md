@@ -27,3 +27,7 @@ _Avoid_: HTTP error object, Axios failure
 **Season Activity**:
 Whether an Asset Catalog season is active at the time it is read, based on its bundled start and end dates. It is time-dependent state, not permanently normalized catalog data.
 _Avoid_: Cached season status
+
+**Request Runtime**:
+The module owned by exactly one PUBG client that holds its response cache, rate limiter, request deduplication, retry policy, and Client Health, and that turns each request into one Request Outcome. No request state exists outside a client's Request Runtime.
+_Avoid_: HTTP client, global runtime, transaction runner

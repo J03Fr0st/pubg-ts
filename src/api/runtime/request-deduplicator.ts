@@ -1,3 +1,4 @@
+/** Shares one in-flight promise between concurrent callers that ask for the same key. */
 export class RequestDeduplicator {
   private pending = new Map<string, Promise<any>>();
 
