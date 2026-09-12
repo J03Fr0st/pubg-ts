@@ -1,6 +1,19 @@
-import { endpointTarget } from '../../src/api/endpoint-query';
+import { describeEndpointTarget, endpointTarget } from '../../src/api/endpoint-query';
+import { PubgValidationError } from '../../src/errors';
 
 describe('endpointTarget', () => {
+  it.each(['.', '..'])('rejects a dot-only identifier %s before URL resolution', (id) => {
+    expect(() => endpointTarget('steam', ['matches', id])).toThrow(PubgValidationError);
+  });
+
+  it('preserves ordinary dots and literal percent escapes on the resolved path', () => {
+    for (const id of ['match.one', '...', '%2E%2E']) {
+      const target = endpointTarget('steam', ['matches', id]);
+      const resolved = new URL(target, 'https://example.test').pathname.split('/');
+      expect(resolved).toHaveLength(5);
+      expect(decodeURIComponent(resolved[4])).toBe(id);
+    }
+  });
   it('builds a shard target from encoded path segments', () => {
     expect(endpointTarget('pc-na', ['players'])).toBe('/shards/pc-na/players');
     expect(endpointTarget('steam', ['matches', 'match/one?source=test'])).toBe(
@@ -39,5 +52,32 @@ describe('endpointTarget', () => {
     expect(endpointTarget('pc-na', ['players'], { 'filter[playerIds]': [] })).toBe(
       '/shards/pc-na/players?filter%5BplayerIds%5D='
     );
+  });
+});
+
+describe('describeEndpointTarget', () => {
+  it('decodes the segments and query values a target carries', () => {
+    const target = endpointTarget('pc-na', ['matches', 'match/one?source=test'], {
+      'page[limit]': 10,
+      'filter[playerIds]': ['player-1', 'player-2'],
+    });
+
+    expect(describeEndpointTarget(target)).toEqual({
+      segments: ['shards', 'pc-na', 'matches', 'match/one?source=test'],
+      query: { 'page[limit]': '10', 'filter[playerIds]': 'player-1,player-2' },
+    });
+  });
+
+  it('describes a target without a query as an empty query', () => {
+    expect(describeEndpointTarget(endpointTarget('steam', ['players']))).toEqual({
+      segments: ['shards', 'steam', 'players'],
+      query: {},
+    });
+  });
+
+  it('round-trips the untrusted shard as a single segment', () => {
+    expect(
+      describeEndpointTarget(endpointTarget('steam/../matches' as any, ['players'])).segments
+    ).toEqual(['shards', 'steam/../matches', 'players']);
   });
 });

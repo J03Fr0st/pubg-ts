@@ -134,9 +134,9 @@ const vehicleInfo = client.assets.getVehicleInfo(vehicleId);
 const allMaps = client.assets.getAllMaps();
 const mapName = client.assets.getMapName('Baltic_Main');
 
-// Season data by platform
+// Season data by platform; Season Activity is read from the bundled dates at call time
 const pcSeasons = client.assets.getSeasonsByPlatform('PC');
-const currentSeason = client.assets.getCurrentSeason('PC');
+const activeSeason = client.assets.getActiveSeason('PC');
 
 // Survival titles with rating ranges
 const title = client.assets.getSurvivalTitle(1500);
@@ -179,11 +179,9 @@ DEBUG=pubg-ts:http,pubg-ts:cache node your-app.js
 ```
 
 Available debug namespaces:
-- `pubg-ts:http` - HTTP requests and responses
+- `pubg-ts:http` - HTTP requests, timing, and retries
 - `pubg-ts:cache` - Cache hits, misses, and operations
-- `pubg-ts:rate-limit` - Rate limiting events
 - `pubg-ts:client` - Client initialization and configuration
-- `pubg-ts:error` - Error handling and retries
 
 ### Rate Limiting
 
@@ -224,8 +222,8 @@ const client = new PubgClient({
   baseUrl: 'https://api.pubg.com', // optional
   assetBaseUrl: 'https://cdn.example.com/pubg', // optional, generated asset URLs only
   timeout: 10000, // optional, default 10s
-  retryAttempts: 3, // optional, default 3
-  retryDelay: 1000 // optional, default 1s
+  retryAttempts: 3, // optional, default 0 (no retries); only transient 5xx responses are retried
+  retryDelay: 1000 // optional, default 1s, doubled on each retry
 });
 ```
 
@@ -235,10 +233,8 @@ Check out the [examples](./examples/) directory for comprehensive usage examples
 
 - [`basic-usage.ts`](./examples/basic-usage.ts) - Simple API usage
 - [`advanced-usage.ts`](./examples/advanced-usage.ts) - Advanced features and error handling
-- [`asset-usage.ts`](./examples/asset-usage.ts) - Local Asset Catalog usage
-- [`modern-asset-usage.ts`](./examples/modern-asset-usage.ts) - Synchronous catalog patterns
-- [`synced-assets-usage.ts`](./examples/synced-assets-usage.ts) - Local catalog data with type safety
-- [`unified-assets-usage.ts`](./examples/unified-assets-usage.ts) - Client and standalone catalogs
+- [`asset-usage.ts`](./examples/asset-usage.ts) - Local Asset Catalog: typed IDs, search, seasons, image URLs
+- [`damage-info-usage.ts`](./examples/damage-info-usage.ts) - Working with Match Telemetry damage data
 
 ## Development
 
@@ -262,8 +258,14 @@ npm run check:fix
 
 ### Asset Data
 
-The package compiles its checked-in asset dictionaries into the local-only `AssetCatalog`. Building
-does not fetch or synchronize remote asset data.
+The checked-in JSON under `src/assets/` is the Asset Catalog's only source of truth; building does
+not fetch or synchronize remote asset data. The identifier types under `src/types/assets/` are
+generated from that JSON — after editing any bundled JSON, run:
+
+```bash
+npm run generate:asset-types
+npm run check:asset-types # verify generated types without writing files (also runs in CI)
+```
 
 ### Testing
 

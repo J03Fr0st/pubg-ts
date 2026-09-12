@@ -1,5 +1,5 @@
 import { PubgAssetError, PubgConfigurationError } from '../../src/errors';
-import { AssetCatalog, type AssetCatalogConfig } from '../../src/utils/assets/catalog';
+import { AssetCatalog } from '../../src/utils/assets/catalog';
 
 describe('AssetCatalog', () => {
   let catalog: AssetCatalog;
@@ -13,6 +13,25 @@ describe('AssetCatalog', () => {
   });
 
   describe('items', () => {
+    it.each([
+      'toString',
+      'constructor',
+      '__proto__',
+    ])('treats inherited key %s as unknown', (id) => {
+      expect(catalog.getItemInfo(id)).toBeNull();
+      expect(catalog.getVehicleInfo(id)).toBeNull();
+      for (const name of [
+        catalog.getItemName(id),
+        catalog.getVehicleName(id),
+        catalog.getMapName(id),
+        catalog.getDamageCauserName(id),
+        catalog.getDamageTypeCategory(id),
+        catalog.getGameModeName(id),
+      ]) {
+        expect(typeof name).toBe('string');
+      }
+    });
+
     it('uses local dictionary names and item category policy', () => {
       const item = catalog.getItemInfo('Item_Weapon_AK47_C');
 
@@ -57,10 +76,38 @@ describe('AssetCatalog', () => {
       }
     });
 
-    it('reuses derived item metadata within the catalog', () => {
+    it('returns caller-owned item metadata', () => {
       const first = catalog.getItemInfo('Item_Weapon_AK47_C');
+      expect(first).not.toBeNull();
+      first!.name = 'Edited by caller';
+      first!.category = 'edited';
+      expect(catalog.getItemInfo('Item_Weapon_AK47_C')).toMatchObject({
+        name: 'AKM',
+        category: 'weapon',
+      });
+      expect(catalog.getItemName('Item_Weapon_AK47_C')).toBe('AKM');
+    });
 
-      expect(catalog.getItemInfo('Item_Weapon_AK47_C')).toBe(first);
+    it.each(['category', 'search'])('isolates edits to %s results', (source) => {
+      const results =
+        source === 'category' ? catalog.getItemsByCategory('weapon') : catalog.searchItems('AKM');
+      const item = results.find((entry) => entry.id === 'Item_Weapon_AK47_C')!;
+      expect(item).toBeDefined();
+      item.name = 'Edited by caller';
+      item.category = 'edited';
+      expect(catalog.getItemInfo(item.id)).toMatchObject({ name: 'AKM', category: 'weapon' });
+      expect(catalog.searchItems('AKM')).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: item.id, name: 'AKM' })])
+      );
+      expect(catalog.getItemsByCategory('weapon')).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: item.id, name: 'AKM' })])
+      );
+    });
+
+    it('returns caller-owned vehicle metadata', () => {
+      const vehicle = catalog.getVehicleInfo('BP_Motorbike_04_C')!;
+      vehicle.name = 'Edited by caller';
+      expect(catalog.getVehicleInfo(vehicle.id)?.name).toBe('Motorcycle');
     });
   });
 
@@ -127,7 +174,25 @@ describe('AssetCatalog', () => {
 
     it('keeps platform validation in the catalog', () => {
       expect(() => catalog.getSeasonsByPlatform('INVALID' as any)).toThrow(PubgConfigurationError);
-      expect(() => catalog.getCurrentSeason(null as any)).toThrow(PubgConfigurationError);
+      expect(() => catalog.getActiveSeason(null as any)).toThrow(PubgConfigurationError);
+    });
+
+    it('resolves the active season from Season Activity at read time', () => {
+      jest.useFakeTimers().setSystemTime(new Date(2018, 0, 15));
+
+      expect(new AssetCatalog().getActiveSeason('PC')).toMatchObject({
+        id: 'division.bro.official.2018-01',
+        isActive: true,
+        isOffseason: false,
+      });
+
+      jest.setSystemTime(new Date(2030, 0, 1));
+
+      expect(new AssetCatalog().getActiveSeason('PC')).toMatchObject({
+        id: 'division.bro.official.pc-2018-19',
+        isActive: true,
+        isOffseason: true,
+      });
     });
 
     it('matches survival titles by rating range', () => {
@@ -186,14 +251,3 @@ describe('AssetCatalog', () => {
     });
   });
 });
-
-const validConfig: AssetCatalogConfig = { assetBaseUrl: 'https://cdn.example.test/pubg' };
-void validConfig;
-
-// @ts-expect-error v2 has no remote catalog version
-const versionConfig: AssetCatalogConfig = { version: 'latest' };
-// @ts-expect-error v2 derived caches are not caller-configurable
-const cacheConfig: AssetCatalogConfig = { cacheAssets: false };
-// @ts-expect-error v2 catalog data is always local
-const localDataConfig: AssetCatalogConfig = { useLocalData: false };
-void [versionConfig, cacheConfig, localDataConfig];

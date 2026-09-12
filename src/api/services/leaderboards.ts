@@ -31,11 +31,11 @@ export class Leaderboards {
    * ```
    */
   async getLeaderboard(query: LeaderboardQuery): Promise<LeaderboardResponse> {
-    const url = endpointTarget(this.shard, ['leaderboards', query.seasonId, query.gameMode], {
-      'page[limit]': query.pageSize,
-      'page[offset]': query.offset,
-    });
-
-    return this.transport.get<LeaderboardResponse>(url);
+    return this.transport.get<LeaderboardResponse>(
+      endpointTarget(this.shard, ['leaderboards', query.seasonId, query.gameMode], {
+        'page[limit]': query.pageSize,
+        'page[offset]': query.offset,
+      })
+    );
   }
 }

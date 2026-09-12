@@ -1,4 +1,4 @@
-import { createCacheKey, MemoryCache } from '../../src/utils/cache';
+import { createCacheKey, MemoryCache } from '../../../src/api/runtime/cache';
 
 describe('MemoryCache', () => {
   let cache: MemoryCache;

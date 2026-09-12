@@ -1,7 +1,7 @@
 import type { PubgClientConfig } from '../types/api';
 import { AssetCatalog } from '../utils/assets/catalog';
 import type { ClientHealth } from './client-health';
-import { ClientRuntime } from './client-runtime';
+import { ClientRuntime } from './runtime/client-runtime';
 import { Leaderboards } from './services/leaderboards';
 import { Matches } from './services/matches';
 import { Players } from './services/players';

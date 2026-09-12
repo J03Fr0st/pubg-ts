@@ -89,3 +89,6 @@ jobs:
 
       - name: Check formatting
         run: npm run check
+
+      - name: Check generated asset types
+        run: npm run check:asset-types

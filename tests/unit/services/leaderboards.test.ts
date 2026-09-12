@@ -1,21 +1,14 @@
-import type { EndpointTransport } from '../../../src/api/endpoint-transport';
 import { Leaderboards } from '../../../src/api/services/leaderboards';
 import type { LeaderboardResponse } from '../../../src/types';
+import { createTransportFake, requestedTarget } from './transport-fake';
 
 describe('Leaderboards', () => {
   let leaderboards: Leaderboards;
-  let transport: jest.Mocked<EndpointTransport>;
+  let transport: ReturnType<typeof createTransportFake>;
 
   beforeEach(() => {
-    transport = {
-      get: jest.fn(),
-    };
-
+    transport = createTransportFake();
     leaderboards = new Leaderboards(transport, 'pc-na');
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   describe('getLeaderboard', () => {
@@ -44,13 +37,15 @@ describe('Leaderboards', () => {
         gameMode: 'squad',
       });
 
-      expect(transport.get).toHaveBeenCalledWith('/shards/pc-na/leaderboards/season-1/squad');
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'leaderboards', 'season-1', 'squad'],
+        query: {},
+      });
       expect(result).toEqual(mockResponse);
     });
 
     it('should get leaderboard with pagination', async () => {
-      const mockResponse: LeaderboardResponse = { data: [] };
-      transport.get.mockResolvedValue(mockResponse);
+      transport.get.mockResolvedValue({ data: [] });
 
       await leaderboards.getLeaderboard({
         seasonId: 'season-1',
@@ -59,9 +54,10 @@ describe('Leaderboards', () => {
         offset: 20,
       });
 
-      expect(transport.get).toHaveBeenCalledWith(
-        '/shards/pc-na/leaderboards/season-1/squad?page%5Blimit%5D=10&page%5Boffset%5D=20'
-      );
+      expect(requestedTarget(transport)).toEqual({
+        segments: ['shards', 'pc-na', 'leaderboards', 'season-1', 'squad'],
+        query: { 'page[limit]': '10', 'page[offset]': '20' },
+      });
     });
   });
 });

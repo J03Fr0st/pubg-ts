@@ -1,3 +1,4 @@
+import { PubgNotFoundError } from '../../errors';
 import type { SeasonsResponse } from '../../types';
 import type { Shard } from '../../types/common';
 import { endpointTarget } from '../endpoint-query';
@@ -30,9 +31,10 @@ export class Seasons {
   }
 
   /**
-   * Get the current season.
+   * Get the season PUBG currently flags as the current one for this shard.
    *
    * @returns A promise that resolves with the current season data.
+   * @throws {@link PubgNotFoundError} When PUBG reports no current season for the shard.
    * @example
    * ```ts
    * const currentSeason = await pubg.seasons.getCurrentSeason();
@@ -43,7 +45,10 @@ export class Seasons {
     const currentSeason = seasons.data.find((season) => season.attributes.isCurrentSeason);
 
     if (!currentSeason) {
-      throw new Error('No current season found');
+      throw new PubgNotFoundError('No current season found', {
+        operation: 'current_season_lookup',
+        metadata: { shard: this.shard },
+      });
     }
 
     return {

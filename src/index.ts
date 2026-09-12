@@ -23,30 +23,16 @@ export type {
   RegionIdTiger_Main,
   WeatherId,
 } from './types/assets/enums';
-// Asset-specific types with prefixes to avoid conflicts
-export type {
-  ITEM_DICTIONARY,
-  ItemDictionary as AssetItemDictionary,
-  ItemId,
-} from './types/assets/items';
-export type {
-  MAP_DICTIONARY,
-  MapDictionary,
-  MapId,
-  MapName as AssetMapName,
-} from './types/assets/maps';
+// Asset identifier types generated from the bundled Asset Catalog data
+export type { ItemId } from './types/assets/items';
+export type { MapId, MapName as AssetMapName } from './types/assets/maps';
 export type {
   Platform as AssetPlatform,
-  SEASONS_DATA,
   SeasonAttributes as AssetSeasonAttributes,
   SeasonData,
   SeasonsData,
 } from './types/assets/seasons';
-export type {
-  VEHICLE_DICTIONARY,
-  VehicleDictionary as AssetVehicleDictionary,
-  VehicleId,
-} from './types/assets/vehicles';
+export type { VehicleId } from './types/assets/vehicles';
 export type {
   AssetCatalogConfig,
   EnhancedItemInfo,

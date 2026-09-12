@@ -11,12 +11,6 @@ export interface PubgClientConfig {
   retryDelay?: number;
 }
 
-export interface PubgClientOptions {
-  timeout?: number;
-  retryAttempts?: number;
-  retryDelay?: number;
-}
-
 export interface PlayerQuery {
   playerNames?: string[];
   playerIds?: string[];

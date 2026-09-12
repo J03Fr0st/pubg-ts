@@ -1,6 +1,5 @@
-// Generated asset types index
+// Generated from src/assets by scripts/generate-asset-types.js. Do not edit by hand.
 
-export * from './dictionaries';
 export * from './enums';
 export * from './items';
 export * from './maps';

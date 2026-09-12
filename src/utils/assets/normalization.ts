@@ -112,8 +112,16 @@ export function parseDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+/** Bundled end-date value marking a season that has no scheduled end (an open-ended offseason). */
+export const OFFSEASON_END_DATE = '00-00-0000';
+
+/** True when a bundled season end date means the season never closes. */
+export function isOffseasonEndDate(endDate: string): boolean {
+  return endDate === OFFSEASON_END_DATE;
+}
+
 export function isSeasonActive(startDate: string, endDate: string, now: Date): boolean {
-  if (endDate === '00-00-0000') return true;
+  if (isOffseasonEndDate(endDate)) return true;
 
   const start = parseDate(startDate);
   const end = parseDate(endDate);

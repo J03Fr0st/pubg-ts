@@ -7,10 +7,13 @@ export interface CacheEntry<T> {
 }
 
 export interface CacheOptions {
-  ttl?: number; // Time to live in milliseconds
-  maxSize?: number; // Maximum number of entries
+  /** Time to live in milliseconds for entries set without an explicit TTL. */
+  ttl?: number;
+  /** Maximum number of entries before the oldest is evicted. */
+  maxSize?: number;
 }
 
+/** In-memory response cache with per-entry TTL, FIFO eviction, and hit/miss statistics. */
 export class MemoryCache {
   private cache = new Map<string, CacheEntry<any>>();
   private defaultTtl: number;
@@ -19,18 +22,16 @@ export class MemoryCache {
   private misses = 0;
 
   constructor(options: CacheOptions = {}) {
-    this.defaultTtl = options.ttl ?? 5 * 60 * 1000; // 5 minutes default
+    this.defaultTtl = options.ttl ?? 5 * 60 * 1000;
     this.maxSize = options.maxSize ?? 1000;
   }
 
   set<T>(key: string, data: T, ttl?: number): void {
     const expiration = ttl ?? this.defaultTtl;
 
-    // Remove oldest entries if cache is full
     if (this.cache.size >= this.maxSize) {
       this.cleanup();
 
-      // If still full, remove oldest entry
       if (this.cache.size >= this.maxSize) {
         const oldestKey = this.cache.keys().next().value;
         if (oldestKey) {
@@ -134,29 +135,8 @@ export class MemoryCache {
       hitRate: total > 0 ? this.hits / total : 0,
     };
   }
-
-  async warm<T>(
-    warmingEntries: Array<{ key: string; value: () => Promise<T> }>,
-    ttl?: number
-  ): Promise<void> {
-    logger.cache(`Warming cache with ${warmingEntries.length} entries...`);
-    const promises = warmingEntries.map(async ({ key, value }) => {
-      if (!this.has(key)) {
-        try {
-          const data = await value();
-          this.set(key, data, ttl);
-        } catch (error) {
-          logger.error(`Failed to warm cache for key "${key}":`, error);
-        }
-      }
-    });
-
-    await Promise.all(promises);
-    logger.cache('Cache warming complete.');
-  }
 }
 
-// Cache key generators
 export const createCacheKey = (prefix: string, ...parts: (string | number)[]): string => {
   return `${prefix}:${parts.join(':')}`;
 };

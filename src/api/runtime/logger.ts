@@ -1,17 +1,15 @@
 import debug from 'debug';
 
-// Create different debug loggers for different components
 const createLogger = (namespace: string) => debug(`pubg-ts:${namespace}`);
 
+/** Debug loggers per runtime concern; enable with `DEBUG=pubg-ts:*`. */
 export const logger = {
   http: createLogger('http'),
-  rateLimit: createLogger('rate-limit'),
   cache: createLogger('cache'),
-  error: createLogger('error'),
   client: createLogger('client'),
 };
 
-// Performance timing utility
+/** Runs `fn` while logging its start, duration, and failure through `loggerFn`. */
 export const withTiming = async <T>(
   loggerFn: debug.Debugger,
   operation: string,
