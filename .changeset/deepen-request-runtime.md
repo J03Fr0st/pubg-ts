@@ -15,3 +15,5 @@ See MIGRATION.md for the v2 to v3 mapping.
 Protect catalog metadata with caller-owned copies and reject inherited dictionary properties.
 Return coherent rate-limit snapshots, distinguish adapter timeouts from connection failures, and
 reject dot-only Endpoint Target segments. Add a non-writing generated-type check to CI.
+
+Require Axios 1.20.0 or newer within v1 and refresh vulnerable transitive dependencies.
