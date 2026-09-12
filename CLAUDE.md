@@ -81,6 +81,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Asset Catalog
 - The checked-in JSON under `src/assets/` is the only source of Asset Catalog data; there is no asset sync or prebuild command.
 - `npm run generate:asset-types` - Regenerate the identifier types under `src/types/assets/` from that JSON. Run it after editing any bundled JSON.
+- `npm run check:asset-types` - Verify generated types without writing files; CI checks this projection.
 - `assetBaseUrl` controls generated image URLs only and never changes catalog data.
 
 ### Documentation
@@ -138,7 +139,7 @@ This is a TypeScript SDK for the PUBG API.
 
 ### Testing Strategy
 - **The interface is the test surface**: endpoint modules are tested through a transport fake (`tests/unit/services/transport-fake.ts`) and assert decoded Endpoint Targets, not encoded strings
-- **Runtime**: `tests/unit/runtime/client-runtime.test.ts` is the single harness for cache, dedup, retry, error mapping, Client Health, redaction, and the production adapters (real localhost servers, no axios module mocking)
+- **Runtime**: `tests/unit/runtime/client-runtime.test.ts` covers cache, dedup, retry, error mapping, Client Health, redaction, and production adapters. `runtime-contracts.test.ts` adds expiry and timeout regressions; both use real runtime collaborators and localhost servers for network behavior.
 - **Mocking**: `tests/__mocks__/axios.ts` is auto-applied to every test; files that need the real adapter start with `jest.unmock('axios')`
 - **Setup**: Common test setup in `tests/setup.ts`
 - **Integration**: `tests/integration/` runs only with `PUBG_API_KEY` set

@@ -4,14 +4,19 @@
  *
  * The JSON is the Asset Catalog's only source of truth; the generated types exist so callers get
  * IntelliSense for the same identifiers the runtime resolves. Run `npm run generate:asset-types`
- * after changing any bundled JSON, and never edit the generated files by hand.
+ * after changing any bundled JSON, and never edit the generated files by hand. `--check` verifies
+ * the same formatted output without writing files.
  */
-const { readdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { spawnSync } = require('node:child_process');
+const { existsSync, readdirSync, readFileSync, writeFileSync } = require('node:fs');
 const { basename, resolve } = require('node:path');
 
 const root = resolve(__dirname, '..');
 const assetsDir = resolve(root, 'src', 'assets');
 const outDir = resolve(root, 'src', 'types', 'assets');
+const checkOnly = process.argv.includes('--check');
+const biomeBin = require.resolve('@biomejs/biome/bin/biome');
+const staleFiles = [];
 
 const HEADER =
   '// Generated from src/assets by scripts/generate-asset-types.js. Do not edit by hand.\n\n';
@@ -35,7 +40,23 @@ const pascalCase = (kebab) =>
     .join('');
 
 const writeGenerated = (fileName, body) => {
-  writeFileSync(resolve(outDir, fileName), `${HEADER}${body}`, 'utf8');
+  const path = resolve(outDir, fileName);
+  // Format in memory so generation and verification agree without changing the checkout.
+  const formatted = spawnSync(process.execPath, [biomeBin, 'format', '--stdin-file-path', path], {
+    cwd: root,
+    input: `${HEADER}${body}`,
+    encoding: 'utf8',
+  });
+  if (formatted.error) throw formatted.error;
+  if (formatted.status !== 0) throw new Error(formatted.stderr || `Cannot format ${fileName}`);
+  if (checkOnly) {
+    const current = existsSync(path)
+      ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
+      : undefined;
+    if (current !== formatted.stdout) staleFiles.push(fileName);
+  } else {
+    writeFileSync(path, formatted.stdout, 'utf8');
+  }
 };
 
 const itemNames = readJson('dictionaries', 'item-id.json');
@@ -104,4 +125,13 @@ writeGenerated(
   ].join('\n')
 );
 
-console.log(`Generated asset types in ${outDir}`);
+if (staleFiles.length > 0) {
+  console.error(
+    `Stale generated asset types: ${staleFiles.join(', ')}. Run npm run generate:asset-types.`
+  );
+  process.exitCode = 1;
+} else {
+  console.log(
+    checkOnly ? 'Generated asset types are current.' : `Generated asset types in ${outDir}`
+  );
+}

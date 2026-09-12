@@ -1,3 +1,4 @@
+import { PubgValidationError } from '../errors';
 import type { Shard } from '../types/common';
 
 declare const endpointTargetBrand: unique symbol;
@@ -18,12 +19,19 @@ type EndpointQueryValue = string | number | readonly string[] | undefined;
  *
  * Absent and falsy scalar values (including `0`) are omitted; array values are joined with commas
  * and kept even when empty.
+ * @throws {@link PubgValidationError} When a segment is `.` or `..`, which URL resolution removes.
  */
 export const endpointTarget = (
   shard: Shard,
   pathSegments: readonly string[],
   query: Readonly<Record<string, EndpointQueryValue>> = {}
 ): EndpointTarget => {
+  // Even percent-encoded dots are normalized by URL parsers; reject navigation segments.
+  if ([shard, ...pathSegments].some((segment) => segment === '.' || segment === '..')) {
+    throw new PubgValidationError('Endpoint path segments cannot be dot-only navigation segments', {
+      operation: 'endpoint_target_validation',
+    });
+  }
   const path = `/shards/${encodeURIComponent(shard)}/${pathSegments
     .map(encodeURIComponent)
     .join('/')}`;

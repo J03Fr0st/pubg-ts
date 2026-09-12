@@ -43,31 +43,31 @@ describe('RateLimiter', () => {
     });
   });
 
-  describe('getRemainingRequests', () => {
+  describe('snapshot remaining', () => {
     it('should return correct remaining requests', async () => {
-      expect(rateLimiter.getRemainingRequests()).toBe(3);
+      expect(rateLimiter.snapshot().remaining).toBe(3);
 
       await rateLimiter.waitForSlot();
-      expect(rateLimiter.getRemainingRequests()).toBe(2);
+      expect(rateLimiter.snapshot().remaining).toBe(2);
 
       await rateLimiter.waitForSlot();
-      expect(rateLimiter.getRemainingRequests()).toBe(1);
+      expect(rateLimiter.snapshot().remaining).toBe(1);
 
       await rateLimiter.waitForSlot();
-      expect(rateLimiter.getRemainingRequests()).toBe(0);
+      expect(rateLimiter.snapshot().remaining).toBe(0);
     });
   });
 
-  describe('getResetTime', () => {
-    it('should return 0 when no requests made', () => {
-      expect(rateLimiter.getResetTime()).toBe(0);
+  describe('snapshot reset time', () => {
+    it('returns null when no requests were made', () => {
+      expect(rateLimiter.snapshot().resetAt).toBeNull();
     });
 
     it('should return correct reset time after requests', async () => {
       const start = Date.now();
       await rateLimiter.waitForSlot();
 
-      const resetTime = rateLimiter.getResetTime();
+      const resetTime = Date.parse(rateLimiter.snapshot().resetAt!);
       expect(resetTime).toBeGreaterThan(start);
       expect(resetTime).toBeLessThanOrEqual(start + 1000);
     });

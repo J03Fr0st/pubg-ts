@@ -1,6 +1,19 @@
 import { describeEndpointTarget, endpointTarget } from '../../src/api/endpoint-query';
+import { PubgValidationError } from '../../src/errors';
 
 describe('endpointTarget', () => {
+  it.each(['.', '..'])('rejects a dot-only identifier %s before URL resolution', (id) => {
+    expect(() => endpointTarget('steam', ['matches', id])).toThrow(PubgValidationError);
+  });
+
+  it('preserves ordinary dots and literal percent escapes on the resolved path', () => {
+    for (const id of ['match.one', '...', '%2E%2E']) {
+      const target = endpointTarget('steam', ['matches', id]);
+      const resolved = new URL(target, 'https://example.test').pathname.split('/');
+      expect(resolved).toHaveLength(5);
+      expect(decodeURIComponent(resolved[4])).toBe(id);
+    }
+  });
   it('builds a shard target from encoded path segments', () => {
     expect(endpointTarget('pc-na', ['players'])).toBe('/shards/pc-na/players');
     expect(endpointTarget('steam', ['matches', 'match/one?source=test'])).toBe(

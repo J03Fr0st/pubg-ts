@@ -264,6 +264,7 @@ generated from that JSON — after editing any bundled JSON, run:
 
 ```bash
 npm run generate:asset-types
+npm run check:asset-types # verify generated types without writing files (also runs in CI)
 ```
 
 ### Testing

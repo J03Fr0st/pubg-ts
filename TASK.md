@@ -1,5 +1,9 @@
 # Task List
 
+## 2026-09-12
+
+- [x] Apply the six architecture audit findings: own-property catalog lookup, caller-owned metadata, coherent rate-limit snapshots, timeout classification, dot-segment validation, and generated-type verification in CI. Verified build, 218 tests across 20 suites, Biome on 12 affected files, and the non-writing generation check.
+
 ## 2026-06-09
 
 - [x] Create approved architecture deepening design covering runtime observability, HTTP transaction mechanics, asset catalog, and endpoint query construction.

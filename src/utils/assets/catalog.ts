@@ -95,6 +95,10 @@ const GAME_MODE_NAMES: Record<string, string> = gameModeData;
 const SEASONS_BY_PLATFORM: Record<Platform, SeasonData[]> = seasonsData;
 const SURVIVAL_TITLES: Record<string, SurvivalTitleData> = survivalTitlesData;
 
+// Only bundled own properties are catalog entries; inherited object properties are unknown.
+const dictionaryName = (dictionary: Record<string, string>, id: string): string | undefined =>
+  Object.getOwnPropertyDescriptor(dictionary, id)?.value;
+
 const ITEM_IDS = Object.keys(ITEM_NAMES);
 const VEHICLE_IDS = Object.keys(VEHICLE_NAMES);
 const MAP_ENTRIES = Object.entries(MAP_NAMES);
@@ -108,7 +112,8 @@ const VALID_PLATFORMS = Object.keys(SEASONS_BY_PLATFORM) as Platform[];
  * {@link PubgConfigurationError}; `getActiveSeason` returns `null` when no season is active.
  * `getSurvivalTitle` rejects invalid ratings with {@link PubgAssetError} and returns `null` when
  * no title matches. Name lookups expect strings and do not validate malformed inputs; unknown
- * names fall back to a humanized or original identifier. Catalog reads never perform I/O.
+ * names fall back to a humanized or original identifier. Returned metadata records are caller-owned
+ * copies; editing them never changes the catalog. Catalog reads never perform I/O.
  */
 export class AssetCatalog {
   private readonly config: Required<AssetCatalogConfig>;
@@ -149,7 +154,7 @@ export class AssetCatalog {
   }
 
   getItemName(itemId: string): string {
-    return ITEM_NAMES[itemId] || humanizeItemId(itemId);
+    return dictionaryName(ITEM_NAMES, itemId) || humanizeItemId(itemId);
   }
 
   getItemInfo(itemId: string): EnhancedItemInfo | null {
@@ -170,11 +175,11 @@ export class AssetCatalog {
   }
 
   searchItems(query: string): EnhancedItemInfo[] {
-    return searchItems(this.itemSearchIndex, query);
+    return searchItems(this.itemSearchIndex, query).map((item) => ({ ...item }));
   }
 
   getVehicleName(vehicleId: string): string {
-    return VEHICLE_NAMES[vehicleId] || humanizeVehicleId(vehicleId);
+    return dictionaryName(VEHICLE_NAMES, vehicleId) || humanizeVehicleId(vehicleId);
   }
 
   getVehicleInfo(vehicleId: string): EnhancedVehicleInfo | null {
@@ -182,7 +187,7 @@ export class AssetCatalog {
   }
 
   getMapName(mapId: string): string {
-    return MAP_NAMES[mapId] || humanizeMapId(mapId);
+    return dictionaryName(MAP_NAMES, mapId) || humanizeMapId(mapId);
   }
 
   getAllMaps(): Array<{ id: string; name: string }> {
@@ -269,15 +274,15 @@ export class AssetCatalog {
   }
 
   getDamageCauserName(causerId: string): string {
-    return DAMAGE_CAUSER_NAMES[causerId] || causerId;
+    return dictionaryName(DAMAGE_CAUSER_NAMES, causerId) || causerId;
   }
 
   getDamageTypeCategory(damageType: string): string {
-    return DAMAGE_TYPE_CATEGORIES[damageType] || damageType;
+    return dictionaryName(DAMAGE_TYPE_CATEGORIES, damageType) || damageType;
   }
 
   getGameModeName(gameModeId: string): string {
-    return GAME_MODE_NAMES[gameModeId] || gameModeId;
+    return dictionaryName(GAME_MODE_NAMES, gameModeId) || gameModeId;
   }
 
   getAssetUrl(category: string, itemId: string, type: 'icon' | 'image' = 'icon'): string {
@@ -333,16 +338,16 @@ export class AssetCatalog {
 
     const cached = cache.get(id);
     if (cached) {
-      return cached;
+      return { ...cached };
     }
 
-    const name = dictionary[id];
+    const name = dictionaryName(dictionary, id);
     if (name === undefined) {
       return null;
     }
 
     const info = enrich(id, name);
     cache.set(id, info);
-    return info;
+    return { ...info };
   }
 }

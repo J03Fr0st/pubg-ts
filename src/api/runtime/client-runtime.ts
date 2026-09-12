@@ -129,6 +129,7 @@ const createAuthenticatedRequest = (apiKey: string, policy: RequestPolicy): Requ
   const instance = axios.create({
     baseURL: policy.baseUrl,
     timeout: policy.timeout,
+    transitional: { clarifyTimeoutError: true },
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: 'application/vnd.api+json',
@@ -155,7 +156,10 @@ const createTelemetryRequest = (): TelemetryRequestFunction => {
   let telemetryClient: AxiosInstance | undefined;
 
   return <T>(url: string, config?: AxiosRequestConfig) => {
-    telemetryClient ??= axios.create({ adapter: createTelemetryAdapter() });
+    telemetryClient ??= axios.create({
+      adapter: createTelemetryAdapter(),
+      transitional: { clarifyTimeoutError: true },
+    });
     return telemetryClient.request<T>({ ...config, method: 'get', url });
   };
 };
@@ -250,14 +254,9 @@ export class ClientRuntime implements MatchTransport {
   /** Returns a synchronous, redacted health snapshot for this client runtime. */
   getHealth(): ClientHealth {
     const { size, maxSize, hits, misses, hitRate } = this.cache.getStats();
-    const resetTime = this.rateLimiter.getResetTime();
     return this.health.snapshot(
       { size, maxSize, hits, misses, hitRate },
-      {
-        remaining: this.rateLimiter.getRemainingRequests(),
-        limit: this.rateLimiter.getLimit(),
-        resetAt: resetTime === 0 ? null : new Date(resetTime).toISOString(),
-      }
+      this.rateLimiter.snapshot()
     );
   }
 

@@ -11,3 +11,7 @@ Delete the dead surface and deepen the request runtime.
 - Consolidate the request runtime under `src/api/runtime/` with defaults resolved once at construction, and carry a branded `EndpointTarget` across the internal transport seam.
 
 See MIGRATION.md for the v2 to v3 mapping.
+
+Protect catalog metadata with caller-owned copies and reject inherited dictionary properties.
+Return coherent rate-limit snapshots, distinguish adapter timeouts from connection failures, and
+reject dot-only Endpoint Target segments. Add a non-writing generated-type check to CI.

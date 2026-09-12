@@ -369,6 +369,7 @@ describe('ClientRuntime construction', () => {
     expect(create).toHaveBeenCalledWith({
       baseURL: 'https://api.pubg.com',
       timeout: 10_000,
+      transitional: { clarifyTimeoutError: true },
       headers: {
         Authorization: 'Bearer test-api-key',
         Accept: 'application/vnd.api+json',

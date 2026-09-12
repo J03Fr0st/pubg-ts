@@ -20,6 +20,14 @@ no longer drift from what the catalog resolves at runtime.
 `debug` is now declared as a runtime dependency (the compiled package always imported it);
 `validator` is no longer installed.
 
+Item and vehicle metadata, including category and search results, are now caller-owned copies.
+Compare records by `id` rather than object identity. Editing a returned record no longer changes
+future catalog reads. Inherited object properties are treated as unknown identifiers.
+
+Dot-only endpoint identifiers (`.` and `..`) now raise `PubgValidationError` before a request is
+sent. Production request timeouts now report `PubgNetworkError.networkOperation === 'timeout'`
+instead of being classified as connection failures; telemetry errors remain redacted.
+
 ## Season lookups
 
 ```ts
